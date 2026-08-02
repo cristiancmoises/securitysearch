@@ -1,0 +1,195 @@
+# Quick-Apply Patches
+
+If you'd rather merge changes into your existing fork manually instead of
+replacing files wholesale, here are the smallest atomic patches grouped
+by risk level. Apply them in order; you can stop at any phase.
+
+---
+
+## 🔴 Tier 1 — Apply today, zero risk, high security value
+
+### 1. Captcha brute-force fix
+
+**File:** `lib/bot_protection.php`
+
+```diff
+@@ around line 133 @@
+ 			$answers[] = $regex;
+ 		}
+ 		
++		// dedup — prevents brute-force narrowing of the answer space
++		// (backported from upstream lolcat/4get @ 4349bf2)
++		$answers = array_unique($answers);
++		
+ 		if(
+ 			!$invalid &&
+ 			$key !== false // has captcha been gen'd?
+ 		){
+```
+
+### 2. Replace `robots.txt`
+
+Use the `robots.txt` from this update zip. It blocks:
+- All AI training bots (GPTBot, ClaudeBot, CCBot, Google-Extended, etc.)
+- Aggressive SEO scanners (Ahrefs, Semrush, MJ12)
+- Dynamic search endpoints from indexing (saves crawl budget + proxy bw)
+
+### 3. Replace `sitemap.php`
+
+Use the new `sitemap.php` — same five URLs but with dynamic `<lastmod>`
+based on filesystem mtime, plus `<changefreq>` and `<priority>` for each.
+
+---
+
+## 🟡 Tier 2 — Apply this week, requires testing
+
+### 4. Centralize security headers
+
+1. Drop the new files in: `lib/security_headers.php` and
+   `lib/security_headers_minimal.php`.
+
+2. In each existing entry point, **delete** the 5–7 inline `header(...)`
+   calls at the top, and **insert** one of these as the first line after
+   `<?php`:
+
+   ```php
+   include_once __DIR__ . "/lib/security_headers.php";   # HTML responses
+   ```
+   ```php
+   include_once __DIR__ . "/lib/security_headers_minimal.php";   # everything else
+   ```
+
+   HTML pages: `index.php`, `web.php`, `images.php`, `videos.php`,
+   `news.php`, `music.php`, `donate.php`, `about.php`, `instances.php`,
+   `settings.php`.
+
+   Minimal: `proxy.php`, `favicon.php`, `captcha.php`, `opensearch.php`,
+   `sitemap.php`, `ami4get.php`, `resolver.php`.
+
+3. Test in your browser dev tools that
+   `Content-Security-Policy: default-src 'none'; script-src 'self'; ...`
+   appears on all responses. **Tightest CSP change:** dropped
+   `'unsafe-inline'` from `script-src`. If something breaks, revert
+   `lib/security_headers.php` to use `script-src 'self' 'unsafe-inline'`.
+
+### 5. Update `template/home.html` `<head>`
+
+Replace lines 1–22 of your current file with the new `<head>` section
+(everything up through the closing `</script>` of the JSON-LD block).
+This adds:
+
+- Canonical URL.
+- Twitter Cards.
+- JSON-LD `WebSite` + `SearchAction` — Google sitelinks search box.
+- Better description and keywords.
+
+Verify on https://search.google.com/test/rich-results that the
+JSON-LD parses with no errors after deploy.
+
+---
+
+## 🟢 Tier 3 — Apply when you have time, infrastructure changes
+
+### 6. Hardened `Dockerfile`
+
+Replace your `Dockerfile`. Key changes:
+- Adds `php84-opcache` (~30–50% PHP perf win)
+- Adds `tini` PID 1 for zombie reaping
+- Tighter file permissions (`755` dirs, `644` files, `775` for `icons/`)
+- `HEALTHCHECK` directive
+- Hardened `php.ini` snippets (`expose_php=Off`, `allow_url_include=Off`)
+- Drops `EXPOSE 443` since NPM terminates TLS
+
+### 7. Hardened `docker-compose.yml`
+
+Big change: removes `ports:` mapping. After this update, the container
+is ONLY reachable through nginx-proxy-manager on the shared docker
+network. Steps to deploy safely:
+
+1. Find your NPM network name: `docker network ls | grep npm`.
+2. Edit `networks.npm.name` in the new `docker-compose.yml` to match.
+3. Make sure NPM's proxy host points to `security-search:80` (the
+   container name) instead of `host:5140`.
+4. `docker compose down && docker compose up -d`.
+
+If the container can't reach NPM, you'll see it in `docker compose logs`
+and you can roll back with the original `docker-compose.yml`.
+
+### 8. Apache config tightening
+
+The new `docker/apache/http/httpd.conf`:
+- Hides version (`ServerTokens Prod`)
+- Disables TRACE
+- Adds `mod_remoteip` so PHP sees real client IPs through NPM
+- Denies access to `/lib`, `/scraper`, `/oracles`, `/docker` (defense
+  in depth — they shouldn't be reachable but block them at Apache too)
+- `mod_deflate` for text content
+- `mod_expires` for static asset cache headers
+- `RequestReadTimeout` against Slowloris
+- Tuned MPM prefork values
+
+### 9. NPM advanced config
+
+See `docker/nginx-proxy-manager.conf`. Paste the contents into the
+"Advanced" tab of your NPM proxy host. Adds:
+- Edge-level caching (saves ~50% upstream load)
+- Per-IP rate limiting (30 req/min on search, 60 req/min on API)
+- Path blocks for known scanners
+- Real-IP forwarding to the upstream
+
+The `limit_req_zone` declarations need to live in NPM's main `nginx.conf`
+or `/data/nginx/custom/http_top.conf`. Instructions are at the bottom of
+the conf file.
+
+---
+
+## 🔵 Tier 4 — Upstream backports (review per-scraper)
+
+These are wholesale file replacements. Before each one, diff against
+your current version to see if you have any local changes:
+
+```bash
+diff scraper/google.php /path/to/upstream/scraper/google.php
+```
+
+Files in this update that are upstream-tracked (no fork-specific changes):
+
+- `lib/fuckhtml.php` — bug fixes (backslash escape counting, isset on null)
+- `scraper/brave.php` — debug code removal
+- `scraper/google.php` — heavy refactor, much leaner
+- `scraper/google_api.php` — adds image scraping
+- `scraper/yandex.php` — video fix
+- `scraper/yep.php` — image+news removed (always broke)
+- `scraper/pinterest.php` — bot-block detection
+- `scraper/qwant.php` — captcha-redirect detection
+
+Files NEW in this update (just drop them in `scraper/`):
+
+- `scraper/pexels.php`
+- `scraper/unsplash.php`
+- `scraper/pixabay.php`
+
+After replacing the scraper files, also update:
+
+- `lib/frontend.php` — remove `greppr`, `crowdview`, `curlie` from web
+  scraper registry; remove `yep` from images and news registries; add
+  `google_api`, `pexels`, `unsplash`, `pixabay` to images registry.
+  See `lib/frontend.php` in this update for the exact lines.
+
+- `settings.php` — same set of registry edits.
+
+---
+
+## Verification Checklist
+
+After applying any tier, run through these:
+
+- [ ] `docker compose logs security-search 2>&1 | grep -i error` — clean?
+- [ ] `curl -I https://securityops.co/` shows expected headers
+- [ ] `curl https://securityops.co/robots.txt` looks right
+- [ ] `curl https://securityops.co/sitemap | xmllint --noout -` parses OK
+- [ ] Search a query, verify results render
+- [ ] Click into image search, verify thumbnails proxy through OK
+- [ ] https://securityheaders.com/?q=securityops.co — should now grade A
+- [ ] https://search.google.com/test/rich-results — JSON-LD valid
+- [ ] https://www.ssllabs.com/ssltest/analyze.html?d=securityops.co — A or A+

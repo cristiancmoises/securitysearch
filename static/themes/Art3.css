@@ -1,0 +1,166 @@
+/* ─────────────────────────────────────────────
+   GLOBAL BACKGROUND
+───────────────────────────────────────────── */
+
+body{
+    background:#000000;
+    color:#f5e6a8; /* soft yellow */
+    text-shadow:0 0 4px rgba(245,230,168,.6);
+}
+
+/* ─────────────────────────────────────────────
+   FULL-SCREEN STATIC IMAGE OVERLAY
+───────────────────────────────────────────── */
+
+.home::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+
+    background-image:url("/static/misc/Art3.jpg");
+    background-repeat:no-repeat;
+    background-position:center center;
+    background-size:cover; /* FULL SCREEN */
+
+    pointer-events:none;
+    z-index:-1;
+    opacity:.65;
+
+    /* ABSOLUTELY STATIC */
+    animation:none;
+}
+
+/* ─────────────────────────────────────────────
+   MAIN CONTAINER
+───────────────────────────────────────────── */
+
+.home{
+    background:#000000;
+}
+
+/* ─────────────────────────────────────────────
+   CLEANUP
+───────────────────────────────────────────── */
+
+.web .answer::after{
+	display:none;
+}
+
+/* ─────────────────────────────────────────────
+   YELLOW THEME COLOR VARIABLES
+───────────────────────────────────────────── */
+
+:root{
+	/* background shades */
+	--bg-0: #000000;
+	--bg-1: #050402;
+	--bg-2: #0a0904;
+	--bg-3: #141207;
+	
+	/* font colors */
+	--text-soft: #f5e6a8;
+	--text-main: #ffefb0;
+	--text-strong: #fff3c4;
+	--text-muted: #cbbf86;
+	
+	/* code highlighter */
+	--comment: #b3a66b;
+	--default: #ffefb0;
+	--keyword: #ffe066;
+	--string: #fff1a8;
+	
+	/* semantic colors */
+	--yellow: #ffe066;
+	--orange: #ffcc66;
+	--red: #ff7777;
+}
+
+/* ─────────────────────────────────────────────
+   TABLES & PANELS
+───────────────────────────────────────────── */
+
+.web .wiki-head table,
+.about table,
+.web .info-table,
+.instances table{
+	background:#000000cc;
+    color:var(--text-main);
+    border:1px solid #3a330f;
+    box-shadow:0 0 12px rgba(255,224,102,.08);
+}
+
+/* alternating rows */
+.web .wiki-head tr:nth-child(odd),
+.about table tr:nth-child(odd),
+.web .info-table tr:nth-child(even),
+.nextpage,
+.spoiler-button,
+.instances tbody tr:nth-child(even){
+	background:#0a0904cc;
+    color:var(--text-main);
+}
+
+/* hover effect */
+.instances tbody tr:hover{
+	background:#141207cc;
+}
+
+/* ─────────────────────────────────────────────
+   WIKI FIXES (UNCHANGED)
+───────────────────────────────────────────── */
+
+.wiki-head .description{
+    overflow:initial !important;
+}
+
+.wiki-head .photo{
+    position:relative;
+}
+
+.wiki-head .photo::after{
+    content:"";
+    position:absolute;
+    width:100px;
+    height:100px;
+    background-size:contain;
+    background-repeat:no-repeat;
+    top:-61px;
+    left:-31px;
+    transform:rotate(310deg);
+}
+
+/* ─────────────────────────────────────────────
+   LINKS & INTERACTION
+───────────────────────────────────────────── */
+
+a{
+    color:#ffe066;
+    text-shadow:0 0 6px rgba(255,224,102,.7);
+}
+
+a:hover{
+    color:#fff3c4;
+    text-shadow:0 0 12px rgba(255,239,176,.9);
+}
+
+/* ─────────────────────────────────────────────
+   CODE BLOCKS
+───────────────────────────────────────────── */
+
+pre, code{
+    background:#000000;
+    color:var(--text-main);
+    border:1px solid #3a330f;
+    text-shadow:0 0 3px rgba(255,224,102,.6);
+}
+
+/* ─────────────────────────────────────────────
+   OPTIONAL: SMOOTHER FONTS
+───────────────────────────────────────────── */
+
+*{
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+}

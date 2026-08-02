@@ -1,0 +1,106 @@
+# Security Search — production docker-compose.
+#
+# Matches the existing deployment (host port 5140 -> container port 80,
+# bridge network) so NPM keeps reaching the container exactly as before.
+# Security hardening, healthcheck, and resource limits are layered on top
+# without changing the network model.
+
+services:
+  security-search:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: security-search:latest
+    container_name: security-search
+    restart: unless-stopped
+  #  init: true                  # tini already in image; belt-and-braces
+
+    environment:
+      - FOURGET_PROTO=http
+      - FOURGET_SERVER_NAME=Security Search
+      - FOURGET_SERVER_SHORT_DESCRIPTION=Privacy-first proxy search engine
+      - FOURGET_DEFAULT_THEME=SecurityOps
+      - FOURGET_API_ENABLED=true
+      - FOURGET_BOT_PROTECTION=0
+      - FOURGET_MAX_SEARCHES=10000
+      - FOURGET_INSTANCES=https://securityops.co
+      # Tells PHP that the front-facing protocol is HTTPS even though
+      # NPM hits us over HTTP.  Only meaningful behind a TLS terminator.
+      - HTTPS=on
+
+    # Same port mapping as the existing setup — NPM does not need to change.
+    ports:
+      - "0.0.0.0:5140:80"
+
+    networks:
+      - bridge
+
+    # ------------------------------------------------------------------
+    # Hardening — drop all kernel caps and re-add only what httpd needs.
+    # ------------------------------------------------------------------
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN              # apache drops privileges from root after start
+      - DAC_OVERRIDE       # read files owned by other UIDs
+      - SETUID
+      - SETGID
+      - NET_BIND_SERVICE   # bind to port 80
+
+    # ------------------------------------------------------------------
+    # Read-only root + writable tmpfs only where Apache/PHP need to write.
+    # If something breaks, comment out `read_only: true` and report which
+    # path failed in the logs.
+    # ------------------------------------------------------------------
+    read_only: false #true
+    tmpfs:
+      - /tmp:size=64M,mode=1777
+     # - /run:size=8M
+     # - /var/run:size=8M
+     # - /var/log/apache2:size=32M
+     # - /var/cache/mod_ssl:size=8M
+
+    volumes:
+      # Persist the favicon cache across container rebuilds — saves a
+      # lot of upstream calls.
+      - icons-cache:/var/www/html/4get/icons
+      # ---- OPTIONAL: uncomment any of these to mount host content ----
+      # - ./banners:/var/www/html/4get/banner:ro
+      # - ./static/themes:/var/www/html/4get/static/themes:ro
+      # - ./data/captcha:/var/www/html/4get/data/captcha:ro
+      # ---- HTTPS direct mode (not needed if behind NPM) ----
+      # - /etc/letsencrypt/live/securityops.co:/etc/4get/certs:ro
+
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+    # Cap log size so a runaway error doesn't fill the host disk.
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "security-search"
+
+volumes:
+  icons-cache:
+    driver: local
+
+networks:
+  bridge:
+    driver: bridge

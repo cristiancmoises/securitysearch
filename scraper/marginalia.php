@@ -1,0 +1,647 @@
+<?php
+
+class marginalia{
+	public function __construct(){
+		
+		include "lib/anubis.php";
+		$this->anubis = new anubis();
+		
+		include_once "lib/fuckhtml.php";
+		$this->fuckhtml = new fuckhtml();
+		
+		include "lib/backend.php";
+		$this->backend = new backend("marginalia");
+	}
+	
+	public function getfilters($page){
+		
+		if(config::MARGINALIA_API_KEY === null){
+			
+			$base = [
+				"adtech" => [
+					"display" => "Reduce adtech",
+					"option" => [
+						"no" => "No",
+						"yes" => "Yes"
+					]
+				],
+				"recent" => [
+					"display" => "Recent results",
+					"option" => [
+						"no" => "No",
+						"yes" => "Yes"
+					]
+				],
+				"intitle" => [
+					"display" => "Search in title",
+					"option" => [
+						"no" => "No",
+						"yes" => "Yes"
+					]
+				]
+			];
+		}else{
+			
+			$base = [];
+		}
+		
+		return array_merge(
+			$base,
+			[
+				"format" => [
+					"display" => "Format",
+					"option" => [
+						"any" => "Any format",
+						"html5" => "html5",
+						"xhtml" => "xhtml",
+						"html123" => "html123"
+					]
+				],
+				"file" => [
+					"display" => "Filetype",
+					"option" => [
+						"any" => "Any filetype",
+						"nomedia" => "Deny media",
+						"media" => "Contains media",
+						"audio" => "Contains audio",
+						"video" => "Contains video",
+						"archive" => "Contains archive",
+						"document" => "Contains document"
+					]
+				],
+				"javascript" => [
+					"display" => "Javascript",
+					"option" => [
+						"any" => "Allow JS",
+						"deny" => "Deny JS",
+						"require" => "Require JS"
+					]
+				],
+				"trackers" => [
+					"display" => "Trackers",
+					"option" => [
+						"any" => "Allow trackers",
+						"deny" => "Deny trackers",
+						"require" => "Require trackers"
+					]
+				],
+				"cookies" => [
+					"display" => "Cookies",
+					"option" => [
+						"any" => "Allow cookies",
+						"deny" => "Deny cookies",
+						"require" => "Require cookies"
+					]
+				],
+				"affiliate" => [
+					"display" => "Affiliate links in body",
+					"option" => [
+						"any" => "Allow affiliate links",
+						"deny" => "Deny affiliate links",
+						"require" => "Require affiliate links"
+					]
+				]
+			]
+		);
+	}
+	
+	private function get($proxy, $url, $get = [], $get_cookies = 1){
+		
+		$curlproc = curl_init();
+		
+		switch($get_cookies){
+			
+			case 0:
+				$cookies = "";
+				$cookies_tmp = [];
+				curl_setopt($curlproc, CURLOPT_HEADERFUNCTION, function($curlproc, $header) use (&$cookies_tmp){
+					
+					$length = strlen($header);
+					
+					$header = explode(":", $header, 2);
+					
+					if(trim(strtolower($header[0])) == "set-cookie"){
+						
+						$cookie_tmp = explode("=", trim($header[1]), 2);
+						
+						$cookies_tmp[trim($cookie_tmp[0])] =
+							explode(";", $cookie_tmp[1], 2)[0];
+					}
+					
+					return $length;
+				});
+				break;
+			
+			case 1:
+				$cookies = "";
+				break;
+			
+			default:
+				$cookies = "Cookie: " . $get_cookies;
+		}
+		
+		$headers = [
+			"User-Agent: " . config::USER_AGENT,
+			"Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+			"Accept-Language: en-US,en;q=0.5",
+			"Accept-Encoding: gzip",
+			"DNT: 1",
+			$cookies,
+			"Connection: keep-alive",
+			"Upgrade-Insecure-Requests: 1",
+			"Sec-Fetch-Dest: document",
+			"Sec-Fetch-Mode: navigate",
+			"Sec-Fetch-Site: none",
+			"Sec-Fetch-User: ?1"
+		];
+		
+		if($get !== []){
+			$get = http_build_query($get);
+			$url .= "?" . $get;
+		}
+		
+		curl_setopt($curlproc, CURLOPT_URL, $url);
+		
+		curl_setopt($curlproc, CURLOPT_ENCODING, ""); // default encoding
+		curl_setopt($curlproc, CURLOPT_HTTPHEADER, $headers);
+		
+		curl_setopt($curlproc, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curlproc, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($curlproc, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 30);
+		curl_setopt($curlproc, CURLOPT_TIMEOUT, 30);
+
+		$this->backend->assign_proxy($curlproc, $proxy);
+		
+		$data = curl_exec($curlproc);
+		
+		if(curl_errno($curlproc)){
+			
+			throw new Exception(curl_error($curlproc));
+		}
+		
+		if($get_cookies === 0){
+			
+			$cookie = [];
+			
+			foreach($cookies_tmp as $key => $value){
+				
+				$cookie[] = $key . "=" . $value;
+			}
+			
+			curl_close($curlproc);
+			return implode(";", $cookie);
+		}
+		
+		return $data;
+	}
+	
+	public function web($get, $ss = ""){
+		
+		$search = [$get["s"]];
+		if(strlen($get["s"]) === 0){
+			
+			throw new Exception("Search term is empty!");
+		}
+		
+		$format = $get["format"];
+		$file = $get["file"];
+		
+		foreach(
+			[
+				"javascript" => $get["javascript"],
+				"trackers" => $get["trackers"],
+				"cookies" => $get["cookies"],
+				"affiliate" => $get["affiliate"]
+			]
+			as $key => $value
+		){
+			
+			if($value == "any"){ continue; }
+			
+			switch($key){
+				
+				case "javascript": $str = "js:true"; break;
+				case "trackers": $str = "special:tracking"; break;
+				case "cookies": $str = "special:cookies"; break;
+				case "affiliate": $str = "special:affiliate"; break;
+			}
+			
+			if($value == "deny"){
+				$str = "-" . $str;
+			}
+			
+			$search[] = $str;
+		}
+		
+		if($format != "any"){
+			
+			$search[] = "format:$format";
+		}
+		
+		switch($file){
+			
+			case "any": break;
+			case "nomedia": $search[] = "-special:media"; break;
+			case "media": $search[] = "special:media"; break;
+			
+			default:
+				$search[] = "file:$file";
+		}
+		
+		$search = implode(" ", $search);
+		
+		$out = [
+			"status" => "ok",
+			"spelling" => [
+				"type" => "no_correction",
+				"using" => null,
+				"correction" => null
+			],
+			"npt" => null,
+			"answer" => [],
+			"web" => [],
+			"image" => [],
+			"video" => [],
+			"news" => [],
+			"related" => []
+		];
+		
+		// API scraper
+		if(config::MARGINALIA_API_KEY !== null){
+			
+			try{
+				$json =
+					$this->get(
+						$this->backend->get_ip(), // no nextpage
+						"https://api.marginalia-search.com/" . config::MARGINALIA_API_KEY . "/search/" . urlencode($search),
+						[
+							"count" => 20
+						]
+					);
+			}catch(Exception $error){
+				
+				throw new Exception("Failed to get JSON");
+			}
+			
+			if($json == "Slow down"){
+				
+				throw new Exception("The API key used is rate limited. Please try again in a few minutes.");
+			}
+			
+			$json = json_decode($json, true);
+			
+			foreach($json["results"] as $result){
+				
+				$out["web"][] = [
+					"title" => $result["title"],
+					"description" => str_replace("\n", " ", $result["description"]),
+					"url" => $result["url"],
+					"date" => null,
+					"type" => "web",
+					"thumb" => [
+						"url" => null,
+						"ratio" => null
+					],
+					"sublink" => [],
+					"table" => []
+				];
+			}
+			
+			return $out;
+		}
+		
+		// HTML parser
+		$proxy = $this->backend->get_ip();
+		
+		//
+		// Bypass anubis check
+		//
+		/*
+		if(($anubis_key = apcu_fetch("marginalia_cookie")) === false){
+			
+			try{
+				$html =
+					$this->get(
+						$proxy,
+						"https://old-search.marginalia.nu/search",
+						[
+							"query" => $search
+						]
+					);
+					
+			}catch(Exception $error){
+				
+				throw new Exception("Failed to get anubis challenge");
+			}
+			
+			try{
+				
+				$anubis_data = $this->anubis->scrape($html);
+			}catch(Exception $error){
+				
+				throw new Exception($error);
+			}
+			
+			// send anubis response & get cookies
+			// https://old-search.marginalia.nu/.within.website/x/cmd/anubis/api/pass-challenge?response=0000018966b086834f738bacba6031028adb5aa875974ead197a8b75778baf3a&nonce=39947&redir=https%3A%2F%2Fold-search.marginalia.nu%2F&elapsedTime=1164
+			
+			try{
+				
+				$anubis_key =
+					$this->get(
+						$proxy,
+						"https://old-search.marginalia.nu/.within.website/x/cmd/anubis/api/pass-challenge",
+						[
+							"response" => $anubis_data["response"],
+							"nonce" => $anubis_data["nonce"],
+							"redir" => "https://old-search.marginalia.nu/",
+							"elapsedTime" => random_int(1000, 2000)
+						],
+						0
+					);
+			}catch(Exception $error){
+				
+				throw new Exception("Failed to submit anubis challenge");
+			}
+			
+			apcu_store("marginalia_cookie", $anubis_key);
+		}*/
+		
+		if($get["npt"]){
+			
+			[$params, $proxy] =
+				$this->backend->get(
+					$get["npt"],
+					"web"
+				);
+			
+			try{
+				$html =
+					$this->get(
+						$proxy,
+						"https://old-search.marginalia.nu/search?" . $params,
+						[],
+						//$anubis_key
+					);
+			}catch(Exception $error){
+				
+				throw new Exception("Failed to get HTML");
+			}
+			
+		}else{
+			
+			if($ss == ""){
+				
+				$params = [
+					"query" => $search
+				];
+				
+				foreach(["adtech", "recent", "intitle"] as $v){
+					
+					if($get[$v] == "yes"){
+						
+						switch($v){
+							
+							case "adtech": $params["adtech"] = "reduce"; break;
+							case "recent": $params["recent"] = "recent"; break;
+							case "adtech": $params["searchTitle"] = "title"; break;
+						}
+					}
+				}
+			}else{
+				
+				$params = [];
+			}
+			
+			try{
+				$html =
+					$this->get(
+						$proxy,
+						"https://old-search.marginalia.nu/search" . $ss,
+						$params,
+						//$anubis_key
+					);
+			}catch(Exception $error){
+				
+				throw new Exception("Failed to get HTML");
+			}
+		}
+		
+		$this->fuckhtml->load($html);
+		
+		// detect meta redirect
+		$title =
+			$this->fuckhtml
+			->getElementsByTagName(
+				"title"
+			);
+		
+		if(
+			count($title) !== 0 &&
+			$this->fuckhtml
+			->getTextContent(
+				$title[0]
+			) == "Error"
+		){
+			
+			// redirect detected
+			
+			// get timeout
+			$timeout =
+				$this->fuckhtml
+				->getElementById(
+					"countdown",
+					"b"
+				);
+			
+			if(count($timeout) === null){
+				
+				throw new Exception("Failed to find timeout value");
+			}
+			
+			$timeout =
+				$this->fuckhtml
+				->getTextContent(
+					$timeout
+				);
+			
+			preg_match(
+				'/location\.replace\(\'([^\']+)\'\)/',
+				$html,
+				$redirect
+			);
+			
+			if(!isset($redirect[1])){
+				
+				throw new Exception("Failed to grep redirect value");
+			}
+			
+			$one = 1;
+			$redirect =
+				str_replace(
+					"/search",
+					"",
+					$redirect[1],
+					$one
+				);
+			
+			sleep((int)$timeout);
+			return $this->web($get, $redirect);
+		}
+		
+		$sections =
+			$this->fuckhtml
+			->getElementsByClassName(
+				"card search-result",
+				"section"
+			);
+		
+		foreach($sections as $section){
+			
+			$this->fuckhtml->load($section);
+			
+			$title =
+				$this->fuckhtml
+				->getElementsByClassName(
+					"title",
+					"a"
+				)[0];
+			
+			$description =
+				$this->fuckhtml
+				->getElementsByClassName(
+					"description",
+					"p"
+				);
+			
+			if(count($description) !== 0){
+				
+				$description =
+					$this->fuckhtml
+					->getTextContent(
+						$description[0]
+					);
+			}else{
+				
+				$description = null;
+			}
+			
+			$sublinks = [];
+			$sublink_html =
+				$this->fuckhtml
+				->getElementsByClassName("additional-results");
+			
+			if(count($sublink_html) !== 0){
+				
+				$this->fuckhtml->load($sublink_html[0]);
+				
+				$links =
+					$this->fuckhtml
+					->getElementsByTagName("a");
+				
+				foreach($links as $link){
+					
+					$sublinks[] = [
+						"title" =>
+							$this->fuckhtml
+							->getTextContent(
+								$link
+							),
+						"date" => null,
+						"description" => null,
+						"url" =>
+							$this->fuckhtml
+							->getTextContent(
+								$link["attributes"]["href"]
+							)
+					];
+				}
+			}
+			
+			$out["web"][] = [
+				"title" =>
+					$this->fuckhtml
+					->getTextContent(
+						$title
+					),
+				"description" => $description,
+				"url" =>
+					$this->fuckhtml
+					->getTextContent(
+						$title["attributes"]["href"]
+					),
+				"date" => null,
+				"type" => "web",
+				"thumb" => [
+					"url" => null,
+					"ratio" => null
+				],
+				"sublink" => $sublinks,
+				"table" => []
+			];
+		}
+		
+		// get next page
+		$this->fuckhtml->load($html);
+		
+		$pagination =
+			$this->fuckhtml
+			->getElementsByAttributeValue(
+				"aria-label",
+				"pagination",
+				"nav"
+			);
+		
+		if(count($pagination) === 0){
+			
+			// no pagination
+			return $out;
+		}
+		
+		$this->fuckhtml->load($pagination[0]);
+		
+		$pages =
+			$this->fuckhtml
+			->getElementsByClassName(
+				"page-link",
+				"a"
+			);
+		
+		$found_current_page = false;
+		
+		foreach($pages as $page){
+			
+			if(
+				stripos(
+					$page["attributes"]["class"],
+					"active"
+				) !== false
+			){
+				
+				$found_current_page = true;
+				continue;
+			}
+			
+			if($found_current_page){
+				
+				// we found current page index, and we iterated over
+				// the next page <a>
+				
+				$out["npt"] =
+					$this->backend->store(
+						parse_url(
+							$page["attributes"]["href"],
+							PHP_URL_QUERY
+						),
+						"web",
+						$proxy
+					);
+				break;
+			}
+		}
+		
+		return $out;
+	}
+}
+	

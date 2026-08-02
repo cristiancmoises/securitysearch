@@ -1,0 +1,59 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Backup files
+*.bak
+*.bak.*
+*.swp
+*.swo
+*~
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor/IDE state
+.idea
+.vscode
+*.code-workspace
+
+# Build artifacts
+banner_og/
+*.tar
+*.tar.gz
+*.zip
+
+# Documentation source
+docs/
+README.md
+MIGRATION.md
+
+# CI / dev tooling
+.github/
+.gitea/
+.forgejo/
+docker-compose.yaml
+docker-compose.yml
+
+# Test scaffolding referenced in upstream .gitignore
+lib/test.html
+lib/postdata.json
+lib/nextpage.json
+scraper/*.html
+scraper/*.json
+
+# Don't ship cached favicons into the image — they're a runtime artifact.
+icons/*
+!icons/.gitkeep
+
+# Local data / secrets
+data/captcha/birds/
+data/captcha/fumo_plushies/
+data/captcha/minecraft/
+data/proxies/proxies-*.txt
+data/api_keys/*.key
+.env
+.env.*

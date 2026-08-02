@@ -1,0 +1,199 @@
+/* ─────────────────────────────────────────────
+   HARD RESET — KILL ALL GLOW
+───────────────────────────────────────────── */
+
+*,
+*::before,
+*::after{
+    text-shadow:none !important;
+}
+
+/* ─────────────────────────────────────────────
+   GLOBAL BACKGROUND & FONT
+───────────────────────────────────────────── */
+
+body{
+    background:#000000;
+    color:#00ff88;
+
+    font-family:
+        "Iosevka Aile",
+        "Iosevka",
+        "Iosevka Term",
+        "JetBrains Mono",
+        "IBM Plex Mono",
+        "Fira Code",
+        monospace;
+
+    font-size:14px;
+    line-height:1.6;
+}
+
+/* ─────────────────────────────────────────────
+   CRT SCANLINES (SUBTLE, STATIC)
+───────────────────────────────────────────── */
+
+body::after{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:9999;
+
+    background:
+        repeating-linear-gradient(
+            to bottom,
+            rgba(0,0,0,.15),
+            rgba(0,0,0,.15) 1px,
+            rgba(0,0,0,0) 2px,
+            rgba(0,0,0,0) 4px
+        );
+
+    mix-blend-mode:overlay;
+    opacity:.25;
+}
+
+/* ─────────────────────────────────────────────
+   FULL-SCREEN MATRIX BACKGROUND
+───────────────────────────────────────────── */
+
+.home::before{
+    content:"";
+    position:fixed;
+    inset:0;
+
+    background-image:url("/static/misc/matrixxx.gif");
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:cover;
+
+    pointer-events:none;
+    z-index:-1;
+    opacity:.70;
+}
+
+/* ─────────────────────────────────────────────
+   MAIN CONTAINER
+───────────────────────────────────────────── */
+
+.home{
+    background:#000000;
+}
+
+/* ─────────────────────────────────────────────
+   CLEANUP
+───────────────────────────────────────────── */
+
+.web .answer::after{
+    display:none;
+}
+
+/* ─────────────────────────────────────────────
+   MATRIX COLOR VARIABLES
+───────────────────────────────────────────── */
+
+:root{
+    --bg-0:#000000;
+    --bg-1:#050805;
+    --bg-2:#0a120a;
+    --bg-3:#0f1f0f;
+
+    --fg-dim:#00aa55;
+    --fg-main:#00ff88;
+    --fg-bright:#aaffcc;
+
+    --green:#00ff66;
+    --green-hot:#00ff88;
+}
+
+/* ─────────────────────────────────────────────
+   TABLES & PANELS
+───────────────────────────────────────────── */
+
+.web .wiki-head table,
+.about table,
+.web .info-table,
+.instances table{
+    background:rgba(0,0,0,.85);
+    color:var(--fg-main);
+    border:1px solid #003b1f;
+}
+
+.web .wiki-head tr:nth-child(odd),
+.about table tr:nth-child(odd),
+.web .info-table tr:nth-child(even),
+.instances tbody tr:nth-child(even){
+    background:rgba(5,16,5,.9);
+}
+
+.instances tbody tr:hover{
+    background:rgba(10,31,10,.95);
+}
+
+/* ─────────────────────────────────────────────
+   WIKI FIXES
+───────────────────────────────────────────── */
+
+.wiki-head .description{
+    overflow:initial !important;
+}
+
+.wiki-head .photo{
+    position:relative;
+}
+
+.wiki-head .photo::after{
+    content:"";
+    position:absolute;
+    width:100px;
+    height:100px;
+    background-image:url("/static/misc/christmas-hat.png");
+    background-size:contain;
+    top:-61px;
+    left:-31px;
+    transform:rotate(310deg);
+}
+
+/* ─────────────────────────────────────────────
+   LINKS — LEGENDARY HOVER EFFECT
+───────────────────────────────────────────── */
+
+a,
+a *{
+    color:var(--green);
+    text-shadow:none !important;
+    text-decoration:none;
+    border-bottom:1px solid rgba(0,255,102,.25);
+    transition:
+        color .15s ease,
+        text-shadow .15s ease,
+        border-color .15s ease;
+}
+
+a:hover,
+a:hover *{
+    color:var(--fg-bright);
+    border-bottom-color:var(--green-hot);
+
+    text-shadow:
+        0 0 4px rgba(0,255,136,.75),
+        0 0 10px rgba(0,255,136,.55) !important;
+}
+
+/* ─────────────────────────────────────────────
+   CODE BLOCKS
+───────────────────────────────────────────── */
+
+pre,
+code{
+    background:#000000;
+    color:var(--fg-main);
+    border:1px solid #003b1f;
+
+    font-family:
+        "Iosevka Term",
+        "JetBrains Mono",
+        monospace;
+
+    font-size:.95em;
+}

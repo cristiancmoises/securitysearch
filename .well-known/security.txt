@@ -1,0 +1,4 @@
+Contact: mailto:sac@securityops.co
+Expires: 2027-01-17T12:00:00Z
+Preferred-Languages: en
+Canonical: https://securityops.co/.well-known/security.txt

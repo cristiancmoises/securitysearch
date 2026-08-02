@@ -1,0 +1,128 @@
+# robots.txt for Security Search (securityops.co)
+#
+# A metasearch engine should NOT have its dynamic search endpoints crawled —
+# it wastes proxy bandwidth, eats the captcha pool, and produces no useful
+# search results for the indexing engine. Only the public landing pages
+# are indexable.
+
+User-agent: *
+Allow: /$
+Allow: /about
+Allow: /instances
+Allow: /api.txt
+Allow: /opensearch
+Allow: /favicon.ico
+Allow: /favicon.png
+Allow: /robots.txt
+Allow: /sitemap
+Allow: /.well-known/
+
+# Don't waste crawl budget on dynamic / proxied content
+Disallow: /web
+Disallow: /images
+Disallow: /videos
+Disallow: /news
+Disallow: /music
+Disallow: /api/
+Disallow: /proxy
+Disallow: /resolver
+Disallow: /favicon
+Disallow: /captcha
+Disallow: /settings
+Disallow: /donate
+Disallow: /ami4get
+
+# ============================================================
+# Aggressive AI / LLM scrapers — block at the protocol level.
+# Anubis already filters most of these, this is defense-in-depth
+# and an explicit on-the-record opt-out.
+# ============================================================
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Perplexity-User
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: AwarioRssBot
+Disallow: /
+
+User-agent: AwarioSmartBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Timpibot
+Disallow: /
+
+User-agent: omgili
+Disallow: /
+
+User-agent: ICC-Crawler
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: cohere-training-data-crawler
+Disallow: /
+
+Sitemap: https://securityops.co/sitemap

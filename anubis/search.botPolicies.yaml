@@ -1,0 +1,343 @@
+# anubis.yaml — full updated configuration (forgejo-focused, hardened, proxy-aware)
+
+# ===== Bot rules =====
+bots:
+  # Deny pathological bots (Techaro defaults)
+  - import: (data)/bots/_deny-pathological.yaml
+
+  # Regional scrapers (Brazil-focused; adjust if not relevant)
+  - import: (data)/bots/aggressive-brazilian-scrapers.yaml
+
+  # Aggressive AI/LLM bots (swap to moderate/permissive if needed)
+  - import: (data)/meta/ai-block-aggressive.yaml
+  # - import: (data)/meta/ai-block-moderate.yaml
+  # - import: (data)/meta/ai-block-permissive.yaml
+
+  # Allow reputable crawlers (Google, Bing, DDG, Archive, etc.)
+  - import: (data)/crawlers/_allow-good.yaml
+
+  # Challenge Firefox AI link previews
+  - import: (data)/clients/x-firefox-ai.yaml
+
+  # Allow well-known routes (favicon, robots.txt, .well-known)
+  - import: (data)/common/keep-internet-working.yaml
+
+  # Relief for realistic browsers — place BEFORE deny/challenge UA rules
+  - name: realistic-browser-catchall
+    expression:
+      all:
+        - '"User-Agent" in headers'
+        - '( userAgent.contains("Firefox") ) || ( userAgent.contains("Chrome") ) || ( userAgent.contains("Safari") )'
+        - '"Accept" in headers'
+        - '"Sec-Fetch-Dest" in headers'
+        - '"Sec-Fetch-Mode" in headers'
+        - '"Sec-Fetch-Site" in headers'
+        - '"Accept-Encoding" in headers'
+        - '( headers["Accept-Encoding"].contains("zstd") || headers["Accept-Encoding"].contains("br") )'
+        - '"Accept-Language" in headers'
+    action: WEIGH
+    weight:
+      adjust: -10
+
+  # The Upgrade-Insecure-Requests header is often sent by real browsers
+  - name: upgrade-insecure-requests
+    expression: '"Upgrade-Insecure-Requests" in headers'
+    action: WEIGH
+    weight:
+      adjust: -2
+
+  # Chrome sanity checks — proper client hints
+  - name: chrome-is-proper
+    expression:
+      all:
+        - userAgent.contains("Chrome")
+        - '"Sec-Ch-Ua" in headers'
+        - 'headers["Sec-Ch-Ua"].contains("Chromium")'
+        - '"Sec-Ch-Ua-Mobile" in headers'
+        - '"Sec-Ch-Ua-Platform" in headers'
+    action: WEIGH
+    weight:
+      adjust: -5
+
+  # Missing Accept header is suspicious
+  - name: should-have-accept
+    expression: '!("Accept" in headers)'
+    action: WEIGH
+    weight:
+      adjust: 5
+
+  # Generic catchall — “Mozilla|Opera” gets slight weight (old spoofers)
+  - name: generic-browser
+    user_agent_regex: >-
+      Mozilla|Opera
+    action: WEIGH
+    weight:
+      adjust: 10
+
+  # Explicit deny for known bad User-Agents (narrow list to reduce false positives)
+  - name: deny-known-bad-uagents
+    user_agent_regex: (?i:semrushbot|curl|wget|python-urllib|scrapy|libwww-perl|^$)
+    action: DENY
+
+  # Challenge legacy/obsolete browsers instead of outright deny
+  - name: challenge-legacy-browsers
+    user_agent_regex: (?i:msie\s?[5-6]\.|opera/8\.|opera/9\.|safari/5\.)
+    action: CHALLENGE
+    challenge:
+      algorithm: fast
+      difficulty: 4
+
+# ===== DNSBL (disabled by default) =====
+dnsbl: false
+
+# ===== Open Graph passthrough =====
+openGraph:
+  enabled: false
+  considerHost: false
+  ttl: 24h
+
+# ===== HTTP status codes mapping =====
+status_codes:
+  CHALLENGE: 200
+  DENY: 200
+
+# ===== Storage backend =====
+store:
+  backend: memory
+  parameters: {}
+
+# ===== IP policies (datacenter ranges often used by bots; prefer stricter profiles over hard deny) =====
+ipPolicies:
+  whitelist:
+    - 127.0.0.1
+    - 10.0.0.0/8
+    - 172.16.0.0/12
+    - 192.168.0.0/16
+  blacklist:
+    # Example doc ranges (replace with your findings if you truly want hard blocks)
+    - 203.0.113.0/24
+    - 198.51.100.0/24
+  datacenterProfiles:
+    # DigitalOcean
+    - cidr: 104.131.0.0/16
+      profile: bots
+    - cidr: 159.203.0.0/16
+      profile: bots
+    - cidr: 167.99.0.0/16
+      profile: bots
+    - cidr: 134.209.0.0/16
+      profile: bots
+    - cidr: 174.138.0.0/16
+      profile: bots
+    - cidr: 142.93.0.0/16
+      profile: bots
+    # Vultr / Choopa
+    - cidr: 108.61.0.0/16
+      profile: bots
+    - cidr: 45.32.0.0/16
+      profile: bots
+    - cidr: 45.63.0.0/16
+      profile: bots
+    - cidr: 45.76.0.0/16
+      profile: bots
+    - cidr: 149.28.0.0/16
+      profile: bots
+    # Linode
+    - cidr: 172.104.0.0/16
+      profile: bots
+    - cidr: 139.162.0.0/16
+      profile: bots
+    - cidr: 45.33.0.0/16
+      profile: bots
+    # Hetzner
+    - cidr: 88.198.0.0/16
+      profile: bots
+    - cidr: 78.46.0.0/16
+      profile: bots
+    - cidr: 46.4.0.0/16
+      profile: bots
+    - cidr: 85.10.0.0/16
+      profile: bots
+    - cidr: 5.161.0.0/16
+      profile: bots
+    - cidr: 65.21.0.0/16
+      profile: bots
+    - cidr: 195.201.0.0/16
+      profile: bots
+    - cidr: 148.251.0.0/16
+      profile: bots
+    - cidr: 159.69.0.0/16
+      profile: bots
+    # OVH
+    - cidr: 51.68.0.0/16
+      profile: bots
+    - cidr: 51.77.0.0/16
+      profile: bots
+    - cidr: 51.79.0.0/16
+      profile: bots
+    - cidr: 91.121.0.0/16
+      profile: bots
+    - cidr: 91.134.0.0/16
+      profile: bots
+    - cidr: 213.186.33.0/24
+      profile: bots
+    - cidr: 54.36.0.0/14
+      profile: bots
+    # Scaleway / Online.net
+    - cidr: 51.15.0.0/16
+      profile: bots
+    - cidr: 163.172.0.0/16
+      profile: bots
+    - cidr: 62.210.0.0/16
+      profile: bots
+    - cidr: 195.154.0.0/16
+      profile: bots
+    # Leaseweb
+    - cidr: 95.211.0.0/16
+      profile: bots
+    - cidr: 62.212.64.0/18
+      profile: bots
+    - cidr: 198.7.0.0/16
+      profile: bots
+    # Contabo
+    - cidr: 161.97.0.0/16
+      profile: bots
+    - cidr: 194.163.0.0/16
+      profile: bots
+
+# ===== Request profiles =====
+requestProfiles:
+  default:
+    rateLimit: 120/minute
+  strict:
+    rateLimit: 30/minute
+  bots:
+    rateLimit: 15/minute
+  trusted:
+    rateLimit: 300/minute
+
+# ===== Rate limits =====
+rateLimits:
+  default: 120/minute
+  strict: 30/minute
+  bots: 15/minute
+  trusted: 300/minute
+  burstWindow: 10s
+
+# ===== Challenge policies (Forgejo paths tuned) =====
+challengePolicies:
+  paths:
+    - path: "/raw/"
+      difficulty: 6
+      rateLimitProfile: strict
+    - path: "/blame/"
+      difficulty: 5
+      rateLimitProfile: strict
+    - path: "/commits/"
+      difficulty: 5
+      rateLimitProfile: default
+    - path: "/src/"
+      difficulty: 4
+      rateLimitProfile: default
+    - path: "/api/"
+      difficulty: 5
+      rateLimitProfile: strict
+    - path: "/"
+      difficulty: 3
+      rateLimitProfile: default
+
+  methods:
+    - method: "GET"
+      difficultyOffset: 0
+    - method: "HEAD"
+      difficultyOffset: -1
+    - method: "POST"
+      difficultyOffset: +1
+    - method: "PUT"
+      difficultyOffset: +1
+    - method: "DELETE"
+      difficultyOffset: +2
+
+# ===== Origin policies (behind Cloudflare/Nginx Proxy Manager) =====
+originPolicies:
+  # Trust CF-Connecting-IP (Cloudflare real client IP)
+  - header: "CF-Connecting-IP"
+    trustIfPresent: true
+  # Also honor X-Forwarded-For set by Nginx Proxy Manager (left-most client IP)
+  - header: "X-Forwarded-For"
+    trustIfPresent: true
+
+# ===== Heuristics =====
+heuristics:
+  classifyBotsByUA: true
+  classifyBotsByRate: true
+  emptyUAIsBot: true
+  minChallengeIntervalMs: 250
+
+# ===== Challenge lifecycle =====
+challengeTTL:
+  duration: 120s
+  maxReuse: 1
+
+# ===== Logging =====
+logging:
+  level: INFO
+  format: json
+  redactHeaders:
+    - "Authorization"
+    - "Cookie"
+    - "X-API-Key"
+
+# ===== Responses =====
+responses:
+  onDeny:
+    status: 403
+    body: "Access denied by Anubis policy"
+  onBotRateExceeded:
+    status: 429
+    body: "Too many requests (bot profile)"
+  onChallengeIssued:
+    includeChallengeIdInLog: true
+
+# ===== Thresholds =====
+thresholds:
+  - name: minimal-suspicion
+    expression: weight <= 0
+    action: ALLOW
+
+  - name: mild-suspicion
+    expression:
+      all:
+        - weight > 0
+        - weight < 10
+    action: CHALLENGE
+    challenge:
+      algorithm: metarefresh
+      difficulty: 1
+
+  - name: moderate-suspicion
+    expression:
+      all:
+        - weight >= 10
+        - weight < 20
+    action: CHALLENGE
+    challenge:
+      algorithm: fast
+      difficulty: 2
+
+  - name: mild-proof-of-work
+    expression:
+      all:
+        - weight >= 20
+        - weight < 30
+    action: CHALLENGE
+    challenge:
+      algorithm: fast
+      difficulty: 4
+
+  - name: extreme-suspicion
+    expression: weight >= 30
+    action: CHALLENGE
+    challenge:
+      algorithm: fast
+      difficulty: 6

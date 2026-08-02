@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Security Search — Privacy-First Metasearch Engine</title>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Privacy-first metasearch engine. No tracking, no ads, no JavaScript required. Anonymous results from Google, DuckDuckGo, Brave, Yandex, Startpage & more.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#0a0a0c">
+<meta name="color-scheme" content="dark">
+<meta name="author" content="Cristian Cezar Moisés / SecurityOps">
+<meta name="keywords" content="privacy search, metasearch, anonymous search, proxy search, no-tracking search, secure search, SearxNG alternative, 4get instance, securityops">
+<meta name="generator" content="Security Search">
+
+<meta name="application-name" content="Security Search">
+<meta name="apple-mobile-web-app-title" content="Security Search">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<link rel="canonical" href="https://securityops.co/">
+<link rel="alternate" type="application/opensearchdescription+xml" title="Security Search" href="/opensearch{%ac%}">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+
+<!-- hreflang: 4get serves locale via the `lang` param / settings, not distinct paths.
+     The en/x-default tags are always valid. The pt-BR tag is valid ONLY if
+     https://securityops.co/?lang=pt-BR returns the localized page with a reciprocal
+     hreflang back to en. Remove the pt-BR line if you do not expose per-locale URLs. -->
+<link rel="alternate" hreflang="x-default" href="https://securityops.co/">
+<link rel="alternate" hreflang="en" href="https://securityops.co/">
+<link rel="alternate" hreflang="pt-BR" href="https://securityops.co/?lang=pt-BR">
+
+<meta property="og:site_name" content="Security Search">
+<meta property="og:title" content="Security Search — Privacy-first proxy search engine">
+<meta property="og:description" content="Anonymous metasearch with no tracking, no ads, no JavaScript required.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://securityops.co/">
+<meta property="og:image" content="https://securityops.co/banner/securitysearch.webp">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Security Search logo">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="pt_BR">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Security Search — Privacy-first proxy search">
+<meta name="twitter:description" content="Anonymous metasearch with no tracking, no ads, no JavaScript required.">
+<meta name="twitter:image" content="https://securityops.co/banner/securitysearch.webp">
+
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" href="/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="/favicon.png">
+
+<!-- Self-hosted font + LCP image preloads (no third-party requests). -->
+<link rel="preload" as="image" href="/banner/securitysearch.webp" fetchpriority="high">
+<link rel="preload" as="font" type="font/woff2" href="/static/fonts/jetbrains-mono-400.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="/static/fonts/jetbrains-mono-600.woff2" crossorigin>
+
+<link rel="stylesheet" href="/static/style.css?v{%version%}">
+{%style%}
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://securityops.co/#organization",
+      "name": "SecurityOps",
+      "url": "https://securityops.co/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://securityops.co/banner/securitysearch.webp",
+        "width": 1200,
+        "height": 630
+      },
+      "sameAs": [
+        "https://git.securityops.co/cristiancmoises",
+        "https://youtube.com/@securityops",
+        "https://wiki.securityops.co",
+        "https://codeberg.org/berkeley"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://securityops.co/#website",
+      "name": "Security Search",
+      "alternateName": "SecurityOps Search",
+      "url": "https://securityops.co/",
+      "description": "Privacy-first proxy metasearch engine maintained by SecurityOps.",
+      "inLanguage": ["en", "pt-BR"],
+      "publisher": { "@id": "https://securityops.co/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": { "@type": "EntryPoint", "urlTemplate": "https://securityops.co/web?s={search_term_string}" },
+        "query-input": "required name=search_term_string"
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://securityops.co/#app",
+      "name": "Security Search",
+      "url": "https://securityops.co/",
+      "applicationCategory": "UtilitiesApplication",
+      "operatingSystem": "Any",
+      "isPartOf": { "@id": "https://securityops.co/#website" },
+      "publisher": { "@id": "https://securityops.co/#organization" },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "featureList": [
+        "No tracking",
+        "No advertising",
+        "No JavaScript required",
+        "Tor onion service access",
+        "Aggregates Google, DuckDuckGo, Brave, Yandex, Startpage, Qwant and Mojeek",
+        "OpenSearch integration"
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+/* ============================================================
+   FONTS — self-hosted JetBrains Mono (privacy: no third party)
+   Weights actually used in the CSS: 400 / 500 / 600 / 700.
+   Drop these woff2 files into /static/fonts/.
+   ============================================================ */
+@font-face{
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/static/fonts/jetbrains-mono-400.woff2") format("woff2");
+}
+@font-face{
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/static/fonts/jetbrains-mono-500.woff2") format("woff2");
+}
+@font-face{
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("/static/fonts/jetbrains-mono-600.woff2") format("woff2");
+}
+@font-face{
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("/static/fonts/jetbrains-mono-700.woff2") format("woff2");
+}
+
+/* ============================================================
+   TOKENS
+   ============================================================ */
+body.home{
+    --fg:    #f1f1f5;
+    --fg-2:  #c8c8d0;
+    --fg-3:  #8c8c98;
+    --fg-4:  #7c7c86; /* raised from #5a5a66 -> WCAG AA (~4.9:1 on #0a0a0c) */
+
+    --net:   #5ce28a;
+    --tor:   #b794ff;
+    --warn:  #ffb454;
+
+    --glass-1: rgba(14,14,18,0.40);
+    --glass-2: rgba(14,14,18,0.55);
+    --glass-edge:   rgba(255,255,255,0.08);
+    --glass-edge-2: rgba(255,255,255,0.14);
+    --glass-blur:   blur(18px) saturate(160%);
+    --glass-shadow: 0 4px 30px rgba(0,0,0,0.18);
+
+    --fs-xs:  clamp(.62rem, .55rem + .2vw, .7rem);
+    --fs-sm:  clamp(.72rem, .66rem + .25vw, .8rem);
+    --fs-md:  clamp(.84rem, .76rem + .35vw, .94rem);
+    --fs-lg:  clamp(1rem,   .88rem + .5vw, 1.15rem);
+
+    background-color: #0a0a0c;
+    color: var(--fg);
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 400;
+    font-size: var(--fs-md);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+body.home a{ color: inherit; text-decoration: none; }
+body.home a:focus-visible{
+    outline: 1px solid var(--net);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* ============================================================
+   CHECKBOX HACK — drives the Services drawer with zero JS
+   (a tiny progressive-enhancement script adds keyboard support;
+    mouse operation works with JavaScript disabled)
+   ============================================================ */
+.services-cb{
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+}
+
+/* ============================================================
+   PAGE LAYOUT
+   ============================================================ */
+.home #center{
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: clamp(.7rem, 1.5vw, 1.2rem) clamp(.8rem, 2vw, 1.6rem);
+    gap: clamp(1rem, 2vw, 1.6rem);
+}
+
+/* ============================================================
+   TOP CORNER
+   ============================================================ */
+.corner{
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: .55rem;
+}
+.status-pill{
+    display: inline-flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .35rem .65rem;
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    background: var(--glass-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 999px;
+}
+.status-pill::before{
+    content: "";
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--net);
+    animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
+
+.btn-icon{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px; height: 36px;
+    color: var(--fg-2);
+    background: var(--glass-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.btn-icon:hover{
+    color: var(--net);
+    background: rgba(92,226,138,.08);
+    border-color: rgba(92,226,138,.3);
+}
+.btn-icon svg{ width: 16px; height: 16px; transition: transform .4s cubic-bezier(.4,.2,.2,1); }
+.btn-icon:hover svg{ transform: rotate(60deg); }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(1.4rem, 3vw, 2.4rem);
+    padding: clamp(1.5rem, 4vw, 3rem) 0;
+}
+.home .logo, .home .logo a, .home .logo img{
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+    display: block;
+    margin: 0;
+}
+.home .logo img{
+    max-width: min(420px, 75vw);
+    height: auto;
+    filter: drop-shadow(0 6px 20px rgba(0,0,0,.35));
+}
+
+.search-wrap{ width: 100%; max-width: 640px; }
+.home .searchbox{
+    display: flex;
+    align-items: center;
+    background: var(--glass-2);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 999px;
+    overflow: hidden;
+    box-shadow: var(--glass-shadow);
+    transition: border-color .2s, box-shadow .2s, transform .2s;
+}
+.home .searchbox:focus-within{
+    border-color: rgba(92,226,138,.45);
+    box-shadow: 0 8px 40px rgba(0,0,0,.25);
+    transform: translateY(-1px);
+}
+.home .searchbox::before{
+    content: ">";
+    color: var(--net);
+    font-weight: 700;
+    padding: 0 0 0 1.3rem;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.home .searchbox input{
+    flex: 1;
+    height: clamp(52px, 6vw, 60px);
+    padding: 0 1.1rem;
+    font: inherit;
+    font-size: var(--fs-md);
+    color: var(--fg);
+    background: transparent;
+    border: 0;
+    outline: 0;
+    min-width: 0;
+}
+.home .searchbox input::placeholder{ color: var(--fg-4); }
+.home .searchbox button{
+    height: 100%;
+    padding: 0 clamp(1.1rem, 2.5vw, 1.6rem);
+    background: transparent;
+    color: var(--fg-2);
+    border: 0;
+    border-left: 1px solid var(--glass-edge);
+    cursor: pointer;
+    font: inherit;
+    font-size: var(--fs-xs);
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    transition: background .15s, color .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    align-self: stretch;
+}
+.home .searchbox button:hover{ background: rgba(255,255,255,.06); color: var(--net); }
+.home .searchbox svg{ width: 13px; height: 13px; fill: currentColor; }
+
+.sub-hint{
+    margin-top: -.4rem;
+    font-size: var(--fs-xs);
+    color: var(--fg-4);
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    text-align: center;
+}
+.sub-hint::before{
+    content: "•";
+    margin-right: .5rem;
+    color: var(--net);
+}
+
+/* ============================================================
+   FEATURED — highlight tiles above the logo
+   ============================================================ */
+.featured{
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: .55rem;
+    width: 100%;
+    max-width: 780px;
+}
+.feat{
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: .18rem;
+    flex: 1 1 130px;
+    max-width: 170px;
+    padding: .7rem .9rem;
+    background: var(--glass-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 12px;
+    color: var(--fg);
+    text-decoration: none;
+    position: relative;
+    transition: transform .2s ease, border-color .2s, background .2s, box-shadow .2s;
+}
+.feat:hover{
+    transform: translateY(-2px);
+    border-color: rgba(92,226,138,.4);
+    background: rgba(92,226,138,.05);
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+.feat:focus-visible{
+    outline: 1px solid var(--net);
+    outline-offset: 2px;
+}
+.feat-name{
+    font-size: var(--fs-sm);
+    font-weight: 600;
+    color: var(--fg);
+    letter-spacing: -.005em;
+    line-height: 1.2;
+}
+.feat-tag{
+    font-size: .56rem;
+    color: var(--fg-3);
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+.feat-new{
+    border-color: rgba(92,226,138,.4);
+    border-top-color: rgba(92,226,138,.55);
+    background: linear-gradient(135deg, rgba(92,226,138,.10), var(--glass-1));
+}
+.feat-new::before{
+    content: "NEW";
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    padding: .14rem .45rem;
+    background: var(--net);
+    color: #0a0a0c;
+    font-size: .52rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+    border-radius: 999px;
+    box-shadow: 0 0 12px rgba(92,226,138,.55);
+}
+@media (max-width: 720px){
+    .feat{ flex: 1 1 calc(50% - .3rem); max-width: none; padding: .6rem .7rem; }
+}
+@media (max-width: 480px){
+    .feat{ flex: 1 1 calc(50% - .3rem); }
+    .feat-tag{ font-size: .52rem; letter-spacing: .12em; }
+}
+@media (prefers-reduced-motion: reduce){
+    .feat:hover{ transform: none; }
+}
+
+/* ============================================================
+   SERVICES DRAWER — pure CSS, driven by sibling checkbox
+   ============================================================ */
+.services{
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-height .4s cubic-bezier(.4,.0,.2,1),
+                opacity .25s ease,
+                margin-bottom .3s ease;
+    margin-bottom: 0;
+}
+.services-cb:checked ~ #center .services{
+    max-height: 2400px;
+    opacity: 1;
+    margin-bottom: .8rem;
+}
+
+.services-panel{
+    padding: 1rem;
+    background: var(--glass-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+}
+
+.services-grid{
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+    gap: .35rem .8rem;
+}
+.svc-group{ padding: .25rem .35rem; }
+.svc-group h2{
+    font-size: .58rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .22em;
+    color: var(--fg-4);
+    margin: 0 0 .35rem;
+    padding-bottom: .25rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.svc-item{
+    display: flex;
+    flex-direction: column;
+    gap: .1rem;
+    padding: .35rem 0;
+    border-bottom: 1px dashed rgba(255,255,255,0.04);
+}
+.svc-item:last-child{ border-bottom: none; }
+.svc-item-name{
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--fg);
+    letter-spacing: -.005em;
+}
+.svc-item-links{
+    display: flex;
+    flex-wrap: wrap;
+    gap: .15rem .6rem;
+    font-size: var(--fs-xs);
+}
+.svc-item-links a{
+    color: var(--fg-3);
+    display: inline-flex;
+    align-items: baseline;
+    gap: .35rem;
+    transition: color .15s, transform .15s;
+}
+.svc-item-links a:hover{ color: var(--fg); transform: translateX(1px); }
+.svc-item-links .tag{
+    font-size: .56rem;
+    font-weight: 700;
+    letter-spacing: .18em;
+}
+.svc-item-links .clearnet .tag{ color: var(--net); }
+.svc-item-links .tor      .tag{ color: var(--tor); }
+
+.services-foot{
+    margin-top: .9rem;
+    padding-top: .7rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    font-size: var(--fs-xs);
+    color: var(--fg-4);
+    flex-wrap: wrap;
+}
+.services-foot code{
+    color: var(--net);
+    background: rgba(92,226,138,.08);
+    padding: .05rem .3rem;
+    border-radius: 3px;
+}
+
+/* ============================================================
+   FOOTER STRIP
+   ============================================================ */
+.foot-strip{
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .65rem .9rem;
+    background: var(--glass-1);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-top-color: var(--glass-edge-2);
+    border-radius: 999px;
+    box-shadow: var(--glass-shadow);
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    flex-wrap: wrap;
+}
+.foot-strip .motto{
+    letter-spacing: .15em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+}
+
+.svc-toggle{
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .45rem .85rem;
+    font: inherit;
+    font-size: var(--fs-xs);
+    color: var(--fg-2);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--glass-edge);
+    border-radius: 999px;
+    cursor: pointer;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    user-select: none;
+    transition: color .15s, background .15s, border-color .15s;
+}
+.svc-toggle:hover{
+    color: var(--net);
+    background: rgba(92,226,138,.06);
+    border-color: rgba(92,226,138,.3);
+}
+.svc-toggle:focus-visible{
+    outline: 1px solid var(--net);
+    outline-offset: 2px;
+}
+.svc-toggle .chev{
+    width: 10px; height: 10px;
+    transition: transform .25s ease;
+}
+.services-cb:checked ~ #center .svc-toggle .chev{
+    transform: rotate(180deg);
+}
+.services-cb:focus-visible ~ #center .svc-toggle{
+    outline: 1px solid var(--net);
+    outline-offset: 2px;
+}
+
+.foot-ext{
+    display: inline-flex;
+    align-items: center;
+    gap: .9rem;
+    flex-wrap: wrap;
+}
+.foot-ext a{
+    color: var(--fg-3);
+    transition: color .15s;
+}
+.foot-ext a:hover{ color: var(--fg); }
+
+/* ============================================================
+   SOUNDTRACK — opt-in, no autoplay, no JS required
+   ============================================================ */
+.soundtrack{
+    position: relative;
+    display: inline-flex;
+}
+.soundtrack summary{
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-size: var(--fs-xs);
+    color: var(--fg-3);
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    transition: color .15s;
+}
+.soundtrack summary::-webkit-details-marker{ display: none; }
+.soundtrack summary::marker{ content: ""; }
+.soundtrack summary:hover,
+.soundtrack[open] summary{ color: var(--net); }
+.soundtrack summary:focus-visible{
+    outline: 1px solid var(--net);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+.soundtrack audio{
+    position: absolute;
+    bottom: calc(100% + .6rem);
+    right: 0;
+    width: min(260px, 70vw);
+    background: var(--glass-2);
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    border-radius: 999px;
+    box-shadow: var(--glass-shadow);
+}
+
+/* ============================================================
+   FALLBACKS & MOTION
+   ============================================================ */
+@supports not (backdrop-filter: blur(1px)){
+    .status-pill, .btn-icon, .foot-strip, .svc-toggle, .services-panel,
+    .home .searchbox, .feat{
+        background: rgba(14,14,18,0.9);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference){
+    .corner, .hero, .foot-strip{
+        animation: rise .5s cubic-bezier(.2,.7,.2,1) backwards;
+    }
+    .corner    { animation-delay: 0s; }
+    .hero      { animation-delay: .08s; }
+    .foot-strip{ animation-delay: .16s; }
+}
+@keyframes rise{
+    from{ opacity: 0; transform: translateY(6px); }
+    to  { opacity: 1; transform: translateY(0); }
+}
+
+/* Respect reduced-motion across every animation/transition (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 720px){
+    .services-grid{ grid-template-columns: 1fr; }
+    .foot-strip{ justify-content: center; }
+    .foot-strip .motto{ display: none; }
+}
+@media (max-width: 480px){
+    .status-pill{ display: none; }
+    .home .searchbox button .label{ display: none; }
+    .foot-ext{ width: 100%; justify-content: center; }
+}
+
+/* ============================================================
+   PRINT
+   ============================================================ */
+@media print{
+    body.home{ background: #fff !important; color: #000 !important; }
+    .corner, .foot-strip, audio{ display: none; }
+    .services{ max-height: none !important; opacity: 1 !important; overflow: visible !important; }
+    .services-panel, .home .searchbox, .feat{
+        background: #fff !important;
+        backdrop-filter: none !important;
+        border: 1px solid #ccc !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+</head>
+
+<body class="home">
+
+<!-- Hidden checkbox drives the drawer state. Must come BEFORE #center
+     so the sibling selector .services-cb:checked ~ #center can match.
+     Keyboard support + ARIA are layered on by the script at end of body;
+     with JS disabled the label still toggles it via mouse. -->
+<input type="checkbox" id="services-toggle" class="services-cb">
+
+<div id="center">
+
+    <!-- TOP CORNER -->
+    <div class="corner">
+        <span class="status-pill" aria-hidden="true">⏃⌰⍙⏃⊬⌇ ⏁⍀⎍⌇⏁ ⏃⌰⟟⟒⋏ ⏁⟒☊⊑⋏⍜⌰⍜☌⊬</span>
+        <a href="/settings" class="btn-icon" aria-label="Settings" title="Settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+            </svg>
+        </a>
+    </div>
+
+    <!-- HERO -->
+    <main class="hero">
+
+        <!-- FEATURED — highlight tiles ----------------------- -->
+        <nav class="featured" aria-label="Featured projects">
+            <a class="feat" href="https://yt.securityops.co">
+                <span class="feat-name">SecTube</span>
+                <span class="feat-tag">YouTube alternative</span>
+            </a>
+            <a class="feat" href="https://img.securityops.co">
+                <span class="feat-name">Binternet</span>
+                <span class="feat-tag">Pinterest alternative</span>
+            </a>
+            <a class="feat" href="https://libre.securityops.co">
+                <span class="feat-name">RedLib</span>
+                <span class="feat-tag">Reddit alternative</span>
+            </a>
+            <a class="feat" href="https://evelin.securityops.co">
+                <span class="feat-name">Evelin</span>
+                <span class="feat-tag">Post-quantum transport</span>
+            </a>
+            <a class="feat" href="https://zupt.securityops.co">
+                <span class="feat-name">Zupt</span>
+                <span class="feat-tag">Post-quantum backups</span>
+            </a>
+            <a class="feat feat-new" href="https://btp.securityops.co">
+                <span class="feat-name">BTP</span>
+                <span class="feat-tag">Post-quantum HTTPS</span>
+            </a>
+        </nav>
+
+        <h1 class="logo">
+            <a href="/"><img src="/banner/securitysearch.webp" alt="Security Search" width="1200" height="630" fetchpriority="high" decoding="async"></a>
+        </h1>
+
+        <div class="search-wrap">
+            <form method="GET" action="web" class="searchbox" autocomplete="off" role="search">
+                <input type="text" name="s" placeholder="Search the open web — anonymously…" required autofocus aria-label="Search query">
+                <button type="submit" aria-label="Run search">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2z"/>
+                    </svg>
+                    <span class="label">Search</span>
+                </button>
+            </form>
+            <p class="sub-hint">No tracking · No ads · No JavaScript required</p>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+
+        <!-- DRAWER -->
+        <div class="services" id="services">
+            <div class="services-panel">
+
+                <div class="services-grid">
+
+                    <div class="svc-group">
+                        <h2>Search &amp; Frontends</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Security Search</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://securityops.co"><span class="tag">NET</span>securityops.co</a>
+                                <a class="tor" href="http://secopsi47k4idy5pw3wrm2zkmn3d5ghaad3s7ulnrze3h53sbzzg5gad.onion"><span class="tag">TOR</span>secopsi47k4i…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Hacker News Fast</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://news.securityops.co"><span class="tag">NET</span>news.securityops.co</a>
+                                <a class="tor" href="http://secopss43hhdlot4xf7iinqknjdzjczrhnabgub3rjl3nrrwki26q6id.onion"><span class="tag">TOR</span>secopss43hhd…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Sec Tube · Videos</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://yt.securityops.co"><span class="tag">NET</span>yt.securityops.co</a>
+                                <a class="tor" href="http://secopsenznutinn7xhhpmqnsutbprf4ppefhznsmspa54x4kwx6olgqd.onion"><span class="tag">TOR</span>secopsenznut…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Redlib · Reddit alternative</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://libre.securityops.co"><span class="tag">NET</span>libre.securityops.co</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Binternet</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://img.securityops.co"><span class="tag">NET</span>img.securityops.co</a>
+                                <a class="tor" href="http://secopspz6zsdlmbkfjnvqlp4hdyvxtvutnfzesj5tf66u2vui2e7kvad.onion"><span class="tag">TOR</span>secopspz6zsd…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">WebCheck</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://scan.securityops.co"><span class="tag">NET</span>scan.securityops.co</a>
+                                <a class="tor" href="http://secopspqmua4vjdpkhuu6b3dh45o5t7bdch4wl2xadicpksbwi2xp2qd.onion"><span class="tag">TOR</span>secopspqmua4…</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="svc-group">
+                        <h2>Communication &amp; Storage</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Keywave Chat</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://chat.securityops.co"><span class="tag">NET</span>chat.securityops.co</a>
+                                <a class="tor" href="http://secopshnfap6cllndkzxf7345kjlbgqvfdkyrv6jfwkkfcwxtdfcqgid.onion"><span class="tag">TOR</span>secopshnfap6…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">SecChat</span>
+                            <div class="svc-item-links">
+                                <a class="tor" href="http://secops5qrrxmlsv3nezdyxc77v7cg57civtre6tqr2phk6uwvrxccjqd.onion"><span class="tag">TOR</span>secops5qrrxm…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">PrivateBin</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://paste.securityops.co"><span class="tag">NET</span>paste.securityops.co</a>
+                                <a class="tor" href="http://secopslhalclg4yet3mn6ftp25ncxsfrkrjsvkzfq4rrlxhf2zujbtyd.onion"><span class="tag">TOR</span>secopslhalc…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Passky</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://key.securityops.co"><span class="tag">NET</span>key.securityops.co</a>
+                                <a class="tor" href="http://secopsqofiycgsnq2oksndqed2bbeh5ggeskiuy6jet326mhnm6rc7id.onion"><span class="tag">TOR</span>secopsqofiyc…</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="svc-group">
+                        <h2>Dev &amp; Utilities</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Forgejo Git</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://git.securityops.co"><span class="tag">NET</span>git.securityops.co</a>
+                                <a class="tor" href="http://secopsrcfow4lzndhjsgetvwgxfc4h6citkc6alwy4tw7xluvjouytad.onion"><span class="tag">TOR</span>secopsrcfow4…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Berkeley Transport Protocol</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://btp.securityops.co"><span class="tag">NET</span>btp.securityops.co</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Evelin</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://evelin.securityops.co"><span class="tag">NET</span>evelin.securityops.co</a>
+                                <a class="tor" href="http://secopstui2t2ejnpescfnpgibth27qsnm3e43uq5bvajd7ain43oqaad.onion"><span class="tag">TOR</span>secopstui2t2…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Zupt</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://zupt.securityops.co"><span class="tag">NET</span>zupt.securityops.co</a>
+                                <a class="tor" href="http://secopsuwwht2unomwt3jofl33kfqsfd2z6cwip6rbqlapi7s4pys5vyd.onion"><span class="tag">TOR</span>secopsuwwht2…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Browser Extension</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://extension.securityops.co"><span class="tag">NET</span>extension.securityops.co</a>
+                                <a class="tor" href="http://secopsnpcd62nnfcwmacsioyu2iixymqbvdogaofj5rli2d6b2rxfpad.onion"><span class="tag">TOR</span>secopsnpcd62…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">BrutePass</span>
+                            <div class="svc-item-links">
+                                <a class="tor" href="http://secops4qalc6lakyov4bcegpxd3h4ywwcpv7vea2ifezkhijyw66eaad.onion"><span class="tag">TOR</span>secops4qalc6…</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">URL Shortener</span>
+                            <div class="svc-item-links">
+                                <a class="tor" href="http://secops6ajpd6ggqtqbcgesq3f6ma67lzti4xj5qdyv3yirtl2mzatvyd.onion"><span class="tag">TOR</span>secops6ajpd6…</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="svc-group">
+                        <h2>Infrastructure</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Security Ops OS</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://os.securityops.co"><span class="tag">NET</span>os.securityops.co</a>
+                                <a class="clearnet" href="https://guix.securityops.co/securityops.html"><span class="tag">NET</span>guix.securityops.co</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Wiki</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://wiki.securityops.co"><span class="tag">NET</span>wiki.securityops.co</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Network &amp; Monitoring</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://army.securityops.co"><span class="tag">NET</span>army · DNS</a>
+                                <a class="clearnet" href="https://ip.securityops.co"><span class="tag">NET</span>ip</a>
+                                <a class="clearnet" href="https://up.securityops.co"><span class="tag">NET</span>up · monitor</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="svc-group">
+                        <h2>External</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Repositories</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://git.securityops.co/cristiancmoises"><span class="tag">→</span>Git</a>
+                                <a class="clearnet" href="https://codeberg.org/berkeley"><span class="tag">→</span>Codeberg</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Channels</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://youtube.com/@securityops"><span class="tag">→</span>YouTube</a>
+                                <a class="clearnet" href="https://git.ajattix.org"><span class="tag">→</span>Ajattix · friend</a>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="services-foot">
+                    <span>All onions are 56-char v3 addresses, prefix <code>secops</code>.</span>
+                    <a href="https://wiki.securityops.co">Verify on wiki →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- STRIP -->
+        <div class="foot-strip">
+            <span class="motto"> · In Code We Trust · </span>
+
+            <!-- Clicking this label flips the hidden checkbox above. -->
+            <label for="services-toggle" class="svc-toggle" aria-controls="services" aria-expanded="false">
+                <span>Services</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polyline points="6 9 12 15 18 9"/>
+                </svg>
+            </label>
+
+            <nav class="foot-ext" aria-label="External">
+                <a href="https://wiki.securityops.co">Wiki</a>
+                <a href="https://git.securityops.co/cristiancmoises">Git</a>
+                <a href="/settings">Settings</a>
+                <details class="soundtrack">
+                    <summary aria-label="Play soundtrack">♪ Soundtrack</summary>
+                    <audio controls preload="none" aria-label="Security Search soundtrack">
+                        <source src="/static/misc/vendetta.mp3" type="audio/mpeg">
+                    </audio>
+                </details>
+            </nav>
+        </div>
+    </footer>
+
+</div><!-- /center -->
+
+<!-- Progressive enhancement: keyboard support + ARIA state for the Services
+     drawer. With JavaScript disabled, the <label> still toggles the checkbox
+     on mouse click and the page is fully functional. -->
+<script>
+(function () {
+  var cb = document.getElementById('services-toggle');
+  var tg = document.querySelector('.svc-toggle');
+  if (!cb || !tg) return;
+
+  // In JS mode the <label> becomes the single keyboard control.
+  cb.setAttribute('tabindex', '-1');
+  cb.setAttribute('aria-hidden', 'true');
+  tg.setAttribute('role', 'button');
+  tg.setAttribute('tabindex', '0');
+
+  function sync() { tg.setAttribute('aria-expanded', cb.checked ? 'true' : 'false'); }
+  sync();
+
+  cb.addEventListener('change', sync);
+  tg.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+      e.preventDefault();
+      cb.checked = !cb.checked;
+      sync();
+    }
+  });
+})();
+</script>
+</body>
+</html>

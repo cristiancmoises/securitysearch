@@ -1,0 +1,158 @@
+/* ─────────────────────────────────────────────
+   GLOBAL BACKGROUND
+───────────────────────────────────────────── */
+
+body{
+    background:#000000;
+    color:#ffffff;
+    text-shadow: 0 0 6px #ffd700;
+}
+
+/* ─────────────────────────────────────────────
+   FULL-SCREEN STATIC BACKGROUND (VALERIE)
+───────────────────────────────────────────── */
+
+.home::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    width:100%;
+    height:100%;
+    background-image:url("/static/misc/valerie.jpg");
+    background-repeat:no-repeat;
+    background-position:center center;
+    background-size:cover;
+
+    pointer-events:none;
+    z-index:-1;
+    opacity:.70;
+
+    animation:none;
+}
+
+/* ─────────────────────────────────────────────
+   MAIN CONTAINER
+───────────────────────────────────────────── */
+
+.home{
+    background:#000000;
+}
+
+/* ─────────────────────────────────────────────
+   CLEANUP
+───────────────────────────────────────────── */
+
+.web .answer::after{
+    display:none;
+}
+
+/* ─────────────────────────────────────────────
+   COLOR VARIABLES (WHITE / YELLOW)
+───────────────────────────────────────────── */
+
+:root{
+    /* background shades */
+    --1d2021: #000000;
+    --282828: #0a0a0a;
+    --3c3836: #121212;
+    --504945: #1a1a1a;
+
+    /* font colors */
+    --928374: #dddddd;
+    --a89984: #ffffff;
+    --bdae93: #fff7cc;
+    --8ec07c: #ffd700;
+    --ebdbb2: #fffbd6;
+
+    /* code highlighter */
+    --comment: #9a8f5a;
+    --default: #ffffff;
+    --keyword: #ffd700;
+    --string: #fff3a0;
+
+    /* semantic colors */
+    --green: #ffffff;  /* neutralized */
+    --yellow: #ffd700;
+    --red: #ff4466;
+}
+
+/* ─────────────────────────────────────────────
+   TABLES & PANELS
+───────────────────────────────────────────── */
+
+.web .wiki-head table,
+.about table,
+.web .info-table,
+.instances table{
+    background:#000000cc;
+    color:#ffffff;
+    border:1px solid #ffd70055;
+    box-shadow: 0 0 12px #ffd70033;
+}
+
+/* alternating rows */
+.web .wiki-head tr:nth-child(odd),
+.about table tr:nth-child(odd),
+.web .info-table tr:nth-child(even),
+.nextpage,
+.spoiler-button,
+.instances tbody tr:nth-child(even){
+    background:#111111cc;
+    color:#ffffff;
+}
+
+/* hover effect */
+.instances tbody tr:hover{
+    background:#1f1f1fcc;
+    box-shadow: inset 0 0 12px #ffd70066;
+}
+
+/* ─────────────────────────────────────────────
+   WIKI FIXES (UNCHANGED)
+───────────────────────────────────────────── */
+
+.wiki-head .description{
+    overflow:initial !important;
+}
+
+.wiki-head .photo{
+    position:relative;
+}
+
+.wiki-head .photo::after{
+    content:"";
+    position:absolute;
+    width:100px;
+    height:100px;
+    background-image:url("/static/misc/christmas-hat.png");
+    background-size:contain;
+    top:-61px;
+    left:-31px;
+    transform:rotate(310deg);
+}
+
+/* ─────────────────────────────────────────────
+   LINKS & INTERACTION
+───────────────────────────────────────────── */
+
+a{
+    color:#ffd700;
+    text-shadow:0 0 8px #ffd700;
+}
+
+a:hover{
+    color:#ffffff;
+    text-shadow:0 0 14px #fff3a0;
+}
+
+/* ─────────────────────────────────────────────
+   CODE BLOCKS
+───────────────────────────────────────────── */
+
+pre, code{
+    background:#000000;
+    color:#ffffff;
+    border:1px solid #ffd70055;
+    text-shadow:0 0 4px #ffd700;
+    box-shadow: inset 0 0 10px #ffd70033;
+}

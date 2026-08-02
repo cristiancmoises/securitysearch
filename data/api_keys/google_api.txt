@@ -1,0 +1,8 @@
+# Specify API keys for the Google API in the following format:
+# <key>
+#
+# Generate keys here:
+# https://developers.google.com/custom-search/v1/overview
+# Make sure to use a different Google account for each key, cause I'm
+# pretty sure the ratelimit is on a per-account basis :P
+#
