@@ -113,6 +113,10 @@ For a private pool, uncomment the optional read-only
 `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount and keep the
 untracked credential file restricted on the host.
 
+If the VPS has multiple routed addresses, `FOURGET_SOURCE_IP_GOOGLE` and
+`FOURGET_SOURCE_IP_BRAVE` bind direct requests to a specific assigned IPv4 or
+IPv6. This selects an existing local address; it is not a proxy.
+
 If the VPS egress address is rate-limited, set `FOURGET_PROXY_GOOGLE` (or
 `FOURGET_PROXY_BRAVE`) to the private pool name in the host environment and
 validate its address with `./scripts/check-egress.sh /path/to/pool.txt` before

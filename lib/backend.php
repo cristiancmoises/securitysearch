@@ -47,6 +47,14 @@ class backend{
 	
 	// this function is also called directly on nextpage
 	public function assign_proxy(&$curlproc, string $ip){
+		$source_scraper = $this->scraper === "google_cse" ? "GOOGLE" : strtoupper($this->scraper);
+		$source_constant = "config::SOURCE_IP_" . $source_scraper;
+		if(defined($source_constant)){
+			$source_ip = constant($source_constant);
+			if(is_string($source_ip) && $source_ip !== "" && filter_var($source_ip, FILTER_VALIDATE_IP)){
+				curl_setopt($curlproc, CURLOPT_INTERFACE, $source_ip);
+			}
+		}
 		
 		// parse proxy line
 		[

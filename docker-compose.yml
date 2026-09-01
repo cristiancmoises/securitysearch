@@ -34,6 +34,8 @@ services:
       # Compose passes these entries through only when they are defined.
       - FOURGET_PROXY_GOOGLE
       - FOURGET_PROXY_BRAVE
+      - FOURGET_SOURCE_IP_GOOGLE
+      - FOURGET_SOURCE_IP_BRAVE
       # Tells PHP that the front-facing protocol is HTTPS even though
       # NPM hits us over HTTP.  Only meaningful behind a TLS terminator.
       - HTTPS=on

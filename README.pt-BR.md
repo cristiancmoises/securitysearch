@@ -169,6 +169,10 @@ Para um pool privado, descomente o volume opcional somente leitura
 `./data/proxies:/var/www/html/4get/data/proxies:ro` no Compose. Mantenha o
 arquivo não rastreado com credenciais protegido no host; nunca o publique.
 
+Se a VPS tiver vários endereços roteados, `FOURGET_SOURCE_IP_GOOGLE` e
+`FOURGET_SOURCE_IP_BRAVE` vinculam requisições diretas a um IPv4 ou IPv6
+atribuído. Isso seleciona um endereço local existente; não é um proxy.
+
 Se o endereço de saída do VPS estiver limitado pelo Google, defina
 `FOURGET_PROXY_GOOGLE` (ou `FOURGET_PROXY_BRAVE`) com o nome do pool privado no
 ambiente do host e valide-o antes de recriar o serviço:

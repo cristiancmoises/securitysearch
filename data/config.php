@@ -26,8 +26,10 @@ class config {
 	const PROXY_YAHOO = false;
 	const PROXY_YAHOO_JAPAN = false;
 	const PROXY_BRAVE = false;
+	const SOURCE_IP_BRAVE = false;
 	const PROXY_FB = false;
 	const PROXY_GOOGLE = false;
+	const SOURCE_IP_GOOGLE = false;
 	const PROXY_GOOGLE_API = false;
 	const PROXY_GOOGLE_CSE = false;
 	const PROXY_MULLVAD_GOOGLE = true;

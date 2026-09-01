@@ -119,6 +119,11 @@ private proxy pool. For a container deployment, keep the reviewed
 read-only `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount.
 Do not commit secrets or include a private pool in a release archive.
 
+For hosts with multiple routed addresses, set `FOURGET_SOURCE_IP_GOOGLE` or
+`FOURGET_SOURCE_IP_BRAVE` to a validated local IPv4/IPv6 address. Direct
+requests are bound to that source address; this does not create a proxy or
+bypass upstream policy.
+
 ### VPS egress/IP recovery
 
 When Google rate-limits a datacenter address, change the address seen by the
