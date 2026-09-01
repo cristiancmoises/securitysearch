@@ -70,8 +70,8 @@ RUN set -eux; \
         php84-session php84-tokenizer php84-xml \
         curl tini ca-certificates \
         imagemagick imagemagick-webp imagemagick-jpeg && \
-  ln -sf /usr/bin/php84 /usr/bin/php && \    
-rm -rf /var/cache/apk/* /tmp/*
+    ln -sf /usr/bin/php84 /usr/bin/php && \
+    rm -rf /var/cache/apk/* /tmp/*
 
 # Copy app source. .dockerignore excludes .git, *.bak, docs, icons cache, etc.
 COPY . .

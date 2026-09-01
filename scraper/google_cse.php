@@ -5,10 +5,10 @@ class google_cse{
 	public const req_html = 0;
 	public const req_js = 1;
 	
-	public function __construct(){
+	public function __construct($backend_name = "google_cse"){
 		
 		include "lib/backend.php";
-		$this->backend = new backend("google_cse");
+		$this->backend = new backend($backend_name);
 		
 		include "lib/fuckhtml.php";
 		$this->fuckhtml = new fuckhtml();

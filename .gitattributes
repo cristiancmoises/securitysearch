@@ -1,0 +1,4 @@
+# Never ship obsolete bundles or editor recovery files in a source release.
+securitysearch.zip export-ignore
+*.bak export-ignore
+*.bak.* export-ignore

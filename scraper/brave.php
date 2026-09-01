@@ -219,7 +219,7 @@ class brave{
 			);
 		
 		$data = null;
-		foreach($script_disc as &$discs){
+		foreach($script_disc as $discs){
 			
 			if(
 				preg_match(
@@ -382,20 +382,21 @@ class brave{
 		
 		// load html
 		$this->fuckhtml->load($html);
+		$this->detect_captcha($html);
 		
 		/*
 			Get next page "token"
 		*/
 		$nextpage =
 			$this->fuckhtml
-			->getElementById(
+			->getElementsByClassName(
 				"pagination",
 				"div"
 			);
 		
-		if($nextpage){
+		if(count($nextpage) !== 0){
 			
-			$this->fuckhtml->load($nextpage);
+			$this->fuckhtml->load($nextpage[0]);
 			
 			$nextpage =
 				$this->fuckhtml
@@ -438,14 +439,7 @@ class brave{
 		// do some magic
 		$this->fuckhtml->load($html);
 		$data = $this->get_js();
-		
-		if(
-			isset($data[2]["data"]["title"]) &&
-			stripos($data[2]["data"]["title"], "PoW Captcha") !== false
-		){
-			
-			throw new Exception("Brave returned a PoW captcha");
-		}
+		$this->detect_challenge($data);
 		
 		if(!isset($data[1]["data"]["body"]["response"])){
 			
@@ -1174,6 +1168,7 @@ class brave{
 		
 		// load html
 		$this->fuckhtml->load($html);
+		$this->detect_captcha($html);
 		
 		// get npt
 		$out["npt"] =
@@ -1187,7 +1182,9 @@ class brave{
 			);
 		
 		$this->fuckhtml->load($html);
+		$this->detect_captcha($html);
 		$json = $this->get_js();
+		$this->detect_challenge($json);
 		
 		foreach(
 			$json[1]["data"]["body"]["response"]["news"]["results"]
@@ -1270,7 +1267,13 @@ class brave{
 		fclose($handle);*/
 		
 		$this->fuckhtml->load($html);
+		$this->detect_captcha($html);
 		$json = $this->get_js();
+		$this->detect_challenge($json);
+
+		if(!isset($json[1]["data"]["body"]["response"]["results"]) || !is_array($json[1]["data"]["body"]["response"]["results"])){
+			throw new Exception("Brave did not return an image result object");
+		}
 		
 		foreach(
 			$json[1]
@@ -1402,6 +1405,7 @@ class brave{
 		
 		$this->fuckhtml->load($html);
 		$json = $this->get_js();
+		$this->detect_challenge($json);
 		
 		foreach(
 			$json
@@ -1773,14 +1777,14 @@ class brave{
 		
 		$nextpage =
 			$this->fuckhtml
-			->getElementById(
+			->getElementsByClassName(
 				"pagination",
 				"div"
 			);
 		
-		if($nextpage){
+		if(count($nextpage) !== 0){
 			
-			$this->fuckhtml->load($nextpage);
+			$this->fuckhtml->load($nextpage[0]);
 			
 			$nextpage =
 				$this->fuckhtml
@@ -1852,5 +1856,45 @@ class brave{
 					)[0]
 				)
 			);
+	}
+
+	private function detect_captcha(){
+		$title =
+			$this->fuckhtml
+			->getElementsByTagName(
+				"title"
+			);
+
+		if(count($title) === 0){
+			if(strtolower($this->fuckhtml->getloadedhtml()) == "this service is not available in your region"){
+				throw new Exception("Brave rangebanned the IP range");
+			}
+
+			throw new Exception("Brave returned a malformed page");
+		}
+
+		$title = strtolower($this->fuckhtml->getTextContent($title[0]));
+		if($title == "human verification"){
+			throw new Exception("Brave returned a CAPTCHA");
+		}
+	}
+
+	private function detect_challenge($data){
+		foreach($data as $payload){
+			if(!isset($payload["data"]) || !is_array($payload["data"])){
+				continue;
+			}
+
+			if(isset($payload["data"]["challengeSet"])){
+				throw new Exception("Brave returned a proof-of-work challenge. Configure FOURGET_PROXY_BRAVE with a suitable proxy pool or select another scraper.");
+			}
+
+			if(
+				isset($payload["data"]["title"]) &&
+				stripos($payload["data"]["title"], "PoW Captcha") !== false
+			){
+				throw new Exception("Brave returned a proof-of-work challenge. Configure FOURGET_PROXY_BRAVE with a suitable proxy pool or select another scraper.");
+			}
+		}
 	}
 }

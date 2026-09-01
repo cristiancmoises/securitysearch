@@ -170,10 +170,10 @@ body.home{
     --tor:   #b794ff;
     --warn:  #ffb454;
 
-    --glass-1: rgba(14,14,18,0.40);
-    --glass-2: rgba(14,14,18,0.55);
-    --glass-edge:   rgba(255,255,255,0.08);
-    --glass-edge-2: rgba(255,255,255,0.14);
+    --glass-1: rgba(10,12,14,0.72);
+    --glass-2: rgba(10,12,14,0.84);
+    --glass-edge:   rgba(255,255,255,0.14);
+    --glass-edge-2: rgba(255,255,255,0.22);
     --glass-blur:   blur(18px) saturate(160%);
     --glass-shadow: 0 4px 30px rgba(0,0,0,0.18);
 
@@ -287,12 +287,25 @@ body.home a:focus-visible{
    HERO
    ============================================================ */
 .hero{
+    position: relative;
+    isolation: isolate;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: clamp(1.4rem, 3vw, 2.4rem);
     padding: clamp(1.5rem, 4vw, 3rem) 0;
+}
+.hero::before{
+    content: "";
+    position: absolute;
+    z-index: -1;
+    inset: -.8rem clamp(-.8rem, -2vw, -1.6rem);
+    background: linear-gradient(135deg, rgba(4,7,8,.82), rgba(10,12,14,.66));
+    border: 1px solid rgba(255,255,255,.06);
+    border-radius: 20px;
+    -webkit-backdrop-filter: blur(3px);
+    backdrop-filter: blur(3px);
 }
 .home .logo, .home .logo a, .home .logo img{
     background: transparent !important;
@@ -799,6 +812,14 @@ body.home a:focus-visible{
                 <span class="feat-name">BTP</span>
                 <span class="feat-tag">Post-quantum HTTPS</span>
             </a>
+            <a class="feat feat-new" href="https://gpt.securityops.co">
+                <span class="feat-name">SecurityOps IA</span>
+                <span class="feat-tag">Private AI workspace</span>
+            </a>
+            <a class="feat feat-new" href="https://securityops.com.br/">
+                <span class="feat-name">SecurityOps BR</span>
+                <span class="feat-tag">Portal &amp; courses</span>
+            </a>
         </nav>
 
         <h1 class="logo">
@@ -957,6 +978,14 @@ body.home a:focus-visible{
                     <div class="svc-group">
                         <h2>Infrastructure</h2>
                         <div class="svc-item">
+                            <span class="svc-item-name">SecurityOps Brasil</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="https://securityops.com.br/"><span class="tag">NET</span>securityops.com.br</a>
+                                <a class="clearnet" href="https://securityops.com.br/cursos/"><span class="tag">NET</span>cursos</a>
+                                <a class="clearnet" href="https://portfolio.securityops.co/"><span class="tag">NET</span>portfolio</a>
+                            </div>
+                        </div>
+                        <div class="svc-item">
                             <span class="svc-item-name">Security Ops OS</span>
                             <div class="svc-item-links">
                                 <a class="clearnet" href="https://os.securityops.co"><span class="tag">NET</span>os.securityops.co</a>
@@ -1021,6 +1050,7 @@ body.home a:focus-visible{
             <nav class="foot-ext" aria-label="External">
                 <a href="https://wiki.securityops.co">Wiki</a>
                 <a href="https://git.securityops.co/cristiancmoises">Git</a>
+                <a href="https://securityops.com.br/">Portal BR</a>
                 <a href="/settings">Settings</a>
                 <details class="soundtrack">
                     <summary aria-label="Play soundtrack">♪ Soundtrack</summary>

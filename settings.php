@@ -115,24 +115,24 @@ $settings = [
 				]
 			],
 			[
-				"description" => "Web",
+				"description" => "Web<br><i><b>Google</b> is the instance default. Choose <b>Brave</b> for an independent index, or save a preference to make either choice persistent.</i>",
 				"parameter" => "scraper_web",
 				"options" => [
 					[
-						"value" => "ddg",
-						"text" => "DuckDuckGo"
+						"value" => "google",
+						"text" => "Google (default)"
 					],
 					[
 						"value" => "brave",
 						"text" => "Brave"
 					],
 					[
-						"value" => "yandex",
-						"text" => "Yandex"
+						"value" => "ddg",
+						"text" => "DuckDuckGo"
 					],
 					[
-						"value" => "google",
-						"text" => "Google"
+						"value" => "yandex",
+						"text" => "Yandex"
 					],
 					[
 						"value" => "google_api",
@@ -193,9 +193,17 @@ $settings = [
 				]
 			],
 			[
-				"description" => "Images",
+				"description" => "Images<br><i><b>Google</b> is the instance default. <b>Brave</b> is available as a fast alternative for every image search.</i>",
 				"parameter" => "scraper_images",
 				"options" => [
+					[
+						"value" => "google",
+						"text" => "Google (default)"
+					],
+					[
+						"value" => "brave",
+						"text" => "Brave"
+					],
 					[
 						"value" => "ddg",
 						"text" => "DuckDuckGo"
@@ -203,14 +211,6 @@ $settings = [
 					[
 						"value" => "yandex",
 						"text" => "Yandex"
-					],
-					[
-						"value" => "brave",
-						"text" => "Brave"
-					],
-					[
-						"value" => "google",
-						"text" => "Google"
 					],
 					[
 						"value" => "google_cse",

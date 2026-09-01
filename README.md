@@ -4,6 +4,18 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
+## Current release: v0.9.0
+
+- Google is the default provider for web and image search.
+- Brave is available from the Scraper picker for web and image search.
+- Current SecurityOps links include the `.co` service network and the
+  [Brazil portal](https://securityops.com.br/), courses, and portfolio.
+- Provider behavior and configuration: [docs/PROVIDERS.md](docs/PROVIDERS.md).
+- Packaging, IONOS/Evelin deployment, verification, and rollback:
+  [docs/RELEASE.md](docs/RELEASE.md).
+- The release-quality improvement brief is available in
+  [docs/GOD_TIER_SEARCH_ENGINE_PROMPT.md](docs/GOD_TIER_SEARCH_ENGINE_PROMPT.md).
+
 This bundle is **complete and ready to deploy**. Same network model as the
 original (host port `5140` → container port `80` on a `bridge` network),
 so your nginx-proxy-manager configuration does not need to change.
@@ -13,10 +25,10 @@ so your nginx-proxy-manager configuration does not need to change.
 ## Quick deploy
 
 ```bash
-# On your VPS, in the directory you want to host the project:
-unzip security-search-update.zip -d security-search
-cd security-search
-./deploy.sh
+# On your VPS, after uploading the release tarball:
+tar -xzf securitysearch-v0.9.0.tar.gz
+cd securitysearch-v0.9.0
+./deploy.sh --fresh
 ```
 
 That's it. The script:
@@ -64,6 +76,8 @@ Summary of high-impact changes:
 | **Backports** | Upstream fixes for Google, Yandex, Yep, Pinterest, Qwant, SoundCloud, fuckhtml.php JSON parser. |
 | **Backports** | New image scrapers: Pexels, Unsplash, Pixabay. |
 | **Reliability** | Dockerfile has multi-mirror failover for Alpine apk fetches. Healthcheck. tini PID 1. |
+| **Providers** | Google is the production default for web/images through the bundled CSE-compatible transport; Brave is enabled and carries current upstream CAPTCHA/pagination handling. |
+| **UX** | Result-page navigation, provider status, keyboard focus, touch targets, and responsive layouts are improved without making JavaScript required. |
 
 ---
 

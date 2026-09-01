@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 	<head>
-		<meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+		<meta charset="utf-8">
 		<title>{%title%}</title>
 		<link title="​{%server_name%}" href="/opensearch{%ac%}" rel="search" type="application/opensearchdescription+xml">
 		<link rel="stylesheet" href="/static/style.css?v{%version%}">
@@ -12,22 +12,24 @@
 		<meta name="description" content="{%server_name%}: {%description%}">
 	</head>
 	<body>
-		<div class="navigation">
+		<nav class="navigation" aria-label="Primary navigation">
 			<a href="/">Home</a>
 			<a href="/settings">Settings</a>
-			<a href="https://wiki.securityops.co" target="_BLANK">News</a>
-		</div>
-		<form method="GET" autocomplete="off">
+			<a href="https://wiki.securityops.co" target="_blank" rel="noreferrer">News</a>
+			<a href="https://securityops.com.br/" target="_blank" rel="noreferrer">Portal BR</a>
+		</nav>
+		<form method="GET" autocomplete="off" role="search" aria-label="Search Security Search">
 			<div class="searchbox">
 				<input type="submit" value="Search" tabindex="-1">
 				<div class="wrapper">
-					<input type="text" value="{%search%}" maxlength="500" name="s" placeholder="Proxy search..." required>
+					<input type="text" value="{%search%}" maxlength="500" name="s" placeholder="Search with Google by default…" required autofocus enterkeyhint="search" aria-label="Search query">
 				</div>
 				<div class="autocomplete"></div>
 			</div>
-			<div class="tabs">
+			<p class="provider-status">Google default <span aria-hidden="true">·</span> Brave available in Scraper</p>
+			<nav class="tabs" aria-label="Search types">
 				{%tabs%}
-			</div>
+			</nav>
 			<div class="filters">
 				{%filters%}
 			</div>

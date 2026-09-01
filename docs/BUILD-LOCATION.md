@@ -1,31 +1,30 @@
 # Where to build
 
-**Short answer: build on the VPS.** Don't build on your Mint laptop unless
-you're testing locally — the image you built there can't run on the VPS
-without a registry push or `docker save | docker load` transfer.
+**Short answer: build on the VPS.** Build locally only for testing or when you
+intend to transfer an image with Evelin; a local image does not appear on the
+IONOS host by itself.
 
 ---
 
 ## Recommended workflow
 
-### From Mint, push source to VPS, build there:
+### From a workstation, upload a release and build on the VPS
 
 ```bash
-# On Mint (one time)
-ssh-copy-id root@your-vps      # if you haven't already
+# Create a source release from a clean, committed revision.
+./release.sh 0.9.0
 
-# Push the project
-rsync -avz --delete \
-    --exclude='.git' \
-    --exclude='icons/*' \
-    --exclude='*.tgz' \
-    ~/Downloads/security-search-update/ \
-    root@your-vps:/root/security-search/
+# Upload with the approved Evelin profile.
+ev --config ~/.evelin/client.toml cp \
+  dist/securitysearch-v0.9.0.tar.gz \
+  remote:/tmp/securitysearch-v0.9.0.tar.gz
 
-# Build & deploy on VPS
-ssh root@your-vps
-cd /root/security-search
-./deploy.sh
+# Open the IONOS VPS shell, unpack and deploy there.
+ev --config ~/.evelin/client.toml shell
+mkdir -p /opt/securitysearch/releases
+tar -xzf /tmp/securitysearch-v0.9.0.tar.gz -C /opt/securitysearch/releases
+cd /opt/securitysearch/releases/securitysearch-v0.9.0
+./deploy.sh --fresh
 ```
 
 This is the simplest setup. The VPS pulls Alpine packages directly from
@@ -34,23 +33,25 @@ Mint's docker daemon might have.
 
 ---
 
-## If you really want to build on Mint and ship the image
+## If you really want to build locally and ship the image
 
 ```bash
-# On Mint
-cd ~/Downloads/security-search-update
+# On the workstation
+cd /path/to/securitysearch-v0.9.0
 docker compose build
 
 # Save the built image to a tarball
 docker save security-search:latest | gzip > security-search-image.tar.gz
 
-# Transfer to VPS
-scp security-search-image.tar.gz root@your-vps:/tmp/
+# Transfer to the IONOS VPS
+ev --config ~/.evelin/client.toml cp \
+    security-search-image.tar.gz \
+    remote:/tmp/security-search-image.tar.gz
 
-# On VPS — load and run
-ssh root@your-vps
+# On the IONOS VPS — load and run
+ev --config ~/.evelin/client.toml shell
 docker load < /tmp/security-search-image.tar.gz
-cd /root/security-search          # must already have docker-compose.yml + Dockerfile
+cd /opt/securitysearch/releases/securitysearch-v0.9.0
 docker compose up -d              # uses the loaded image, doesn't rebuild
 ```
 
@@ -62,7 +63,7 @@ most VPS connections.
 ## Local-only testing on Mint (without touching the VPS)
 
 ```bash
-cd ~/Downloads/security-search-update
+cd /path/to/securitysearch-v0.9.0
 docker compose up -d
 curl -I http://127.0.0.1:5140/
 ```

@@ -3,7 +3,13 @@
 // noJS but requires login/cookie token
 // https://www.google.com/search?q=asmr&tbm=isch&asearch=arc&async=arc_id:srp_a,ffilt:all,ve_name:MoreResultsContainer,use_ac:false,inf:0,_id:arc-srp_a,_pms:s,_fmt:pc
 
-class google{
+/*
+	The upstream direct Google scraper now requires a separately operated 4play
+	renderer. Keep the implementation here for installations that provide one,
+	but expose the reliable, self-contained CSE transport as this instance's
+	default Google provider below.
+*/
+class google_renderer{
 	
 	public function __construct(){
 		
@@ -13,7 +19,7 @@ class google{
 		include "lib/backend.php";
 		$this->backend = new backend("google");
 		
-		$this->message = "Still working on a Google scraper that uses a headful browser. It will require Firefox + a webExtension running on a dedicated server. Waiting for my EDID adapter and we can get the show going. In the meantime, use the Google CSE/API or Yahoo JP/Startpage scrapers. They're all crippled in their own special ways but they're serviceable I guess.";
+		$this->message = "This legacy renderer requires a configured Google browser-rendering service.";
 	}
 	
 	public function getfilters($page){
@@ -1113,5 +1119,31 @@ class google{
 			
 			throw new Exception("Google returned a captcha");
 		}
+	}
+}
+
+/*
+	Public Google provider. It uses Google's Programmable Search endpoint that
+	is already shipped with this instance, avoiding a non-existent headful
+	browser dependency while preserving the Google provider name and filters.
+*/
+class google{
+	private $delegate;
+
+	public function __construct(){
+		require_once "scraper/google_cse.php";
+		$this->delegate = new google_cse("google");
+	}
+
+	public function getfilters($page){
+		return $this->delegate->getfilters($page);
+	}
+
+	public function web($get){
+		return $this->delegate->web($get);
+	}
+
+	public function image($get){
+		return $this->delegate->image($get);
 	}
 }

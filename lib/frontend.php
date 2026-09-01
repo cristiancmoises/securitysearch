@@ -3,10 +3,10 @@
 class frontend{
 	
 	public function load($template, $replacements = []){
-		
+
 		$replacements["server_name"] = htmlspecialchars(config::SERVER_NAME);
 		$replacements["version"] = config::VERSION;
-		
+
 		if(isset($_COOKIE["theme"])){
 			
 			$theme = str_replace(["/". "."], "", $_COOKIE["theme"]);
@@ -909,7 +909,17 @@ class frontend{
 	
 	public function getscraperfilters($page){
 		
-		$get_scraper = isset($_COOKIE["scraper_$page"]) ? $_COOKIE["scraper_$page"] : null;
+		$default_scraper = null;
+		if($page === "web"){
+			$default_scraper = config::DEFAULT_SCRAPER_WEB;
+		}elseif($page === "images"){
+			$default_scraper = config::DEFAULT_SCRAPER_IMAGES;
+		}
+
+		$get_scraper =
+			isset($_COOKIE["scraper_$page"])
+				? $_COOKIE["scraper_$page"]
+				: $default_scraper;
 		
 		if(
 			isset($_GET["scraper"]) &&
@@ -950,11 +960,11 @@ class frontend{
 				$filters["scraper"] = [
 					"display" => "Scraper",
 					"option" => [
-						//"google" => "Google",
-						//"yahoo" => "Yahoo!",
-                                                //"google_cse" => "Google CSE",
-						//"ddg" => "DuckDuckGo",
-                                                "yandex" => "Yandex",
+						"google" => "Google",
+						"brave" => "Brave",
+						"ddg" => "DuckDuckGo",
+						"yandex" => "Yandex",
+						"google_cse" => "Google CSE",
 						"yahoo_japan" => "Yahoo! JAPAN",
 						"startpage" => "Startpage",
 						"qwant" => "Qwant",
@@ -975,10 +985,10 @@ class frontend{
 				$filters["scraper"] = [
 					"display" => "Scraper",
 					"option" => [
-                                                //"google" => "Google",
-						//"google_cse" => "Google CSE",
-                                                //"brave" => "Brave",
-						//"google_api" => "Google API",
+						"google" => "Google",
+						"brave" => "Brave",
+						"google_cse" => "Google CSE",
+						"google_api" => "Google API",
 						"yandex" => "Yandex",
 						"ddg" => "DuckDuckGo",
 						"yahoo_japan" => "Yahoo! JAPAN",
