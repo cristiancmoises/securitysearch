@@ -134,7 +134,9 @@ defined:
 
 ```bash
 export FOURGET_PROXY_GOOGLE=google-egress
-install -m 600 /path/to/google-egress.txt /etc/securitysearch/google-egress.txt
+# The supported container runs Apache as UID 100/GID 101. Keep credentials
+# private while allowing that process to read the mounted pool.
+install -m 640 -o root -g 101 /path/to/google-egress.txt /etc/securitysearch/google-egress.txt
 ./scripts/check-egress.sh /etc/securitysearch/google-egress.txt
 ```
 

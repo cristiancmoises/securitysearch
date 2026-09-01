@@ -167,7 +167,10 @@ Configurações importantes:
 
 Para um pool privado, descomente o volume opcional somente leitura
 `./data/proxies:/var/www/html/4get/data/proxies:ro` no Compose. Mantenha o
-arquivo não rastreado com credenciais protegido no host; nunca o publique.
+arquivo não rastreado com credenciais protegido no host; nunca o publique. No
+container suportado, permita leitura ao GID 101 do Apache (por exemplo,
+`root:101` com modo `0640`); um arquivo `0600` exclusivo do root não pode ser
+lido durante as buscas.
 
 Se a VPS tiver vários endereços roteados, `FOURGET_SOURCE_IP_GOOGLE` e
 `FOURGET_SOURCE_IP_BRAVE` vinculam requisições diretas a um IPv4 ou IPv6

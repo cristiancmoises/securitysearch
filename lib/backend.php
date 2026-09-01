@@ -25,7 +25,17 @@ class backend{
 			$proxy_index_raw = apcu_inc("p." . $this->scraper);
 		}
 		
-		$proxylist = file_get_contents("data/proxies/" . $pool . ".txt");
+		$proxy_path = "data/proxies/" . $pool . ".txt";
+		if(!is_readable($proxy_path)){
+
+			throw new Exception("The configured proxy list is missing or unreadable by the web process.");
+		}
+
+		$proxylist = file_get_contents($proxy_path);
+		if($proxylist === false){
+
+			throw new Exception("The configured proxy list could not be read by the web process.");
+		}
 		$proxylist = explode("\n", $proxylist);
 
 		// ignore empty or commented lines

@@ -111,7 +111,9 @@ run directly or through private pools named by `FOURGET_PROXY_GOOGLE` and
 and the upstream [configuration guide](docs/configure.md).
 For a private pool, uncomment the optional read-only
 `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount and keep the
-untracked credential file restricted on the host.
+untracked credential file restricted on the host. In the supported container,
+make the file readable by Apache GID 101 (for example `root:101` with mode
+`0640`); a root-only `0600` file is intentionally unreadable to searches.
 
 If the VPS has multiple routed addresses, `FOURGET_SOURCE_IP_GOOGLE` and
 `FOURGET_SOURCE_IP_BRAVE` bind direct requests to a specific assigned IPv4 or
