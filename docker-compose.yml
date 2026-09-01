@@ -33,7 +33,10 @@ services:
       # environment or .env; keep the matching credential file outside Git.
       # Compose passes these entries through only when they are defined.
       - FOURGET_PROXY_GOOGLE
+      - FOURGET_PROXY_GOOGLE_CSE
+      - FOURGET_PROXY_GOOGLE_API
       - FOURGET_PROXY_BRAVE
+      - FOURGET_PROXY_DDG
       - FOURGET_SOURCE_IP_GOOGLE
       - FOURGET_SOURCE_IP_BRAVE
       # Tells PHP that the front-facing protocol is HTTPS even though

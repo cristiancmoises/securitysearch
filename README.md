@@ -106,7 +106,9 @@ environment:
 A valid saved browser preference takes precedence over its configured default.
 Query-string provider selection takes precedence over both. Google and Brave can
 run directly or through private pools named by `FOURGET_PROXY_GOOGLE` and
-`FOURGET_PROXY_BRAVE`; never commit proxy credentials or Google API keys. See
+`FOURGET_PROXY_BRAVE`; Compose also passes through `FOURGET_PROXY_GOOGLE_CSE`,
+`FOURGET_PROXY_GOOGLE_API`, and `FOURGET_PROXY_DDG` when configured. Never
+commit proxy credentials or Google API keys. See
 [provider configuration](docs/PROVIDERS.md)
 and the upstream [configuration guide](docs/configure.md).
 For a private pool, uncomment the optional read-only

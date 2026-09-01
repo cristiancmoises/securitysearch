@@ -162,6 +162,8 @@ Configurações importantes:
 - `FOURGET_PROXY_GOOGLE`: nome de um pool de proxy privado configurado para o Google;
 - `FOURGET_PROXY_BRAVE`: nome de um pool de proxy privado configurado para o Brave,
   quando necessário;
+- `FOURGET_PROXY_GOOGLE_CSE`, `FOURGET_PROXY_GOOGLE_API` e
+  `FOURGET_PROXY_DDG`: pools opcionais também repassados pelo Compose;
 - `FOURGET_GOOGLE_CX_ENDPOINT`: endpoint da pesquisa programável do Google, se
   uma implantação precisar substituir o valor padrão.
 
