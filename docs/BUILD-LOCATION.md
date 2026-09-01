@@ -6,20 +6,20 @@ source was committed or pushed.
 
 ## Current production workflow
 
-The active IONOS source tree is `/root/security-search-update`. v0.9.6 uses a
+The active IONOS source tree is `/root/security-search-update`. v0.9.7 uses a
 source artifact and a no-cache build on that host:
 
 ```bash
 # Workstation: after tests and commit.
-./release.sh 0.9.6
-(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
+./release.sh 0.9.7
+(cd dist && sha256sum -c securitysearch-v0.9.7.tar.gz.sha256)
 
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz
+  dist/securitysearch-v0.9.7.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz.sha256 \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz.sha256
+  dist/securitysearch-v0.9.7.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -28,12 +28,12 @@ exact active tree before changing it:
 
 ```bash
 cd /srv/evelin
-sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.7.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.6-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.7-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.6
+release_tree=/root/security-search-v0.9.7
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -44,7 +44,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf securitysearch-v0.9.6.tar.gz \
+tar -xzf securitysearch-v0.9.7.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -68,9 +68,9 @@ old image under a rollback tag before the candidate takes the `latest` tag:
 ```bash
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.6
+docker image tag "$previous_image_id" security-search:pre-v0.9.7
 
-cd /root/security-search-v0.9.6
+cd /root/security-search-v0.9.7
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -86,7 +86,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.6 /root/security-search-update
+mv /root/security-search-v0.9.7 /root/security-search-update
 
 cd /root/security-search-update
 docker compose up -d --no-build
@@ -104,7 +104,7 @@ rollback archive for this release.
 - The VPS validates outbound access from the same address Google and Brave see.
 - Remote building avoids transferring a large local image.
 - The sibling's no-cache build prevents a stale Docker layer or v10 CSS
-  response from hiding the SecOps v12 cache-busting and provider changes.
+  response from hiding the SecOps v13 cache-busting and image/provider changes.
 
 The Dockerfile tries multiple Alpine mirrors, which reduces sensitivity to a
 single CDN route. Mirror failover does not fix general host DNS or connectivity
@@ -136,19 +136,19 @@ If the VPS temporarily cannot build but can run the local target architecture,
 save and upload the tested image:
 
 ```bash
-docker image tag security-search:latest security-search:v0.9.6
-docker save security-search:v0.9.6 | gzip > security-search-v0.9.6-image.tar.gz
+docker image tag security-search:latest security-search:v0.9.7
+docker save security-search:v0.9.7 | gzip > security-search-v0.9.7-image.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  security-search-v0.9.6-image.tar.gz \
-  remote:/srv/evelin/security-search-v0.9.6-image.tar.gz
+  security-search-v0.9.7-image.tar.gz \
+  remote:/srv/evelin/security-search-v0.9.7-image.tar.gz
 ```
 
 Then load it in the Evelin shell. It replaces only the clean sibling build step
 above; preserve the old image tag first and perform the same directory cutover:
 
 ```bash
-docker load < /tmp/security-search-v0.9.6-image.tar.gz
-docker image tag security-search:v0.9.6 security-search:latest
+docker load < /srv/evelin/security-search-v0.9.7-image.tar.gz
+docker image tag security-search:v0.9.7 security-search:latest
 ```
 
 This alternative must use a compatible architecture and does not replace the

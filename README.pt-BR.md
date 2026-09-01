@@ -7,7 +7,22 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.6
+## Versão atual do código-fonte: v0.9.7
+
+- A v0.9.7 recupera grades de imagens quando miniaturas do provedor ficam
+  indisponíveis, inicia a descoberta de movimento antes que páginas grandes de
+  resultados possam atrasá-la e reproduz GIF, WebP animado e APNG validados sem
+  abrir o lightbox. O Brave pode usar primeiro sua fonte redimensionada menor,
+  que preserva animação, e manter o original como fallback. Parsers estruturais
+  limitados substituem o ImageMagick na validação de animações, enquanto filas
+  curtas no servidor e no navegador absorvem rajadas normais da grade.
+- O Google agora preserva parâmetros CSE sem consulta por cinco minutos e evita
+  repetir inicializações frias por um curto período após uma resposta antiabuso
+  reconhecida, inclusive nas chamadas ao endpoint de resultados `element/v1`.
+  Resultados da última página de imagens também são preservados, e um
+  `tbLargeUrl` inválido usa `tbUrl` como fallback defensivo. Essas mudanças
+  reduzem chamadas evitáveis; não contornam desafios de rede do Google ou do
+  Brave.
 
 - A v0.9.6 restaura o logotipo rastreado do Security Search nos pacotes limpos,
   impede avisos PHP quando o diretório de banners está vazio e recupera o fundo
@@ -25,13 +40,13 @@ em [securityops.co](https://securityops.co/).
   [SecurityOps Brasil](https://securityops.com.br/).
 - SecOps é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 12 evita
+  válidos já salvos continuam tendo precedência, e a versão de assets 13 evita
   reutilização de CSS e fundos antigos.
 - Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
   `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da
   requisição ou uma preferência salva ainda pode selecionar `maybe` ou `no`.
 - Google continua sendo o provedor padrão de web e imagens. Um cache curto de
-  90 segundos por saída reutiliza apenas os parâmetros CSE de inicialização e
+  cinco minutos por saída reutiliza apenas os parâmetros CSE de inicialização e
   remove duas chamadas upstream de buscas próximas; consultas e resultados não
   são armazenados. Ausências simultâneas no cache compartilham uma única
   inicialização limitada por APCu. Um token rejeitado recebe apenas uma
@@ -79,9 +94,9 @@ Requisitos recomendados:
 Mantenha o arquivo e o checksum no mesmo diretório:
 
 ```bash
-sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
-tar -xzf securitysearch-v0.9.6.tar.gz
-cd securitysearch-v0.9.6
+sha256sum -c securitysearch-v0.9.7.tar.gz.sha256
+tar -xzf securitysearch-v0.9.7.tar.gz
+cd securitysearch-v0.9.7
 docker compose up -d --build
 docker compose ps
 curl -fsSI http://127.0.0.1:5140/
@@ -159,13 +174,23 @@ Search incluído no projeto. Ele é o padrão de web e imagens porque não exige
 renderizador Firefox/4play externo. O Google API opcional usa arquivo de chave
 separado e excluído dos pacotes; nunca publique essa chave.
 
-O transporte reutiliza parâmetros CSE validados por no máximo 90 segundos para
+O transporte reutiliza parâmetros CSE validados por no máximo cinco minutos para
 cada combinação de backend, CX e saída de rede. Esse cache APCu curto não contém
 consultas nem documentos de resultado e evita as duas chamadas de bootstrap em
 buscas próximas. Para páginas seguintes, o backend preserva a requisição e o
 proxy de saída em estado NPT comprimido e protegido por criptografia
 autenticada. Um erro reconhecido de token expirado ou rejeitado apaga a entrada,
 obtém um token novo e permite uma única repetição.
+
+Uma falha comum de bootstrap é compartilhada por cinco segundos; uma falha
+antiabuso reconhecida é compartilhada por 30 segundos, evitando que solicitações
+concorrentes insistam no Google. O lock do proprietário expira em 60 segundos;
+concorrentes aguardam a publicação por até seis segundos e então falham
+rapidamente sem duplicar o bootstrap. O cooldown antiabuso de 30 segundos também
+abrange `cse/element/v1`. Na busca de imagens, resultados são processados antes
+de decidir se existe cursor seguinte, portanto a última página não é descartada
+quando ainda contém cartões; um `tbLargeUrl` ausente ou inválido recua para um
+`tbUrl` válido e suas dimensões correspondentes.
 
 Tráfego incomum, tráfego automatizado, CAPTCHA ou bloqueio do IP de saída não é
 erro de token: não há repetição, tentativa de contornar a proteção nem consulta
@@ -226,8 +251,9 @@ Na v0.9.4, `static/style.css` fornece a base, o CSS do tema selecionado fornece
 tokens compartilhados e os componentes da página inicial consomem esses tokens
 com valores de segurança. Sem cookie, com cookie inválido ou com tema
 inexistente, o resultado é `SecOps`; `Dark` e outros temas válidos continuam
-preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.6 usa
-`/static/themes/SecOps.css?v12` para atualizar também o fundo restaurado.
+preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.7 usa
+`/static/themes/SecOps.css?v13` para atualizar o tema, os controladores de
+imagem e o fundo restaurado.
 
 Falhas de scraper usam o título neutro **Search provider unavailable**. O texto
 do upstream é escapado, e as ações oferecem repetir a mesma busca, abrir
@@ -254,59 +280,98 @@ uma melhoria opcional sobre esse fluxo:
 Esse comportamento mantém a paginação progressiva e não transforma uma falha
 do upstream em falha total da página.
 
-Candidatos GIF, WebP e APNG começam com a miniatura estática comum, carregada de
-forma preguiçosa. Um indício de movimento em qualquer URL do resultado ou nos
-metadados MIME/formato compatíveis do provedor seleciona o original full-size
-para validação e reprodução. Toda URL `.gif`, `.webp` ou `.apng` é candidata,
-inclusive WebP com nome comum; a validação de múltiplos frames devolve ao poster
-qualquer WebP que seja estático. Um filtro de formato explícito também escolhe o
-original full-size quando uma URL CDN assinada não possui extensão útil. URLs
-`data:` são excluídas. Perto da área visível, o controlador busca a fonte pelo caminho local de
-privacidade `/proxy?...&s=animated`, sem clique no lightbox e sem contato direto
-do navegador com o provedor. O endpoint limita a resposta a 20 MB, aceita apenas
-tipos MIME raster suportados e valida pelo menos dois frames antes de repassar
-os bytes sem conversão. Também limita 1.000 frames, 16.384 pixels por eixo,
-40 MP por frame, 250 milhões de pixel-frames decodificados e 8.192 chunks PNG.
-GIF/WebP usa a contagem de frames do Imagick; PNG/APNG
-usa análise estrita de chunks PNG e a contagem do `acTL`, pois o Imagick do
-Alpine pode expor um APNG conhecido como um único frame. Em caso de falha
-automática, o cartão volta ao poster e só tenta
-novamente após ação deliberada por ponteiro/foco.
+Candidatos GIF, WebP e APNG começam com a miniatura comum do provedor como
+poster, carregada de forma preguiçosa. Se essa fonte falhar, a grade tenta até
+duas outras fontes pelo proxy antes de exibir o estado local **Image
+unavailable**. Um indício de movimento em URL, filtro ou metadado MIME/formato
+compatível seleciona a fonte preferencial. O Google normalmente usa o original;
+o Brave pode preferir sua URL redimensionada menor, que preserva animação, e
+manter o original como fallback. Toda URL `.gif`, `.webp` ou `.apng` é candidata,
+inclusive WebP comum; a validação estrutural devolve WebP estático ao poster.
+Um indício WebP é tratado como baixa confiança: ainda recebe validação e o
+fallback de fonte do provedor, mas não gasta outra requisição automática com
+cache busting depois de falhar. Trabalho iniciado pelo usuário continua em
+primeiro lugar; a fila automática prioriza GIF e APNG em relação a WebP. URLs
+`data:` são excluídas.
 
-As validações entram em fila, com no máximo três originais carregando ao mesmo
-tempo no desktop ou dois em dispositivos móveis/de ponteiro grosso. Esse limite
-controla cargas, não reprodução: todos os candidatos visíveis já validados
-continuam animados na grade sem clique. Cartões fora da tela voltam ao poster e
-a fila avança quando surgem vagas. Novos resultados da rolagem contínua são
-registrados; `prefers-reduced-motion` desativa animações e a economia de dados
-desativa a ativação automática. A descoberta reconhece extensões GIF/WebP,
-indícios explícitos de APNG/animated-PNG, parâmetros de formato em URLs
-codificadas, origens limitadas do GitHub Camo e metadados MIME/formato do Google
-ou Brave. Esses indícios permitem validar originais sem extensão; WebP estático
-ainda volta ao poster. SVG, vídeo, gifv, URLs `data:` e formatos raster fora da
-lista GIF/WebP/APNG não são aceitos.
+O controlador é carregado cedo e inicia a descoberta até 700 px ao redor da
+área visível. Ele busca a fonte pelo caminho local de privacidade
+`/proxy?...&s=animated`, sem clique no lightbox e sem contato direto do navegador
+com o host do resultado. O endpoint limita a saída descomprimida a 32 MiB, pede
+explicitamente GIF/APNG/PNG/WebP ao upstream e só repassa bytes depois que um
+parser estrutural limitado comprova pelo menos dois frames. GIF, WebP animado e
+APNG são inspecionados sem decodificação pelo ImageMagick. Também há limites de
+1.000 frames, 16.384 pixels por eixo, 40 MP por frame, 250 milhões de
+pixel-frames e 8.192 chunks de contêiner, além de um limite próprio para
+sub-blocos GIF.
 
-A aplicação admite no máximo 120 solicitações de preview animado por endereço de
-cliente a cada minuto e usa um semáforo global de três validações. Esses limites
-cooperam com a fila do navegador sem limitar quantas animações visíveis e já
-validadas continuam reproduzindo.
+No navegador, no máximo três originais são validados ao mesmo tempo no desktop
+ou dois em dispositivos móveis/de ponteiro grosso. Se a fonte preferencial
+falhar, o cartão tenta primeiro o fallback do provedor. Um candidato não WebP
+elegível (normalmente GIF/APNG) pode fazer depois uma única repetição atrasada
+com cache busting; WebP de baixa confiança não faz essa repetição. A falha final
+mantém o poster utilizável. O
+limite controla cargas, não reprodução. Uma retenção LRU suave mantém até 36
+animações concluídas no desktop ou 18 no móvel. Ela nunca interrompe uma carga
+em andamento nem remove um candidato próximo da área visível, portanto o limite
+pode ser ultrapassado temporariamente; o item concluído mais antigo e fora da
+tela só volta ao poster quando isso é seguro. Ao retornar, o observador prepara
+automaticamente a animação removida outra vez. Novos resultados da rolagem
+contínua são registrados; `prefers-reduced-motion` desativa animações e a
+economia de dados desativa a ativação automática. SVG, vídeo, gifv, URLs `data:`
+e formatos fora da lista GIF/WebP/APNG não são candidatos a movimento.
+
+A aplicação admite no máximo 900 solicitações de preview animado por endereço
+de cliente a cada minuto. Três solicitações podem executar busca/validação cara,
+enquanto até nove aguardam uma vaga por no máximo três segundos. Rejeições
+causadas somente por fila cheia ou expirada não consomem a cota; o endpoint
+indica repetição após dois segundos e o navegador espera de 2,2 a 3,0 segundos
+antes da única repetição com cache busting de um candidato não WebP elegível.
+Esses limites cooperam com a fila do navegador sem impor teto de três animações
+em reprodução.
 
 ## Desempenho
 
 A imagem de produção habilita PHP OPcache, compressão HTTP e cache de arquivos
 estáticos. Miniaturas e favicons usam carregamento preguiçoso (`loading=lazy`) e
-decodificação assíncrona. A página SecOps usa o fundo rastreado
+decodificação assíncrona. Para miniaturas, o proxy limita a entrada upstream a
+16 MiB. Ele só repassa um JPEG diretamente com no máximo 128 KiB e 512 pixels
+por eixo, ou GIF/WebP/APNG animado e validado estruturalmente com no máximo 1,5
+MiB, 2.048 pixels por eixo e 4 MP. Isso evita conversão ImageMagick desnecessária
+sem permitir que fallbacks de imagens originais aumentem excessivamente o peso
+da página, e preserva pequenas miniaturas animadas nativas. Formatos capazes de
+animação que sejam estáticos ou malformados, AVIF e entradas maiores continuam
+no caminho limitado do ImageMagick. Antes de decodificar, esse fallback aceita
+somente JPEG, PNG, GIF, WebP ou AVIF. O ImageMagick fica limitado a um frame,
+16.384 pixels por eixo, 40 MP, 64 MiB para memória e para map, nenhum cache em
+disco, uma thread e dez segundos. A policy do contêiner desabilita delegates,
+filtros, leitura indireta de paths e todos os coders por padrão antes de liberar
+o conjunto raster restrito. Assim, um GIF animado acima de 1,5 MiB pode falhar
+como conversão limitada do poster; essa falha não bloqueia a descoberta de
+movimento, e `/proxy?...&s=animated` ainda pode validar e reproduzir até 32 MiB
+automaticamente, sem clique. Requisições genéricas de imagens derivam um Referer
+limitado da URL pública já validada da fonte; Referers específicos e revisados
+de provedores também passam por limite de tamanho e rejeição de CR/LF, em vez de
+aceitar texto arbitrário de header. A página SecOps usa o fundo rastreado
 `static/misc/secops.gif`; navegadores que pedem movimento reduzido ou economia
 de dados recebem um fundo CSS estático. O Google reutiliza parâmetros CSE
-validados por
-até 90 segundos por backend, CX e saída, sem armazenar consultas ou resultados.
+validados por até cinco minutos por backend, CX e saída, sem armazenar consultas
+ou resultados.
 Cada transferência upstream do Google ou Brave usa timeout de 10 segundos para
 conexão e 20 segundos no total, limitando a latência de cada requisição lenta.
 Isso normalmente elimina as chamadas ao HTML e ao script de inicialização em
 buscas próximas e reduz o volume upstream. Uma rejeição reconhecida do token em
-cache apaga a entrada, faz uma inicialização nova e repete apenas uma vez;
-tráfego incomum e CAPTCHA nunca são repetidos nem classificados como erro de
-token. O NPT criptografado mantém a afinidade com o proxy. Pacotes de versão ficam fora do
+cache apaga a entrada, faz uma inicialização nova e repete apenas uma vez. Uma
+falha comum de bootstrap é compartilhada por cinco segundos e uma falha
+antiabuso reconhecida por 30 segundos. O lock do proprietário da inicialização
+expira sozinho após 60 segundos; concorrentes aguardam por até seis segundos
+por um resultado publicado e então falham rapidamente, sem iniciar outra
+inicialização. O mesmo cooldown de 30 segundos abrange respostas antiabuso do
+`cse/element/v1`, evitando insistência imediata pela mesma saída. Tráfego incomum
+e CAPTCHA nunca são repetidos nem classificados como erro de token. O NPT
+criptografado mantém a afinidade com o proxy. A última página de imagens é
+processada antes da decisão sobre um cursor seguinte, e `tbLargeUrl` inválido
+recua para `tbUrl` válido. Pacotes de versão ficam fora do
 contexto Docker. O acabamento das páginas de resultado usa CSS versionado e
 reutilizável, e preloads de fontes ausentes foram removidos. A rolagem contínua
 busca uma página por vez quando necessário; ela não pré-carrega indefinidamente
@@ -328,15 +393,16 @@ automaticamente confiável ou que o usuário esteja anônimo. As linhas de
 serviços hospedados resumem as políticas publicadas pelos próprios provedores,
 e não uma auditoria independente. Fontes consultadas em 2026-09-01.
 
-| Produto | Modelo e origem dos resultados | Implantação e controle | Limite de dados publicado e interface relevante |
-|---|---|---|---|
-| **Security Search** | Fork auto-hospedável do 4get, com scrapers upstream selecionáveis, Google configurado como padrão e Brave por seleção explícita. Não mantém índice web independente. | O operador controla configuração, logs e proxy de saída. A busca principal é renderizada no servidor; uma falha não reenvia silenciosamente a consulta a outro provedor. | O upstream normalmente vê a saída da instância; o operador ainda processa consultas. Google ou Brave podem desafiar o IP de um VPS. Imagens têm carga automática padrão, opção de desativação e fallback **Next page**. [Arquitetura](#arquitetura-e-limite-de-confiança), [provedores](docs/PROVIDERS.md), [UI](docs/UI.md), [orientação do Google sobre tráfego incomum](https://support.google.com/websearch/answer/86640?hl=pt-BR). |
-| **4get upstream** | Metabuscador por proxy com provedores de web, imagens, vídeos, notícias e outras categorias. | Projeto aberto operado por instâncias, com suporte a proxies rotativos por scraper. | O README oficial informa que a interface não exige JavaScript. Privacidade e logs dependem, no fim, do operador da instância escolhida. [Repositório e lista oficial de recursos](https://git.lolcat.ca/lolcat/4get). |
-| **Google Search** | Sistemas do Google de rastreamento, índice e ranking de páginas, imagens e outros conteúdos. | Serviço hospedado e controlado pelo Google; personalização e controles de atividade variam conforme contexto, conta e configurações. | A política do Google diz que a atividade coletada pode incluir termos pesquisados e interações, além de informações da requisição/dispositivo como endereço IP. [Como a Busca funciona](https://developers.google.com/search/docs/fundamentals/how-search-works), [Política de Privacidade](https://policies.google.com/privacy?hl=pt-BR). |
-| **Microsoft Bing** | Rastreador e índice da Microsoft para experiências de web, imagem, vídeo e outras categorias. | Serviço hospedado e controlado pela Microsoft, com controles do Bing e da Conta Microsoft. | A Microsoft diz que o Bing coleta termos pesquisados junto de dados como IP, localização, identificadores em cookies, horário e configuração do navegador. [Como o Bing entrega resultados](https://support.microsoft.com/en-us/bing/how-bing-delivers-search-results), [dados do histórico](https://support.microsoft.com/en-US/accounts-billing/how-microsoft-stores-and-maintains-your-search-history). |
-| **DuckDuckGo** | Mantém o DuckDuckBot e vários índices; informa que links tradicionais e imagens vêm em grande parte do Bing. | Serviço hospedado pelo DuckDuckGo que intermedeia pedidos a parceiros; oferece versões HTML e Lite sem JavaScript, com menos recursos. | O DuckDuckGo afirma não salvar nem compartilhar histórico pessoal de busca e não enviar IP ou identificadores únicos do usuário aos parceiros. [Origem dos resultados](https://duckduckgo.com/duckduckgo-help-pages/results/sources), [privacidade da busca](https://duckduckgo.com/duckduckgo-help-pages/search-privacy), [versões sem JavaScript](https://duckduckgo.com/duckduckgo-help-pages/features/non-javascript). |
-| **Brave Search** | Rastreador e índice independente operados pelo Brave; a mistura opcional com Google é uma escolha separada do usuário. | Serviço hospedado e controlado pelo Brave, com modos web e imagem. | O aviso do Brave descreve privacidade por padrão e documenta métricas agregadas opcionais, medição de anúncios, resultados locais anônimos e processamento temporário de IP para integridade do serviço. [Aviso de privacidade e detalhes do índice](https://search.brave.com/help/privacy-policy). |
-| **Startpage** | Intermediário hospedado que envia consultas a provedores como Google e Bing; não mantém índice web próprio. | Serviço hospedado e controlado pelo Startpage; o Anonymous View opcional também intermedeia a navegação na página de destino. | O Startpage afirma não registrar visitas, pesquisas ou IPs comuns, com exceção antiabuso descrita na política; miniaturas de imagens passam por proxy. [Relação com parceiros](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Política de Privacidade](https://safe.startpage.com/en/privacy-policy/), [busca de imagens](https://support.startpage.com/hc/en-us/articles/4521419354132-How-to-search-for-images-on-Startpage). |
+| Produto | Modelo de resultados e controle | Web/imagens e base sem JavaScript | UX de imagens e controle de conteúdo explícito | Limite de dados publicado e restrições de saída |
+|---|---|---|---|---|
+| **Security Search** | Fork auto-hospedável do 4get com scrapers upstream selecionáveis; o operador controla configuração, logs e proxy de saída. Não possui índice web independente. Google é o padrão configurado, não uma garantia de disponibilidade. | Web e imagens renderizadas no servidor funcionam sem JavaScript; carga contínua e movimento inline são melhorias progressivas. | Paginação automática padrão, fallback **Next page** e reprodução automática de GIF/WebP/APNG validados. `nsfw=yes` é o padrão local quando o provedor aceita o filtro. | O upstream normalmente vê a saída da instância/proxy; o operador ainda processa consultas. Google e Brave podem desafiar redes de VPS, e uma falha nunca reenvia silenciosamente a consulta. [Arquitetura](#arquitetura-e-limite-de-confiança), [provedores](docs/PROVIDERS.md), [UI](docs/UI.md). |
+| **4get upstream** | Proxy multiprovedor aberto e auto-hospedável, com proxy por scraper; controle e logs pertencem ao operador da instância. | A lista oficial cobre web, imagens, vídeo, notícias e outras categorias e informa que a interface não exige JavaScript. | Comportamento de imagens e filtros depende do scraper e da revisão implantada. | Provedores veem a saída da instância/proxy; privacidade e retenção dependem do operador escolhido. [Repositório e lista oficial de recursos](https://git.lolcat.ca/lolcat/4get). |
+| **Google Search** | Rastreador, índice e ranking hospedados pelo Google; não é auto-hospedável. | Experiências hospedadas de web e imagens, controladas pelo Google. | SafeSearch oferece Filtrar, Desfocar e Desativar, sujeito às políticas de conta, dispositivo ou rede. | A política do Google diz que a atividade coletada pode incluir consultas, interações e dados de requisição/dispositivo como IP. [Como a Busca funciona](https://developers.google.com/search/docs/fundamentals/how-search-works), [SafeSearch](https://support.google.com/websearch/answer/510?hl=pt-BR), [Política de Privacidade](https://policies.google.com/privacy?hl=pt-BR). |
+| **Microsoft Bing** | Rastreador e índice hospedados pela Microsoft; não é auto-hospedável. | Experiências hospedadas de web, imagens, vídeo e outras categorias. | Bing SafeSearch oferece Estrito, Moderado e Desativado. | A Microsoft documenta processamento e controles do histórico de pesquisa no painel de privacidade. [Como o Bing entrega resultados](https://support.microsoft.com/en-us/bing/how-bing-delivers-search-results), [SafeSearch](https://support.microsoft.com/en-us/bing/turn-bing-safesearch-on-or-off), [histórico de pesquisa](https://support.microsoft.com/en-US/accounts-billing/security/search-history-on-the-privacy-dashboard). |
+| **DuckDuckGo** | Serviço hospedado com DuckDuckBot e vários índices; informa que links tradicionais e imagens vêm em grande parte do Bing. | Web e imagens, além de variantes HTML/Lite sem JavaScript e com menos recursos. | Safe Search oferece estrito, moderado e desativado; parâmetros de URL também controlam carga automática de imagens/resultados. | O DuckDuckGo afirma não salvar histórico pessoal de busca e intermediar pedidos a parceiros sem IP ou identificadores únicos do usuário. [Origem dos resultados](https://duckduckgo.com/duckduckgo-help-pages/results/sources), [Safe Search](https://duckduckgo.com/duckduckgo-help-pages/features/safe-search), [privacidade da busca](https://duckduckgo.com/duckduckgo-help-pages/search-privacy). |
+| **Brave Search** | Rastreador e índice independentes hospedados pelo Brave; não é auto-hospedável. A mistura opcional com Google é escolha separada. | Modos hospedados de web e imagens. | Safe Search oferece Desativado, Moderado e Estrito. | O Brave descreve privacidade por padrão e processamento temporário de IP para integridade. O scraper do Security Search ainda pode receber PoW/CAPTCHA. [Visão geral](https://search.brave.com/help), [Safe Search](https://search.brave.com/help/safesearch), [aviso de privacidade](https://search.brave.com/help/privacy-policy). |
+| **Yandex Search** | Rastreador, base indexada e ranking hospedados pelo Yandex; não é auto-hospedável. | Busca hospedada de web e imagens. | A filtragem oferece Família, Moderado e Sem filtro. | A política do Yandex cobre entrega de resultados, personalização, publicidade, histórico e outras informações pessoais; pedidos diretos ou por proxy continuam sujeitos aos controles de rede. [Como a indexação funciona](https://www.yandex.com/support/webmaster/en/yandex-indexing/site-indexing), [configurações de busca](https://yandex.com/support/search/en/search-results/settings), [Política de Privacidade](https://yandex.com/legal/confidential/en/). |
+| **Startpage** | Intermediário hospedado que envia consultas a parceiros como Google e Bing; não possui índice web independente nem é auto-hospedável. | Busca hospedada de web e imagens; Anonymous View opcional também intermedeia a navegação no destino. | Filtros de imagem incluem tamanho, cor, tipo—incluindo GIF animado—e licença. | O Startpage afirma não registrar buscas comuns nem IPs, sujeito à exceção antiabuso da política; miniaturas passam por proxy. [Relação com parceiros](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Política de Privacidade](https://safe.startpage.com/en/privacy-policy/), [filtros de imagem](https://support.startpage.com/hc/en-us/articles/5319090860052-Image-filters). |
 
 ## Criar uma versão
 
@@ -344,17 +410,17 @@ Com todas as mudanças rastreadas já commitadas e a árvore de trabalho limpa:
 
 ```bash
 git diff --check
-./release.sh 0.9.6
-(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
-git tag -a v0.9.6 -m "Security Search v0.9.6"
+./release.sh 0.9.7
+(cd dist && sha256sum -c securitysearch-v0.9.7.tar.gz.sha256)
+git tag -a v0.9.7 -m "Security Search v0.9.7"
 ```
 
 O script usa `git archive`, respeita `.gitattributes` e acrescenta somente o
 diretório vazio obrigatório `icons/`, que o Git não consegue rastrear:
 
 ```text
-dist/securitysearch-v0.9.6.tar.gz
-dist/securitysearch-v0.9.6.tar.gz.sha256
+dist/securitysearch-v0.9.7.tar.gz
+dist/securitysearch-v0.9.7.tar.gz.sha256
 ```
 
 Antes de publicar, faça lint de todos os arquivos PHP na imagem, compile sem
@@ -372,9 +438,9 @@ configuradas sem credenciais embutidas são:
 - `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`;
 - `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`.
 
-A publicação v0.9.4 reescreveu o histórico sanitizado. A v0.9.6 deve preservar
+A publicação v0.9.4 reescreveu o histórico sanitizado. A v0.9.7 deve preservar
 esse histórico e publicar o inventário exato `main` mais as tags `v0.9.0` a
-`v0.9.6`. Siga exatamente o procedimento com lease por ref, push atômico,
+`v0.9.7`. Siga exatamente o procedimento com lease por ref, push atômico,
 imutabilidade de tags e verificação de OID em
 [docs/RELEASE.md](docs/RELEASE.md) para cada remoto.
 
@@ -389,11 +455,11 @@ para scripts:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz
+  dist/securitysearch-v0.9.7.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz.sha256 \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz.sha256
+  dist/securitysearch-v0.9.7.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -402,12 +468,12 @@ exata antes de alterá-la:
 
 ```bash
 cd /srv/evelin
-sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.7.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.6-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.7-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.6
+release_tree=/root/security-search-v0.9.7
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -418,7 +484,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf securitysearch-v0.9.6.tar.gz \
+tar -xzf securitysearch-v0.9.7.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -426,9 +492,9 @@ test -f "$release_tree/Dockerfile"
 
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.6
+docker image tag "$previous_image_id" security-search:pre-v0.9.7
 
-cd /root/security-search-v0.9.6
+cd /root/security-search-v0.9.7
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -438,7 +504,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.6 /root/security-search-update
+mv /root/security-search-v0.9.7 /root/security-search-update
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -460,7 +526,7 @@ override privado do Compose, arquivo de ambiente, credencial de proxy ou outro
 segredo somente se ele existir, for necessário e tiver sido revisado
 individualmente, mantendo permissões restritas.
 
-Depois, confirme `/static/themes/SecOps.css?v12`, o tipo CSS, cartões reais de
+Depois, confirme `/static/themes/SecOps.css?v13`, o tipo CSS, cartões reais de
 web/imagens, arrays `status=ok` não vazios na API, Brave separadamente, logs sem
 avisos/fatais PHP e HTTP público em `securityops.co` e
 `securityops.com.br`. Use um User-Agent semelhante ao de navegador nos curls
@@ -479,10 +545,10 @@ preservados usando o timestamp exato registrado no corte:
 ```bash
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
-mv /root/security-search-update /root/security-search-update-failed-v0.9.6
+mv /root/security-search-update /root/security-search-update-failed-v0.9.7
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.6 security-search:latest
+docker image tag security-search:pre-v0.9.7 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 ```

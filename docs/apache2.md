@@ -3,7 +3,7 @@
 > [!WARNING]
 > Legacy upstream reference only. Package/socket versions, clone targets, and
 > writable-permission commands below have not been validated for Security Search
-> v0.9.6 and must not be used for production. The supported image already ships
+> v0.9.7 and must not be used for production. The supported image already ships
 > its tested Apache/PHP configuration with root-owned source; use
 > [RELEASE.md](RELEASE.md) and [BUILD-LOCATION.md](BUILD-LOCATION.md).
 

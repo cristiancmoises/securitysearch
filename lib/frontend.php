@@ -81,11 +81,17 @@ class frontend{
 			"web" => "web-results.css",
 			"images" => "image-results.css"
 		];
+		$page_scripts = [
+			"images" =>
+				'<script src="/static/images-fallback.js?v' . config::VERSION . '" defer></script>' .
+				'<script src="/static/images-motion.js?v' . config::VERSION . '" defer></script>'
+		];
 		$page_style = "";
 		if(isset($page_styles[$page])){
 
 			$page_style = '<link rel="stylesheet" href="/static/' . $page_styles[$page] . '?v' . config::VERSION . '">';
 		}
+		$page_script = $page_scripts[$page] ?? "";
 		
 		echo
 			$this->load("header.html", [
@@ -95,7 +101,8 @@ class frontend{
 				"search" => htmlspecialchars($get["s"]),
 				"tabs" => $this->generatehtmltabs($page, $get["s"]),
 				"filters" => $this->generatehtmlfilters($filters, $get),
-				"page_style" => $page_style
+				"page_style" => $page_style,
+				"page_script" => $page_script
 			]);
 		
 		$headers_raw = getallheaders();

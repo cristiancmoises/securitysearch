@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > Legacy upstream reference only. The clone target and world-writable
-> permissions below do not describe Security Search v0.9.6 and must not be used
+> permissions below do not describe Security Search v0.9.7 and must not be used
 > for its production deployment. Use the root-owned container source and private
 > reverse-proxy workflow in [RELEASE.md](RELEASE.md) and
 > [BUILD-LOCATION.md](BUILD-LOCATION.md).

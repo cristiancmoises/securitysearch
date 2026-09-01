@@ -1328,40 +1328,197 @@ class brave{
 			as $result
 		){
 			
-			$motion_format = null;
-			if(
-				isset($result["properties"]["format"]) &&
-				is_string($result["properties"]["format"]) &&
-				preg_match(
-					'#\A(?:image/)?(gif|webp|apng)(?:\s*;.*)?\z#i',
-					trim($result["properties"]["format"]),
-					$format_match
-				) === 1
-			){
+			$image = $this->parse_image_result($result);
+			if($image !== null){
 
-				$motion_format = strtolower($format_match[1]);
+				$out["image"][] = $image;
 			}
-
-			$out["image"][] = [
-				"title" => $result["title"],
-				"motion_format" => $motion_format,
-				"source" => [
-					[
-						"url" => $result["properties"]["url"],
-						"width" => (int)$result["properties"]["width"],
-						"height" => (int)$result["properties"]["height"]
-					],
-					[
-						"url" => $result["thumbnail"]["src"],
-						"width" => (int)$result["thumbnail"]["width"],
-						"height" => (int)$result["thumbnail"]["height"]
-					]
-				],
-				"url" => $result["url"]
-			];
 		}
 		
 		return $out;
+	}
+
+	private function parse_image_result($result){
+
+		if(!is_array($result)){
+
+			return null;
+		}
+
+		$properties =
+			isset($result["properties"]) && is_array($result["properties"]) ?
+			$result["properties"] :
+			[];
+		$thumbnail =
+			isset($result["thumbnail"]) && is_array($result["thumbnail"]) ?
+			$result["thumbnail"] :
+			[];
+
+		$original_url = $this->valid_remote_image_url($properties["url"] ?? null);
+		$resized_url = $this->valid_remote_image_url($properties["resized"] ?? null);
+		$thumbnail_url = $this->valid_remote_image_url($thumbnail["src"] ?? null);
+
+		// Some Brave result variants omit the original while still providing a
+		// usable resized image. Keep the result only when at least one image URL
+		// can pass through Security Search's validating image proxy.
+		if($original_url === null){
+
+			$original_url = $resized_url ?? $thumbnail_url;
+		}
+		if($original_url === null){
+
+			return null;
+		}
+		if($thumbnail_url === null){
+
+			$thumbnail_url = $resized_url ?? $original_url;
+		}
+
+		$motion_format =
+			$this->motion_format_hint(
+				$properties["format"] ?? null,
+				[$original_url, $resized_url]
+			);
+		$resized_motion_format =
+			$this->motion_format_hint(
+				null,
+				[$resized_url]
+			);
+		$motion_url = $resized_motion_format === null ? null : $resized_url;
+
+		$sources = [
+			[
+				"url" => $original_url,
+				"width" => $this->positive_image_dimension($properties["width"] ?? null),
+				"height" => $this->positive_image_dimension($properties["height"] ?? null)
+			]
+		];
+
+		// Brave's resized URL is frequently an animation-preserving, lower-byte
+		// proxy variant. Preserve it as an intermediate fallback; its exact output
+		// dimensions are not supplied separately, so do not invent them.
+		if($resized_url !== null && $resized_url !== $original_url){
+
+			$sources[] = [
+				"url" => $resized_url,
+				"width" => null,
+				"height" => null
+			];
+		}
+
+		if($thumbnail_url !== $sources[count($sources) - 1]["url"]){
+
+			$sources[] = [
+				"url" => $thumbnail_url,
+				"width" => $this->positive_image_dimension($thumbnail["width"] ?? null),
+				"height" => $this->positive_image_dimension($thumbnail["height"] ?? null)
+			];
+		}
+
+		$title =
+			isset($result["title"]) && is_string($result["title"]) ?
+			$result["title"] :
+			"";
+		$page_url = $this->valid_remote_image_url($result["url"] ?? null) ?? $original_url;
+
+		return [
+			"title" => $title,
+			"motion_format" => $motion_format,
+			"motion_url" => $motion_url,
+			"source" => $sources,
+			"url" => $page_url
+		];
+	}
+
+	private function motion_format_hint($format, $urls){
+
+		if(
+			is_string($format) &&
+			preg_match(
+				'#\A(?:image/)?(gif|webp|apng)(?:\s*;.*)?\z#i',
+				trim($format),
+				$format_match
+			) === 1
+		){
+
+			return strtolower($format_match[1]);
+		}
+
+		if(!is_array($urls)){
+
+			return null;
+		}
+		foreach($urls as $url){
+
+			if(!is_string($url)){
+
+				continue;
+			}
+			$path = parse_url($url, PHP_URL_PATH);
+			if(!is_string($path)){
+
+				continue;
+			}
+
+			$extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+			if(in_array($extension, ["gif", "webp", "apng"], true)){
+
+				return $extension;
+			}
+		}
+
+		return null;
+	}
+
+	private function valid_remote_image_url($url){
+
+		if(
+			!is_string($url) ||
+			$url === "" ||
+			strlen($url) > 16384 ||
+			preg_match('/[\x00-\x20\x7f]/', $url) === 1
+		){
+
+			return null;
+		}
+
+		$parts = parse_url($url);
+		if(
+			!is_array($parts) ||
+			!isset($parts["scheme"], $parts["host"]) ||
+			!in_array(strtolower($parts["scheme"]), ["http", "https"], true) ||
+			$parts["host"] === "" ||
+			isset($parts["user"]) ||
+			isset($parts["pass"])
+		){
+
+			return null;
+		}
+
+		$host = trim($parts["host"], "[]");
+		if(
+			$host === "" ||
+			(
+				filter_var($host, FILTER_VALIDATE_IP) === false &&
+				filter_var($host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false
+			)
+		){
+
+			return null;
+		}
+
+		return $url;
+	}
+
+	private function positive_image_dimension($value){
+
+		if(!is_int($value) && !is_float($value) && !(is_string($value) && is_numeric($value))){
+
+			return null;
+		}
+
+		$value = (int)$value;
+		return $value > 0 ? $value : null;
 	}
 	
 	public function video($get){

@@ -6,7 +6,21 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.6
+## Current source version: v0.9.7
+
+- v0.9.7 makes image grids recover from unavailable provider thumbnails, starts
+  motion discovery before large result pages can block it, and automatically
+  plays validated GIF, animated WebP, and APNG results without opening the
+  lightbox. Brave can use its smaller animation-preserving resized source before
+  falling back to the original. Bounded structural parsers replace ImageMagick
+  for animation validation, and short server/browser queues absorb normal grid
+  bursts without turning every busy slot into a permanent failure.
+- Google now retains query-free CSE bootstrap parameters for five minutes and
+  briefly suppresses repeated cold-bootstrap traffic after a recognized
+  anti-abuse response, including calls to the `element/v1` result endpoint. It
+  also preserves results returned on a final image page, and defensively falls
+  back from an invalid `tbLargeUrl` to `tbUrl`. These changes reduce avoidable
+  requests; they do not bypass Google or Brave network challenges.
 
 - v0.9.6 restores the tracked Security Search logo to clean source archives,
   prevents an empty banner directory from producing PHP warnings, and restores
@@ -24,13 +38,13 @@ Privacy-first proxy metasearch engine. Hardened fork of
   [SecurityOps Brasil](https://securityops.com.br/).
 - SecOps is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;
-  valid saved themes remain selected, and asset version 12 invalidates stale
+  valid saved themes remain selected, and asset version 13 invalidates stale
   theme CSS and background assets.
 - NSFW-capable provider filters allow NSFW content by default through
   `config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes`. A request parameter
   or saved Settings preference can still select `maybe` or `no`.
 - Google remains the default provider for web and image search. A short,
-  per-egress 90-second cache reuses only CSE bootstrap parameters to remove two
+  per-egress five-minute cache reuses only CSE bootstrap parameters to remove two
   upstream round trips from nearby searches; queries and results are never
   cached. Concurrent cold misses share one bounded APCu bootstrap flight. A
   recognized rejected token gets exactly one fresh bootstrap and retry.
@@ -116,57 +130,95 @@ If an automatic request fails, loading stops with a status message and offers
 a **Restart image search** link. The restart preserves the query and filters,
 removes the consumed continuation token, and begins again at page one.
 
-Animated GIF, WebP, and APNG candidates start with the ordinary lazy
-provider-thumbnail poster. A motion hint from either result URL or supported
-provider MIME/format metadata selects the full-size original for validation and
-playback. Every `.gif`, `.webp`, and `.apng` URL is eligible,
-including ordinary WebP filenames; the proxy's multi-frame check restores the
-poster when a WebP is actually static. An explicit provider format filter also
-selects the full-size original when a signed CDN URL has no useful extension.
-Data URLs are excluded. Near the viewport, the motion controller requests that
-source through the same-origin
-`/proxy?...&s=animated` privacy path—no lightbox click or direct provider fetch
-is required. That endpoint caps the response at 20 MB, accepts only supported
-raster MIME types, and validates at least two frames before forwarding the
-bytes unchanged. It also enforces 1,000 frames, 16,384 pixels per axis, 40 MP
-per frame, 250 million decoded pixel-frames, and 8,192 PNG chunks. GIF/WebP uses
-Imagick frame counting; PNG/APNG uses strict PNG chunk parsing and the `acTL` frame count because Alpine Imagick can expose a
-known APNG as one frame. An automatically
-failed candidate returns to its poster and is not retried unless the user
-deliberately requests it with pointer/focus.
+Animated GIF, WebP, and APNG candidates start with the ordinary lazy provider
+thumbnail as a poster. If that source fails, the grid tries up to two other
+proxied sources before showing a local **Image unavailable** state. A motion hint
+from a result URL, filter, or supported provider MIME/format metadata selects a
+preferred motion source. Google normally uses its original; Brave can prefer its
+smaller animation-preserving resized URL and retain the original as a fallback.
+Every `.gif`, `.webp`, and `.apng` URL is eligible, including ordinary WebP
+filenames; structural multi-frame validation restores a static WebP to its
+poster. A WebP hint is intentionally low-confidence: it still receives
+validation and a provider-source fallback, but it does not spend another
+cache-busted automatic request after failure. User-initiated work remains first
+in line; the automatic queue gives GIF and APNG candidates priority over WebP.
+Data URLs are excluded.
 
-Validation loads are queued and limited to three concurrent originals on
-desktop or two on coarse-pointer/mobile devices. This bounds loading, not
-playback: every visible candidate that passes validation keeps playing directly
-in the grid without a click. Off-screen cards return to posters, and queued work
-resumes as slots open. Infinite-scroll cards are registered automatically;
-reduced-motion disables animation, and data-saver disables automatic
-activation. Candidate discovery recognizes ordinary GIF/WebP extensions,
-explicit APNG/animated-PNG hints, encoded URL format parameters, bounded GitHub
-Camo source URLs, and Google or Brave MIME/format metadata. Provider hints allow
-extensionless originals to be validated; static WebP candidates still fail
-frame validation and return to their posters. SVG, video, gifv, inline data
-URLs, and raster formats outside the GIF/WebP/APNG allowlist are not eligible.
+The motion controller is loaded early and begins discovery within 700 px of the
+viewport. It requests the candidate through the same-origin
+`/proxy?...&s=animated` privacy path—no lightbox click or direct result-host
+request is required. That endpoint caps decompressed output at 32 MiB, asks the
+upstream explicitly for GIF/APNG/PNG/WebP, and forwards bytes only after a
+bounded structural parser proves at least two frames. GIF, animated WebP, and
+APNG are inspected without decoding through ImageMagick. The endpoint also
+enforces 1,000 frames, 16,384 pixels per axis, 40 MP per frame, 250 million
+pixel-frames, and 8,192 container chunks, with an additional bounded GIF
+sub-block count.
 
-The application admits at most 120 animated-preview requests per client address
-per minute and uses a three-slot global validation semaphore. These server-side
-bounds work with the browser queue so a large visible grid can continue to fill
-without allowing unbounded simultaneous validation.
+Browser validation loads are queued and limited to three concurrent originals
+on desktop or two on coarse-pointer/mobile devices. A failed preferred motion
+source first tries its provider fallback. An eligible non-WebP candidate
+(normally GIF/APNG) can then make one delayed cache-busted retry;
+low-confidence WebP candidates skip that retry. A
+final failure leaves the usable poster in place. This bounds loading, not
+playback. A soft least-recently-used retention budget keeps up to 36 completed
+animations on desktop or 18 on mobile. It never interrupts an in-flight load or
+evicts a candidate near the viewport, so the budget may be exceeded temporarily;
+the oldest settled off-screen item returns to its poster only when trimming is
+safe. The observer automatically prepares an evicted animation again when it
+returns. Infinite-scroll cards are registered automatically. Reduced-motion
+disables animation, and data-saver disables automatic activation. SVG, video,
+gifv, inline data URLs, and raster formats outside the GIF/WebP/APNG allowlist
+are not motion candidates.
+
+The application admits at most 900 animated-preview requests per client address
+per minute. Three requests may perform expensive fetch/validation work while up
+to nine more wait for a slot for at most three seconds. A request rejected only
+because the bounded queue is full or expires does not consume the client quota;
+the endpoint advertises a two-second retry interval and the browser waits
+2.2–3.0 seconds before an eligible non-WebP candidate's one cache-busting retry.
+These server-side bounds work with the browser queue without imposing a
+three-animation playback cap.
 
 The production image enables PHP OPcache, HTTP compression and static caching;
-image thumbnails and favicons use lazy loading and asynchronous decoding. The
-default SecOps landing page uses the tracked `static/misc/secops.gif` background;
-browsers requesting reduced motion or reduced data receive a static CSS
-fallback. Google reuses validated CSE bootstrap parameters for at most
-90 seconds per configured backend, CX, and outbound egress. It does not cache
+image thumbnails and favicons use lazy loading and asynchronous decoding. For a
+provider thumbnail, the proxy caps the upstream body at 16 MiB. It directly
+relays a JPEG only at no more than 128 KiB and 512 pixels per axis, or a
+structurally validated animated GIF/WebP/APNG at no more than 1.5 MiB, 2,048
+pixels per axis, and 4 MP. This avoids an unnecessary ImageMagick conversion
+without letting original-image fallbacks inflate page weight, and preserves
+small native animated thumbnails. Static or malformed animation-capable
+formats, AVIF, and larger inputs keep the bounded ImageMagick resize path. Before
+that fallback decodes anything, the proxy permits only JPEG, PNG, GIF, WebP, or
+AVIF. ImageMagick is limited to one frame, 16,384 pixels per axis, 40 MP, 64 MiB
+each of memory and map, no disk cache, one thread, and ten seconds. Its container
+policy disables delegates, filters, indirect-path reads, and all coders by
+default before enabling the narrow raster coder set. Consequently, an animated
+GIF above 1.5 MiB can fail as a bounded poster conversion; that poster failure
+does not block motion discovery, and `/proxy?...&s=animated` can still validate
+and play up to 32 MiB automatically without a click. Generic image requests
+derive a bounded Referer from the already validated public source URL; reviewed
+provider-specific Referers are also length/CRLF checked rather than accepting
+arbitrary header text. The default SecOps landing page uses the
+tracked `static/misc/secops.gif` background; browsers requesting reduced motion
+or reduced data receive a static CSS fallback. Google reuses validated CSE
+bootstrap parameters for at most
+five minutes per configured backend, CX, and outbound egress. It does not cache
 queries or result documents. This normally removes the HTML and loader-script
 bootstrap round trips from nearby searches and reduces upstream request volume.
 A Google or Brave upstream transfer uses a 10-second connection timeout and a
 20-second total timeout, bounding slow-path latency per request.
 A recognized cached-token rejection deletes that entry, performs one fresh
-bootstrap, and retries once; unusual-traffic/CAPTCHA responses are never retried
-or treated as token failures. Encrypted next-page state keeps its original
-proxy affinity.
+bootstrap, and retries once. The single-flight owner lock self-expires after 60
+seconds; waiters consume a published result for up to six seconds, then fail fast
+instead of starting another bootstrap. A failed ordinary bootstrap is shared
+for five seconds, while a recognized anti-abuse bootstrap failure is shared for
+30 seconds. The same 30-second cooldown also covers recognized anti-abuse
+responses from `cse/element/v1`, so result requests do not immediately hammer a
+throttled egress. Unusual-traffic/CAPTCHA responses are never retried or treated
+as token failures. Encrypted next-page state keeps its original proxy affinity.
+Final image-page results are parsed before the scraper decides whether another
+cursor exists, and an invalid `tbLargeUrl` falls back to a valid `tbUrl`.
 Result-page polish is served as versioned, reusable CSS; missing font preloads
 were removed; and release archives are excluded from the Docker build context.
 Animated-grid originals are intentionally bounded and viewport-controlled as
@@ -183,17 +235,18 @@ trustworthy or that a user is anonymous. Hosted-service privacy entries summariz
 the providers' own current policies, not an independent audit. Sources were
 checked on 2026-09-01.
 
-| Product | Search/result model | Deployment and control | Published data boundary and relevant UI |
-|---|---|---|---|
-| **Security Search** | Self-hosted 4get fork; selectable upstream scrapers, with Google configured by default and Brave available by explicit selection. It does not maintain an independent web index. | The instance operator controls configuration, logs and outbound proxying. Core search is server-rendered; provider failures do not silently resubmit a query elsewhere. | Upstreams normally see the instance egress rather than a direct browser request; the operator still processes queries. Google or Brave may challenge a VPS address. Images use default-on automatic loading with a Settings opt-out and **Next page** fallback. [Architecture](#architecture-and-trust-boundary), [providers](docs/PROVIDERS.md), [UI](docs/UI.md), [Google unusual-traffic guidance](https://support.google.com/websearch/answer/86640?hl=en). |
-| **Upstream 4get** | Multi-provider proxy search engine with web, image, video, news and other scraper categories. | Open-source, instance-operated deployment with per-scraper rotating-proxy support. | Its official README says the interface does not require JavaScript. Privacy and logging ultimately depend on the chosen instance operator. [Official repository and feature list](https://git.lolcat.ca/lolcat/4get). |
-| **Google Search** | Google-operated crawler, index and ranking systems covering web pages, images and other content. | Hosted and controlled by Google; result personalization and activity controls depend on context, account and settings. | Google's policy says collected activity may include search terms and interactions, plus device/request information such as IP address. [How Search works](https://developers.google.com/search/docs/fundamentals/how-search-works), [Privacy Policy](https://policies.google.com/privacy). |
-| **Microsoft Bing** | Microsoft-operated crawler and index for web, image, video and other search experiences. | Hosted and controlled by Microsoft, with Bing and Microsoft Account controls. | Microsoft says Bing collects search terms together with data such as IP address, location, cookie identifiers, time and browser configuration. [How Bing delivers results](https://support.microsoft.com/en-us/bing/how-bing-delivers-search-results), [search-history data](https://support.microsoft.com/en-US/accounts-billing/how-microsoft-stores-and-maintains-your-search-history). |
-| **DuckDuckGo** | Maintains DuckDuckBot and several indexes; it says traditional links and images are largely sourced from Bing. | DuckDuckGo-hosted service that proxies requests sent to result partners; HTML and Lite no-JavaScript variants are available with fewer features. | DuckDuckGo says it does not save or share personal search history and does not send partner requests with a user's IP or unique identifiers. [Result sources](https://duckduckgo.com/duckduckgo-help-pages/results/sources), [search privacy](https://duckduckgo.com/duckduckgo-help-pages/search-privacy), [non-JavaScript versions](https://duckduckgo.com/duckduckgo-help-pages/features/non-javascript). |
-| **Brave Search** | Brave-operated independent crawler and index; optional Google fallback mixing is a separate user choice. | Hosted and controlled by Brave; web and image modes are available. | Brave's notice describes the service as private by default, documents optional aggregate metrics, ad measurement, anonymous local results and temporary IP processing for service integrity. [Privacy notice and index details](https://search.brave.com/help/privacy-policy). |
-| **Startpage** | Hosted intermediary that submits queries to result partners including Google and Bing; it does not maintain its own web index. | Hosted and controlled by Startpage; its optional Anonymous View also proxies destination-page browsing. | Startpage says it does not record ordinary visits, searches or IP addresses, with an anti-abuse exception in its policy; image thumbnails are proxied. [Partner relationship](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Privacy Policy](https://safe.startpage.com/en/privacy-policy/), [image search](https://support.startpage.com/hc/en-us/articles/4521419354132-How-to-search-for-images-on-Startpage). |
+| Product | Result model and control | Web/image and JavaScript baseline | Image UX and explicit-content control | Published data boundary and egress limits |
+|---|---|---|---|---|
+| **Security Search** | Self-hosted 4get fork with selectable upstream scrapers; the operator controls configuration, logs, and outbound proxying. It has no independent web index. Google is the configured default, not an availability guarantee. | Server-rendered web and image search works without JavaScript; infinite loading and inline motion are progressive enhancements. | Default-on image pagination, **Next page** fallback, and automatic validated GIF/WebP/APNG playback. `nsfw=yes` is the local default where the chosen provider supports it. | Upstreams normally see instance/proxy egress, while the operator still processes queries. Google and Brave can challenge VPS networks; failures never silently resend to another provider. [Architecture](#architecture-and-trust-boundary), [providers](docs/PROVIDERS.md), [UI](docs/UI.md). |
+| **Upstream 4get** | Open-source, self-hosted multi-provider proxy with per-scraper proxy support; control and logging belong to each instance operator. | Its official feature list covers web, images, video, news, and other categories and says the interface does not require JavaScript. | Image behavior and filtering depend on the selected scraper and deployed revision. | Providers see instance/proxy egress; privacy and retention depend on the chosen operator. [Official repository and feature list](https://git.lolcat.ca/lolcat/4get). |
+| **Google Search** | Google-hosted crawler, index, and ranking systems; not self-hostable. | Hosted web and image experiences controlled by Google. | SafeSearch offers Filter, Blur, and Off, subject to account/device/network policy. | Google's policy says collected activity can include search terms, interactions, and request/device data such as IP address. [How Search works](https://developers.google.com/search/docs/fundamentals/how-search-works), [SafeSearch](https://support.google.com/websearch/answer/510?hl=en), [Privacy Policy](https://policies.google.com/privacy). |
+| **Microsoft Bing** | Microsoft-hosted crawler and index; not self-hostable. | Hosted web, image, video, and other result experiences. | Bing SafeSearch offers Strict, Moderate, and Off. | Microsoft documents search-history processing and controls through the Microsoft privacy dashboard. [How Bing delivers results](https://support.microsoft.com/en-us/bing/how-bing-delivers-search-results), [SafeSearch](https://support.microsoft.com/en-us/bing/turn-bing-safesearch-on-or-off), [search history](https://support.microsoft.com/en-US/accounts-billing/security/search-history-on-the-privacy-dashboard). |
+| **DuckDuckGo** | Hosted service with DuckDuckBot and several indexes; it says traditional links and images are largely sourced from Bing. | Web and image search, plus HTML/Lite no-JavaScript variants with fewer features. | Safe Search supports strict, moderate, and off; URL settings also expose image/result auto-loading controls. | DuckDuckGo says it does not save personal search history and proxies partner requests without the user's IP or unique identifiers. [Result sources](https://duckduckgo.com/duckduckgo-help-pages/results/sources), [Safe Search](https://duckduckgo.com/duckduckgo-help-pages/features/safe-search), [search privacy](https://duckduckgo.com/duckduckgo-help-pages/search-privacy). |
+| **Brave Search** | Brave-hosted independent crawler and index; not self-hostable. Optional Google fallback mixing is a separate user choice. | Hosted web and image modes. | Safe Search offers Off, Moderate, and Strict. | Brave describes search as private by default and documents temporary IP processing for service integrity. Security Search scraping can still receive PoW/CAPTCHA challenges from Brave. [Search overview](https://search.brave.com/help), [Safe Search](https://search.brave.com/help/safesearch), [privacy notice](https://search.brave.com/help/privacy-policy). |
+| **Yandex Search** | Yandex-hosted crawler, indexing database, and ranking systems; not self-hostable. | Hosted web and image search. | Search filtering offers Family, Moderate, and No filter. | Yandex's policy covers search-query delivery, personalization, advertising, search history, and other personal information; direct or proxied requests remain subject to its network controls. [How indexing works](https://www.yandex.com/support/webmaster/en/yandex-indexing/site-indexing), [search settings](https://yandex.com/support/search/en/search-results/settings), [Privacy Policy](https://yandex.com/legal/confidential/en/). |
+| **Startpage** | Hosted intermediary that submits queries to partners including Google and Bing; it has no independent web index and is not self-hostable. | Hosted web and image search; optional Anonymous View also proxies destination browsing. | Image filters include size, color, type—including animated GIF—and license. | Startpage says it does not record ordinary searches or IP addresses, subject to the anti-abuse exception in its policy; image thumbnails are proxied. [Partner relationship](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Privacy Policy](https://safe.startpage.com/en/privacy-policy/), [image filters](https://support.startpage.com/hc/en-us/articles/5319090860052-Image-filters). |
 
-The v0.9.6 source keeps the existing network model (host port `5140` → container
+The v0.9.7 source keeps the existing network model (host port `5140` → container
 port `80` on a `bridge` network), so nginx-proxy-manager does not need a routing
 change. Build, provider, release, and production checks still gate publication
 and deployment.
@@ -204,10 +257,10 @@ and deployment.
 
 ```bash
 # After committing the tested source:
-./release.sh 0.9.6
-(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
+./release.sh 0.9.7
+(cd dist && sha256sum -c securitysearch-v0.9.7.tar.gz.sha256)
 
-# Follow docs/RELEASE.md to build /root/security-search-v0.9.6, then atomically
+# Follow docs/RELEASE.md to build /root/security-search-v0.9.7, then atomically
 # swap that clean sibling into /root/security-search-update. Do not overlay it.
 ```
 
@@ -218,9 +271,9 @@ The intended Git publication targets and credential-free configured URLs are:
 - `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`
 - `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
 
-The v0.9.4 publication rewrote sanitized history. v0.9.6 must preserve that
+The v0.9.4 publication rewrote sanitized history. v0.9.7 must preserve that
 history and publish the exact inventory `main` plus tags `v0.9.0` through
-`v0.9.6`. Follow the per-ref lease, atomic-push, immutable-tag, and OID
+`v0.9.7`. Follow the per-ref lease, atomic-push, immutable-tag, and OID
 verification procedure in [docs/RELEASE.md](docs/RELEASE.md) for every remote;
 a failure on one must be reported even if another succeeds.
 
@@ -239,7 +292,7 @@ For local work or an already isolated source tree, `./deploy.sh --fresh`:
 8. Prints useful follow-up commands.
 
 Use `./deploy.sh --fresh` for a no-cache rebuild, or `./deploy.sh --logs` to
-follow logs after starting. Production v0.9.6 uses the clean-sibling build and
+follow logs after starting. Production v0.9.7 uses the clean-sibling build and
 atomic directory cutover in [docs/RELEASE.md](docs/RELEASE.md), so the active
 tree is never updated by overlaying archive contents.
 
@@ -269,7 +322,7 @@ Summary of high-impact changes:
 | **Security** | Container drops all kernel capabilities except those required by httpd, enables `no-new-privileges`, and applies resource limits. |
 | **SEO** | `robots.txt` blocks dynamic search paths and 28 AI/SEO scrapers. `sitemap.php` has dynamic `<lastmod>`. |
 | **SEO** | `template/home.html` now has `<link rel="canonical">`, Twitter Cards, and JSON-LD `WebSite` + `SearchAction` (Google sitelinks search box). |
-| **Perf** | Apache OPcache, compression/static caching, reduced-motion/data fallbacks for the animated SecOps backdrop, lazy result media, bounded animation-validation queues, a release-free Docker build context, and a 90-second per-egress Google bootstrap cache that stores no queries or results. |
+| **Perf** | Apache OPcache, compression/static caching, reduced-motion/data fallbacks for the animated SecOps backdrop, lazy result media, thumbnail passthrough, structural animation validation, bounded queues, a release-free Docker build context, and a five-minute per-egress Google bootstrap cache that stores no queries or results. |
 | **Backports** | Upstream fixes for Google, Yandex, Yep, Pinterest, Qwant, SoundCloud, fuckhtml.php JSON parser. |
 | **Backports** | New image scrapers: Pexels, Unsplash, Pixabay. |
 | **Reliability** | Dockerfile has multi-mirror failover for Alpine apk fetches. Healthcheck. tini PID 1. |
@@ -335,6 +388,7 @@ security-search/
 │
 ├── static/home.js                       ← CSP-safe Services keyboard enhancement
 ├── static/images-infinite.js            ← image IntersectionObserver enhancement
+├── static/images-fallback.js            ← bounded poster/source fallback handling
 ├── static/images-motion.js              ← queued validated GIF/WebP/APNG playback
 ├── static/misc/secops.gif               ← tracked SecOps home background
 ├── static/{web,image}-results.css       ← cacheable page-specific result polish
@@ -366,8 +420,8 @@ curl -s https://securityops.co/ | grep -o '<title>[^<]*</title>'
 
 # SecOps is selected and cache-busted for a first visit?
 curl -fsS "$app_base/" |
-  grep -q '/static/themes/SecOps.css?v12'
-curl -fsSI "$app_base/static/themes/SecOps.css?v12" |
+  grep -q '/static/themes/SecOps.css?v13'
+curl -fsSI "$app_base/static/themes/SecOps.css?v13" |
   grep -qi '^Content-Type: text/css'
 
 # Search works? Assert result content; HTTP 200 alone also describes an error page.
@@ -399,17 +453,17 @@ External validators:
 
 ## Rollback
 
-Before the v0.9.6 clean-tree cutover, create the exact rollback archive and
+Before the v0.9.7 clean-tree cutover, create the exact rollback archive and
 timestamped old directory documented in [docs/RELEASE.md](docs/RELEASE.md). The
 active IONOS tree remains `/root/security-search-update`.
 
 ```bash
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
-mv /root/security-search-update /root/security-search-update-failed-v0.9.6
+mv /root/security-search-update /root/security-search-update-failed-v0.9.7
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.6 security-search:latest
+docker image tag security-search:pre-v0.9.7 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 ```

@@ -10,6 +10,29 @@
     position: relative;
     overflow: hidden;
 }
+.image-wrapper.image-unavailable .image .thumb{
+    min-height: 180px;
+    background:
+        linear-gradient(135deg, rgba(41,217,237,.06), rgba(0,0,0,.16)),
+        rgba(255,255,255,.025);
+    border: 1px dashed rgba(255,255,255,.12);
+}
+.image-wrapper.image-unavailable .image .thumb::after{
+    content: "Image unavailable";
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    padding: 1rem;
+    color: var(--928374, #8d9aa4);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-align: center;
+    text-transform: uppercase;
+}
+.image-wrapper.image-unavailable .image .thumb img{
+    opacity: 0;
+}
 .image-wrapper .image .thumb img{
     transition: filter .2s ease, transform .25s ease;
     display: block;

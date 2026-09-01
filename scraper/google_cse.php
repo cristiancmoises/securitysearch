@@ -4,9 +4,10 @@ class google_cse{
 	
 	public const req_html = 0;
 	public const req_js = 1;
-	private const TOKEN_TTL = 90;
-	private const TOKEN_LOCK_TTL = 15;
+	private const TOKEN_TTL = 300;
+	private const TOKEN_LOCK_TTL = 60;
 	private const TOKEN_FAILURE_TTL = 5;
+	private const TOKEN_ANTI_ABUSE_FAILURE_TTL = 30;
 	private const TOKEN_WAIT_USEC = 50000;
 	private const TOKEN_WAIT_ATTEMPTS = 120;
 	private $backend;
@@ -547,54 +548,111 @@ class google_cse{
 
 	private function request_cse($proxy, &$req_params, $retry_token_error){
 
-		$payload =
-			$this->get(
-				$proxy,
-				"https://cse.google.com/cse/element/v1",
-				$req_params,
-				self::req_js
-			);
+		$cooldown_key = $this->cse_request_cooldown_key($proxy);
+		$this->throw_cse_request_cooldown($cooldown_key);
 
-		$json = $this->decode_response($payload);
-		$error_text = isset($json["error"]) ? json_encode($json["error"]) : "";
-		$anti_abuse_error = $this->is_google_anti_abuse_error($error_text);
-		$token_error =
-			is_string($error_text) &&
-			preg_match(
-				'/cse[_ -]?tok|token|expired|unauthorized|unauthorised|internal[ -]?api/i',
-				$error_text
-			) === 1;
+		try{
 
-		if(
-			!$retry_token_error ||
-			$error_text === "" ||
-			$anti_abuse_error ||
-			!$token_error
-		){
-
-			return $json;
-		}
-
-		// A short-cached or continuation token can expire. Bootstrap once with a
-		// fresh token, then return the second response so provider errors never loop.
-		$params =
-			$this->generate_token(
-				$proxy,
-				true,
-				$req_params["cse_tok"] ?? null
-			);
-		$req_params["cse_tok"] = $params["token"];
-		$req_params["cselibv"] = $params["lib"];
-
-		return
-			$this->decode_response(
+			$payload =
 				$this->get(
 					$proxy,
 					"https://cse.google.com/cse/element/v1",
 					$req_params,
 					self::req_js
-				)
+				);
+
+			$json = $this->decode_response($payload);
+			$error_text = isset($json["error"]) ? json_encode($json["error"]) : "";
+			$anti_abuse_error = $this->is_google_anti_abuse_error($error_text);
+			if($anti_abuse_error){
+
+				$this->remember_cse_request_cooldown($cooldown_key);
+			}
+			$token_error =
+				is_string($error_text) &&
+				preg_match(
+					'/cse[_ -]?tok|token|expired|unauthorized|unauthorised|internal[ -]?api/i',
+					$error_text
+				) === 1;
+
+			if(
+				!$retry_token_error ||
+				$error_text === "" ||
+				$anti_abuse_error ||
+				!$token_error
+			){
+
+				return $json;
+			}
+
+			// A short-cached or continuation token can expire. Bootstrap once with a
+			// fresh token, then return the second response so provider errors never loop.
+			$params =
+				$this->generate_token(
+					$proxy,
+					true,
+					$req_params["cse_tok"] ?? null
+				);
+			$req_params["cse_tok"] = $params["token"];
+			$req_params["cselibv"] = $params["lib"];
+
+			$retry_json =
+				$this->decode_response(
+					$this->get(
+						$proxy,
+						"https://cse.google.com/cse/element/v1",
+						$req_params,
+						self::req_js
+					)
+				);
+			$retry_error_text = isset($retry_json["error"]) ? json_encode($retry_json["error"]) : "";
+			if($this->is_google_anti_abuse_error($retry_error_text)){
+
+				$this->remember_cse_request_cooldown($cooldown_key);
+			}
+
+			return $retry_json;
+		}catch(Throwable $error){
+
+			if($this->is_google_anti_abuse_error($error->getMessage())){
+
+				$this->remember_cse_request_cooldown($cooldown_key);
+			}
+
+			throw $error;
+		}
+	}
+
+	private function cse_request_cooldown_key($proxy){
+
+		return
+			"g.cse.request.failure." .
+			hash(
+				"sha256",
+				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . serialize($proxy)
 			);
+	}
+
+	private function throw_cse_request_cooldown($cooldown_key){
+
+		if(!function_exists("apcu_fetch")){
+
+			return;
+		}
+
+		apcu_fetch($cooldown_key, $hit);
+		if($hit){
+
+			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+		}
+	}
+
+	private function remember_cse_request_cooldown($cooldown_key){
+
+		if(function_exists("apcu_store")){
+
+			apcu_store($cooldown_key, true, self::TOKEN_ANTI_ABUSE_FAILURE_TTL);
+		}
 	}
 
 	private function format_google_error($json){
@@ -988,34 +1046,31 @@ class google_cse{
 			"image" => []
 		];
 		
-		// detect next page
-		if(
-			isset($json["cursor"]["isExactTotalResults"]) || // detects last page
-			!isset($json["cursor"]["pages"]) // detects no results on page
-		){
+		// A response can contain a final page of image results while also marking
+		// the cursor as exact/finished. Parse those results before deciding
+		// whether another page token should be offered.
+		if(!isset($json["results"]) || !is_array($json["results"])){
 			
 			return $out;
 		}
 		
 		foreach($json["results"] as $result){
-			
-			$out["image"][] = [
-				"title" => rtrim($result["titleNoFormatting"], " ."),
-				"motion_format" => $this->motion_format_hint($result),
-				"source" => [
-					[
-						"url" => $result["unescapedUrl"],
-						"width" => (int)$result["width"],
-						"height" => (int)$result["height"]
-					],
-					[
-						"url" => $result["tbLargeUrl"],
-						"width" => (int)$result["tbLargeWidth"],
-						"height" => (int)$result["tbLargeHeight"]
-					]
-				],
-				"url" => $result["originalContextUrl"]
-			];
+
+			$parsed_result = $this->parse_image_result($result);
+			if($parsed_result !== null){
+
+				$out["image"][] = $parsed_result;
+			}
+		}
+
+		// Only decide whether a following page exists after preserving every
+		// result returned on this page.
+		if(
+			isset($json["cursor"]["isExactTotalResults"]) || // detects last page
+			!isset($json["cursor"]["pages"]) // detects no results on page
+		){
+
+			return $out;
 		}
 		
 		// get next page
@@ -1046,6 +1101,109 @@ class google_cse{
 		}
 
 		return null;
+	}
+
+	private function parse_image_result($result){
+
+		if(!is_array($result)){
+
+			return null;
+		}
+
+		$original_url = $this->valid_remote_image_url($result["unescapedUrl"] ?? null);
+		$large_thumbnail_url = $this->valid_remote_image_url($result["tbLargeUrl"] ?? null);
+		$thumbnail_url =
+			$large_thumbnail_url ??
+			$this->valid_remote_image_url($result["tbUrl"] ?? null);
+		if($original_url === null){
+
+			$original_url = $thumbnail_url;
+		}
+		if($original_url === null){
+
+			return null;
+		}
+
+		$sources = [
+			[
+				"url" => $original_url,
+				"width" => $this->positive_image_dimension($result["width"] ?? null),
+				"height" => $this->positive_image_dimension($result["height"] ?? null)
+			]
+		];
+		if($thumbnail_url !== null && $thumbnail_url !== $original_url){
+
+			$sources[] = [
+				"url" => $thumbnail_url,
+				"width" => $this->positive_image_dimension(
+					$large_thumbnail_url !== null ?
+					($result["tbLargeWidth"] ?? null) :
+					($result["tbWidth"] ?? null)
+				),
+				"height" => $this->positive_image_dimension(
+					$large_thumbnail_url !== null ?
+					($result["tbLargeHeight"] ?? null) :
+					($result["tbHeight"] ?? null)
+				)
+			];
+		}
+
+		$title =
+			isset($result["titleNoFormatting"]) && is_string($result["titleNoFormatting"]) ?
+			rtrim($result["titleNoFormatting"], " .") :
+			"Image result";
+		if($title === ""){
+
+			$title = "Image result";
+		}
+
+		return [
+			"title" => $title,
+			"motion_format" => $this->motion_format_hint($result),
+			"source" => $sources,
+			"url" =>
+				$this->valid_remote_image_url($result["originalContextUrl"] ?? null) ??
+				$original_url
+		];
+	}
+
+	private function positive_image_dimension($dimension){
+
+		if(!is_numeric($dimension)){
+
+			return null;
+		}
+
+		$dimension = (int)$dimension;
+		return $dimension > 0 && $dimension <= 1000000 ? $dimension : null;
+	}
+
+	private function valid_remote_image_url($url){
+
+		if(
+			!is_string($url) ||
+			$url === "" ||
+			strlen($url) > 16384 ||
+			preg_match('/[\x00-\x20\x7f]/', $url) === 1
+		){
+
+			return null;
+		}
+
+		$parts = parse_url($url);
+		if(
+			!is_array($parts) ||
+			!isset($parts["scheme"], $parts["host"]) ||
+			!in_array(strtolower($parts["scheme"]), ["http", "https"], true) ||
+			$parts["host"] === "" ||
+			isset($parts["user"]) ||
+			isset($parts["pass"])
+		){
+
+			return null;
+		}
+
+		return $url;
 	}
 	
 	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){
@@ -1266,10 +1424,11 @@ class google_cse{
 
 			if($owns_lock){
 
+				$anti_abuse = $this->is_google_anti_abuse_error($error->getMessage());
 				apcu_store(
 					$failure_key,
-					$this->is_google_anti_abuse_error($error->getMessage()) ? "anti_abuse" : "upstream",
-					self::TOKEN_FAILURE_TTL
+					$anti_abuse ? "anti_abuse" : "upstream",
+					$anti_abuse ? self::TOKEN_ANTI_ABUSE_FAILURE_TTL : self::TOKEN_FAILURE_TTL
 				);
 			}
 

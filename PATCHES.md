@@ -1,8 +1,68 @@
 # Quick-Apply Patches
 
+## v0.9.7 image delivery and provider reliability corrections
+
+Current installations should use the complete tagged v0.9.7 source archive;
+do not deploy this as a selection of individual files. It is a drop-in update
+from v0.9.6 with no persistent-data migration, but the container must be rebuilt
+so static asset version `13`, the PHP proxy, and the provider parsers change
+together.
+
+Image result rendering now validates malformed provider records, keeps up to
+two same-origin poster fallbacks, and marks a card unavailable only after its
+bounded fallback path is exhausted. The fallback and motion controllers load
+early in the document, register infinite-scroll additions, prefetch within 700
+pixels of the viewport, and try Brave's animation-preserving resized URL before
+the original. The automatic queue prioritizes GIF/APNG over low-confidence
+WebP. WebP still receives structural validation and a provider-source fallback,
+but skips the cache-busted automatic retry used by eligible non-WebP candidates
+(normally GIF/APNG).
+Completed animations use a soft LRU budget of 36 on desktop or 18 on mobile;
+visible and in-flight work is never interrupted, and an evicted off-screen item
+is automatically prepared again when it returns. GIF and animated WebP are
+structurally inspected by bounded parsers; APNG keeps its strict chunk validator.
+The animated endpoint accepts at most 32 MiB, allows three active validations
+plus nine short waiters, charges only admitted requests against a
+900/client/minute allowance, and sends
+a two-second busy retry hint; the browser waits 2.2–3.0 seconds before its sole
+eligible non-WebP retry. Thumbnail downloads are capped at 16 MiB. The native
+fast path is restricted to a JPEG no larger than 128 KiB and 512 pixels
+per side, or to a structurally validated animated GIF, WebP, or APNG up to 1.5
+MiB, 2,048 pixels per side, and 4 megapixels. Larger JPEG poster fallbacks and
+static or malformed animation-capable formats remain on the bounded ImageMagick
+thumbnail path. That fallback admits only JPEG/PNG/GIF/WebP/AVIF, decodes one
+frame, and enforces 16,384-pixel/40-MP, 64-MiB memory/map, disk-zero, one-thread,
+and ten-second limits. The container policy denies delegates, filters, indirect
+paths, and all coders by default before enabling its narrow raster set. An
+animated GIF above 1.5 MiB can therefore fail as a poster while the independent
+32-MiB motion path still starts automatically without a click. Image fetches
+derive their bounded Referer from the validated public source URL.
+
+Google CSE no longer drops a final image page merely because its cursor says
+there is no following page, and an invalid `tbLargeUrl` now falls back to a valid
+`tbUrl`. Its query-free bootstrap token cache is five minutes. A single-flight
+owner lock expires after 60 seconds; waiters use a published result for up to
+six seconds, then fail fast rather than duplicating the bootstrap. Recognized
+anti-abuse failures receive a 30-second negative cache both during bootstrap and
+at `cse/element/v1`. Brave now validates image result URLs and dimensions,
+derives motion hints from both metadata and URL paths, preserves its resized
+source, and exposes that smaller animated source to the UI. These changes cannot
+make an egress address accepted by Google or Brave: unusual-traffic and
+proof-of-work responses remain neutral, explicit provider errors that must not
+trigger a silent provider switch.
+
+For Nginx Proxy Manager, inspect the live generated host configuration as well
+as the database-backed advanced configuration. WAF path rules must test `$uri`,
+not `$request_uri`, because the latter includes the encoded remote image URL and
+can reject ordinary sources such as `/wp-content/uploads/...`. Derive a
+separate argument-inspection variable and clear it only for the local `/proxy`
+and `/proxy.php` routes; never disable argument checks globally. Preserve
+timestamped NPM database and generated-host backups until the public animation,
+WordPress-upload, and SSRF-control checks pass.
+
 ## v0.9.6 UI, provider, motion, and packaging corrections
 
-Current installations should use the complete tagged v0.9.6 source archive. It
+Installations pinned to v0.9.6 should use that complete tagged source archive. It
 includes the required Security Search logo, prevents empty-banner PHP warnings,
 restores the tracked animated SecOps background with reduced-motion/data
 fallbacks, and sets NSFW-capable filters to `yes` by default while retaining

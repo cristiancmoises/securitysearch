@@ -69,7 +69,7 @@ RUN set -eux; \
         php84-pecl-imagick php84-mbstring php84-opcache \
         php84-session php84-tokenizer php84-xml \
         curl tini ca-certificates \
-        imagemagick imagemagick-webp imagemagick-jpeg && \
+        imagemagick imagemagick-webp imagemagick-jpeg imagemagick-heic && \
     ln -sf /usr/bin/php84 /usr/bin/php && \
     rm -rf /var/cache/apk/* /tmp/*
 
@@ -107,6 +107,28 @@ RUN printf '%s\n' \
     'post_max_size = 8M' \
     'upload_max_filesize = 8M' \
     > /etc/php84/conf.d/99_security.ini
+
+# Keep ImageMagick as a bounded raster thumbnailer, never a general-purpose
+# document/delegate engine. proxy.php applies the same MIME allowlist and tighter
+# per-request resource limits before decoding attacker-controlled upstream data.
+RUN printf '%s\n' \
+    '<?xml version="1.0" encoding="UTF-8"?>' \
+    '<policymap>' \
+    '  <policy domain="resource" name="memory" value="64MiB"/>' \
+    '  <policy domain="resource" name="map" value="64MiB"/>' \
+    '  <policy domain="resource" name="disk" value="0"/>' \
+    '  <policy domain="resource" name="time" value="10"/>' \
+    '  <policy domain="resource" name="thread" value="1"/>' \
+    '  <policy domain="resource" name="width" value="16KP"/>' \
+    '  <policy domain="resource" name="height" value="16KP"/>' \
+    '  <policy domain="resource" name="list-length" value="2"/>' \
+    '  <policy domain="delegate" rights="none" pattern="*"/>' \
+    '  <policy domain="filter" rights="none" pattern="*"/>' \
+    '  <policy domain="path" rights="none" pattern="@*"/>' \
+    '  <policy domain="coder" rights="none" pattern="*"/>' \
+    '  <policy domain="coder" rights="read|write" pattern="{JPEG,JPG,PNG,GIF,WEBP,AVIF,HEIC}"/>' \
+    '</policymap>' \
+    > /etc/ImageMagick-7/policy.xml
 
 # Tighten filesystem permissions. Application code remains root-owned and
 # read-only to Apache; only `icons/` is writable for the favicon cache.

@@ -1,6 +1,6 @@
 # Release and deployment
 
-These instructions prepare and deploy v0.9.6. They do not imply that the tag,
+These instructions prepare and deploy v0.9.7. They do not imply that the tag,
 remote commit, hosted release, or IONOS deployment already exists.
 
 ## Build the source artifact
@@ -14,14 +14,21 @@ local branch, remote-tracking ref, or tag:
 for removed_path in \
   static/themes/Kuruminha.css \
   static/misc/mimi.jpg \
-  securitysearch.zip \
-  docs/GOD_TIER_SEARCH_ENGINE_PROMPT.md
+  securitysearch.zip
 do
   test -z "$(git log --all --format= --name-only -- "$removed_path")" || {
     echo "removed path remains in reachable history: $removed_path" >&2
     exit 1
   }
 done
+
+# Prompt artifacts are forbidden regardless of extension, capitalization, or
+# directory. Check every path reachable from every local ref, not only HEAD.
+if git log --all --format= --name-only |
+   LC_ALL=C grep -Eiq '(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/)'; then
+  echo "prompt artifact remains in reachable history" >&2
+  exit 1
+fi
 ```
 
 An ordinary deletion commit does not satisfy this check. If a stale clone has
@@ -33,39 +40,48 @@ Then, from a clean working tree:
 ```bash
 git diff --check
 git status --short
-./release.sh 0.9.6
-(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
-git tag -a v0.9.6 -m "Security Search v0.9.6"
+./release.sh 0.9.7
+(cd dist && sha256sum -c securitysearch-v0.9.7.tar.gz.sha256)
+git tag -a v0.9.7 -m "Security Search v0.9.7"
 ```
 
 The release helper uses `git archive`, respects `.gitattributes`, and adds only
 the required empty `icons/` runtime-cache directory that Git cannot track:
 
 ```text
-dist/securitysearch-v0.9.6.tar.gz
-dist/securitysearch-v0.9.6.tar.gz.sha256
+dist/securitysearch-v0.9.7.tar.gz
+dist/securitysearch-v0.9.7.tar.gz.sha256
 ```
 
 Inspect the archive before publishing:
 
 ```bash
-tar -tzf dist/securitysearch-v0.9.6.tar.gz | head
-tar -tzf dist/securitysearch-v0.9.6.tar.gz |
-  grep -Fxq 'securitysearch-v0.9.6/icons/'
-tar -tzf dist/securitysearch-v0.9.6.tar.gz |
-  grep -Fxq 'securitysearch-v0.9.6/banner/securitysearch.webp'
-tar -tzf dist/securitysearch-v0.9.6.tar.gz |
-  grep -Fxq 'securitysearch-v0.9.6/static/misc/secops.gif'
-if tar -tzf dist/securitysearch-v0.9.6.tar.gz |
-   grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.6/dist/|prompt.*\.md|securitysearch\.zip|Kuruminha\.css|mimi\.jpg)'; then
+archive_listing=$(tar -tzf dist/securitysearch-v0.9.7.tar.gz)
+printf '%s\n' "$archive_listing" | sed -n '1,10p'
+printf '%s\n' "$archive_listing" |
+  grep -Fxq 'securitysearch-v0.9.7/icons/'
+printf '%s\n' "$archive_listing" |
+  grep -Fxq 'securitysearch-v0.9.7/banner/securitysearch.webp'
+printf '%s\n' "$archive_listing" |
+  grep -Fxq 'securitysearch-v0.9.7/static/misc/secops.gif'
+printf '%s\n' "$archive_listing" |
+  grep -Fxq 'securitysearch-v0.9.7/static/images-fallback.js'
+printf '%s\n' "$archive_listing" |
+  grep -Fxq 'securitysearch-v0.9.7/static/images-motion.js'
+tar -xzOf dist/securitysearch-v0.9.7.tar.gz \
+  securitysearch-v0.9.7/data/config.php |
+  grep -Eq 'const VERSION = 13;'
+if printf '%s\n' "$archive_listing" |
+   LC_ALL=C grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.7/dist/|securitysearch\.zip|Kuruminha\.css|mimi\.jpg|(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/))'; then
   echo "unexpected release content"
   exit 1
 fi
 ```
 
 The required-directory, logo, and SecOps-background checks must succeed, and the
-forbidden-content check must print nothing. The package must contain no API
-keys, proxy credentials, cookies, or Evelin/SSH material.
+image-controller and version checks must also succeed. The forbidden-content
+check must print nothing. The package must contain no API keys, proxy
+credentials, cookies, or Evelin/SSH material.
 
 ## Publish to Git remotes
 
@@ -75,31 +91,39 @@ List the configured remotes and confirm their targets:
 git remote -v
 ```
 
-This checkout currently has four intended publication remotes. These URLs do
-not embed credentials:
+This checkout has three independently verifiable publication targets. Their
+URLs do not embed credentials:
 
 - `origin` → `git@github.com:cristiancmoises/securitysearch.git`
 - `codeberg` → `git@codeberg.org:berkeley/securitysearch.git`
-- `securityops` → `https://git.securityops.co/cristiancmoises/securitysearch.git`
 - `securityops_br` → `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
 
+`securityops` may be configured for
+`https://git.securityops.co/cristiancmoises/securitysearch.git`, but the
+repository was absent at the last verified check. Do not include or claim that
+target until `git ls-remote securityops` succeeds and the repository owner has
+created it. Never put access tokens in remote URLs.
+
 The remote inventory must contain only `main` and release tags v0.9.0 through
-v0.9.6. Capture the exact current remote object IDs immediately before each
+v0.9.7. Capture the exact current remote object IDs immediately before each
 push and use an explicit lease for every ref. A lease mismatch means someone
 updated that remote; stop and investigate instead of overwriting their work.
-The following Bash block publishes the branch and complete tag inventory
-atomically while also asserting that a previously absent ref is still absent:
+The following Bash function publishes one named remote atomically while also
+asserting that a previously absent ref is still absent. Invoke it independently
+for each available target so one authentication/network failure is recorded for
+that target and is never mistaken for another target's result:
 
 ```bash
-set -euo pipefail
-release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5 v0.9.6)
-expected_refs=(refs/heads/main)
-for tag in "${release_tags[@]}"; do
-  expected_refs+=("refs/tags/${tag}")
-done
-expected_ref_inventory=$(printf '%s\n' "${expected_refs[@]}" | sort -u)
+publish_remote() (
+  set -euo pipefail
+  remote=$1
+  release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5 v0.9.6 v0.9.7)
+  expected_refs=(refs/heads/main)
+  for tag in "${release_tags[@]}"; do
+    expected_refs+=("refs/tags/${tag}")
+  done
+  expected_ref_inventory=$(printf '%s\n' "${expected_refs[@]}" | sort -u)
 
-for remote in origin codeberg securityops securityops_br; do
   remote_listing=$(git ls-remote --heads --tags "$remote")
   actual_ref_inventory=$(
     printf '%s\n' "$remote_listing" |
@@ -139,6 +163,16 @@ for remote in origin codeberg securityops securityops_br; do
   done
 
   git push --atomic "${lease_args[@]}" "$remote" "${refspecs[@]}"
+)
+
+for remote in origin codeberg securityops_br; do
+  publish_remote "$remote"
+  publish_status=$?
+  if test "$publish_status" = 0; then
+    printf '%s\n' "$remote published"
+  else
+    printf '%s\n' "$remote failed; record and investigate independently" >&2
+  fi
 done
 ```
 
@@ -153,7 +187,6 @@ Verify every advertised object independently; one successful push is not
 evidence for any other remote or ref:
 
 ```bash
-set -euo pipefail
 release_refs=(
   refs/heads/main
   refs/tags/v0.9.0
@@ -163,8 +196,11 @@ release_refs=(
   refs/tags/v0.9.4
   refs/tags/v0.9.5
   refs/tags/v0.9.6
+  refs/tags/v0.9.7
 )
-for remote in origin codeberg securityops securityops_br; do
+verify_remote() (
+  set -euo pipefail
+  remote=$1
   remote_listing=$(git ls-remote --heads --tags "$remote")
   actual_ref_inventory=$(
     printf '%s\n' "$remote_listing" |
@@ -190,7 +226,20 @@ for remote in origin codeberg securityops securityops_br; do
       exit 1
     }
   done
+)
+
+verification_failed=0
+for remote in origin codeberg securityops_br; do
+  verify_remote "$remote"
+  verify_status=$?
+  if test "$verify_status" = 0; then
+    printf '%s\n' "$remote verified"
+  else
+    printf '%s\n' "$remote verification failed" >&2
+    verification_failed=1
+  fi
 done
+test "$verification_failed" = 0
 ```
 
 If more remotes are intentionally configured, inspect each URL and push it
@@ -254,82 +303,223 @@ confirm it rotates addresses for no more than three total attempts. A deliberate
 unreachable Google/Brave test route should also demonstrate the per-transfer
 10-second connect and 20-second total timeout bounds without an unbounded loop.
 
+Run provider fixtures in addition to live probes. A Google image response with
+`cursor.isExactTotalResults` and a non-empty `results` array must retain every
+result while returning no next-page token. Cover valid `tbLargeUrl`, invalid or
+missing `tbLargeUrl` with valid `tbUrl`, a missing original with a valid
+thumbnail, and records with no usable source. Assert the fallback carries the
+matching `tbUrl` dimensions. Exercise the 60-second single-flight owner lease,
+a waiter consuming a publication within six seconds, fail-fast after that wait,
+five-second ordinary bootstrap failure sharing, and the 30-second anti-abuse
+cooldown during both bootstrap and `cse/element/v1` result requests. No cooldown
+test may be counted as a successful Google result.
+
+Brave fixtures must cover `properties.format`, a URL-extension-only animation
+hint, a smaller `properties.resized` GIF/WebP, a missing original with a valid
+resized source, and malformed URL/dimension fields. Assert that the resized
+animated URL is the preferred `motion_url`, the original remains a fallback,
+and no invalid source reaches rendered markup.
+
 Verify the SecOps cascade and cache version:
 
 ```bash
 home=$(curl -fsS http://127.0.0.1:5140/)
-printf '%s' "$home" | grep -q '/static/themes/SecOps.css?v12'
-curl -fsSI http://127.0.0.1:5140/static/themes/SecOps.css?v12 |
+printf '%s' "$home" | grep -q '/static/themes/SecOps.css?v13'
+curl -fsSI http://127.0.0.1:5140/static/themes/SecOps.css?v13 |
   grep -qi '^Content-Type: text/css'
 curl -fsSI http://127.0.0.1:5140/static/misc/secops.gif |
   grep -qi '^Content-Type: image/gif'
-curl -fsS http://127.0.0.1:5140/static/themes/SecOps.css?v12 |
-  grep -Fq 'url("/static/misc/secops.gif?v12")'
+curl -fsS http://127.0.0.1:5140/static/themes/SecOps.css?v13 |
+  grep -Fq 'url("/static/misc/secops.gif?v13")'
 docker compose exec -T security-search php -r \
-  'include "/var/www/html/4get/data/config.php"; exit(config::DEFAULT_NSFW === "yes" ? 0 : 1);'
+  'include "/var/www/html/4get/data/config.php"; exit(config::VERSION === 13 && config::DEFAULT_NSFW === "yes" ? 0 : 1);'
 
 invalid_theme=$(curl -fsS -H 'Cookie: theme=missing-theme' \
   http://127.0.0.1:5140/)
 printf '%s' "$invalid_theme" |
-  grep -q '/static/themes/SecOps.css?v12'
+  grep -q '/static/themes/SecOps.css?v13'
 ```
 
 Complete the visual, cookie, keyboard, narrow-screen, error-action, and
 no-JavaScript checks in [UI.md](UI.md). Include animated and false-positive
-fixtures. Verify poster-first loading, same-origin `/proxy?...&s=animated`, the
-20 MB cap, MIME validation, Imagick frame counting for GIF/WebP, and strict PNG
-chunk/`acTL` frame validation for APNG—including an APNG that Alpine Imagick
-reports as one frame. Confirm PNG/APNG CRC and ordering checks,
-`acTL`/`fcTL`/`fdAT` sequence/count/data checks, canvas bounds, and rejection of
-a forged acTL-only static PNG. Verify poster fallback, three/two concurrent-load
-queues, all visible validated animations playing without a click, and queue
-advancement as off-screen cards restore. For both automatic and deliberate requests, verify poster
-settling; require the two-animation-frame/one-paint gate only after a successful
-poster, and verify that a broken poster may proceed once settled. Verify that
-user intent upgrades pending automatic prep without duplication, pointer/focus
-rechecks viewport geometry, and off-screen restoration cancels pending work.
-Cover reduced-motion/data-saver behavior, infinite-append registration,
-full-size-original selection, generic-WebP probing/static fallback, and data-URL exclusion. Include recognized
-explicit APNG/animated-PNG filenames ending in `.png`, Google/Brave MIME or
-format metadata identifying extensionless originals, conservative misses when
-no hint exists, rejected static WebP, and an unsupported
-raster case. Verify that the hint-labelled motion badge appears only after
-multi-frame validation. Confirm there is no direct result-host image request.
+fixtures. Verify poster-first loading and that both early deferred scripts,
+`images-fallback.js?v13` and `images-motion.js?v13`, appear in the document head
+before the image grid. Every result-host request must remain behind the
+same-origin `/proxy`; test primary plus two poster fallbacks, the local
+unavailable state, a Brave resized-motion source plus original fallback, one
+eligible delayed cache-busted retry, and infinite-scroll registration. WebP is a
+low-confidence candidate: it must receive validation and its provider fallback,
+but no automatic cache-busted retry. Confirm user intent stays first and the
+automatic queue orders GIF/APNG before WebP.
 
-Exercise rejection fixtures above 20 MB, 1,000 frames, 16,384 pixels on either
-dimension, 40 megapixels per frame, 250 million decoded pixel-frames, and 8,192
-PNG chunks. Include a compressed response whose decompressed
-write-callback output exceeds 20 MB even when progress/content length would not
-prove that; it must be rejected. Snapshot the Imagick memory, map, disk, file,
-thread, time, width, height, and list-length resource limits and prove they are
-restored after successful and failed inspection. Confirm the app returns 429
-after 120 animated candidate admissions/client/minute and admits no more than
-three generation-tagged validations globally in flight. Verify port 5140 is
-loopback/private and unreachable on the public interface. On the VPS, validate the live NPM configuration (adjust the
-container name only if the installation uses a different one):
+Fill the retained set beyond 36 settled desktop animations and 18 mobile
+animations. A visible or in-flight candidate must never be evicted, so the soft
+budget may be exceeded temporarily. When trimming becomes possible, only the
+oldest settled off-screen candidate returns to its poster; bringing it back into
+the observer margin must automatically prepare and reactivate it without a
+click or infinite-scroll reload.
+
+Exercise genuine and false-positive GIF, WebP, and APNG fixtures. The structural
+parsers must accept only multi-frame containers, validate GIF block framing,
+WebP RIFF/chunk/frame geometry, and PNG CRC/order/`acTL`/`fcTL`/`fdAT`
+sequence/count/data rules. Reject a forged acTL-only static PNG, static WebP,
+unsupported rasters, data URLs, credentials in source URLs, and malformed
+provider records. Test provider metadata and URL-extension hints, including
+extensionless Brave metadata and explicit `.gif`, `.webp`, `.apng`, or animated
+`.png` paths. A motion badge becomes active only after validation, and every
+accepted visible animation plays without a click.
+
+Exercise rejection fixtures above 32 MiB of decompressed response data, 1,000
+frames, 16,384 pixels on either dimension, 40 megapixels per frame, 250 million
+decoded pixel-frames, 8,192 container chunks, and 131,072 GIF sub-blocks. A
+compressed response whose write-callback output crosses 32 MiB must be rejected
+even when its content length does not prove that limit. Confirm at most three
+generation-owned validations run globally, nine additional requests wait for
+no more than three seconds, a busy rejection returns `Retry-After: 2`, the sole
+eligible non-WebP browser retry waits 2.2–3.0 seconds, busy rejections do not
+consume client quota, and the 901st admitted candidate in one minute is
+rejected. Also verify the native thumbnail fast path only accepts a
+JPEG up to 128 KiB and 512 pixels per side, or a structurally validated animated
+GIF, WebP, or APNG up to 1.5 MiB, 2,048 pixels per side, and 4 megapixels. Larger
+JPEGs, static or malformed animation-capable formats, and other supported
+rasters must retain the bounded ImageMagick path; any thumbnail download crossing
+the independent 16 MiB transfer limit must be rejected. An animated GIF above
+1.5 MiB may fail that bounded poster path, but its `s=animated` request must still
+start without a click and may succeed up to the independent 32 MiB ceiling.
+
+For ImageMagick fallbacks, reject MIME outside JPEG/PNG/GIF/WebP/AVIF and assert
+one decoded frame (`list-length=2` rejects the second), 16,384 pixels per axis,
+40 MP, 64 MiB memory, 64 MiB map, zero disk, one thread, and ten seconds.
+Inspect the image policy in the built container: delegates and filters are
+disabled, indirect `@` paths are denied, coders are
+denied by default, and only `{JPEG,JPG,PNG,GIF,WEBP,AVIF,HEIC}` is re-enabled;
+the proxy's narrower JPEG/PNG/GIF/WebP/AVIF MIME allowlist must still reject
+HEIC input. Confirm the built image contains the ImageMagick HEIC module and a
+valid AVIF fallback produces the bounded JPEG thumbnail instead of a 404.
+Include success and failure fixtures to prove previous process limits are
+restored. Also verify generic buffered and streamed image fetches
+derive a bounded Referer from a validated public source URL, reviewed
+provider-specific values are
+length/CRLF checked, invalid values are omitted, and private or otherwise
+invalid redirect targets remain rejected.
+
+Verify port 5140 is loopback/private and unreachable on the public interface.
+On the VPS, discover the live Nginx Proxy Manager container instead of assuming
+its name, then identify the generated host file that serves `securityops.co`:
 
 ```bash
-npm_config=$(docker exec nginx-proxy-manager nginx -T 2>&1)
-printf '%s' "$npm_config" |
-  grep -F 'map $arg_s $securitysearch_media_key {'
-printf '%s' "$npm_config" | grep -F 'default  "";'
-printf '%s' "$npm_config" | grep -F 'animated $binary_remote_addr;'
-printf '%s' "$npm_config" |
-  grep -F 'limit_req_zone $securitysearch_media_key zone=media:10m rate=60r/m;'
-printf '%s' "$npm_config" |
-  grep -F 'limit_req_zone $binary_remote_addr zone=proxy:10m rate=600r/m;'
-printf '%s' "$npm_config" |
-  grep -F 'limit_req zone=media burst=12 nodelay;'
-printf '%s' "$npm_config" |
-  grep -F 'limit_req zone=proxy burst=40 nodelay;'
+npm_container=$(
+  docker ps --format '{{.Names}}\t{{.Image}}' |
+    awk 'tolower($0) ~ /(nginx.proxy.manager|jc21\/nginx-proxy-manager|npm)/ {print $1}' |
+    while IFS= read -r candidate; do
+      if docker exec "$candidate" sh -lc \
+        'grep -Eq "server_name .*securityops\\.co" /data/nginx/proxy_host/*.conf'; then
+        printf '%s\n' "$candidate"
+        break
+      fi
+    done
+)
+test -n "$npm_container"
+npm_config=$(docker exec "$npm_container" nginx -T 2>&1)
+printf '%s\n' "$npm_config" | grep -Fq 'server_name securityops.co'
+
+npm_host_config=$(
+  docker exec "$npm_container" sh -lc '
+    for candidate in /data/nginx/proxy_host/*.conf; do
+      grep -Eq "server_name .*securityops\\.co" "$candidate" && {
+        printf "%s\\n" "$candidate"
+        exit 0
+      }
+    done
+    exit 1
+  '
+)
+case "$npm_host_config" in
+  /data/nginx/proxy_host/*.conf) ;;
+  *) exit 1 ;;
+esac
+npm_host_text=$(docker exec "$npm_container" cat "$npm_host_config")
 ```
 
-The map's empty default means ordinary thumbnail requests do not consume the
-media zone; only raw `s=animated` is keyed by client address. The all-proxy zone
-still covers encoded variants, while the application applies its stricter bound
-to PHP's decoded value. The zone lines prove both budgets exist in NPM's global
-`http{}` scope, and the location lines prove public `/proxy` applies them. A checked-in sample
-configuration is not evidence that the live proxy loaded these directives.
+The WAF must inspect the local normalized `$uri`, never `$request_uri`; the
+latter contains the encoded remote target and can incorrectly return 444 for a
+normal source containing `/wp-content/uploads/`. SQL/XSS argument rules should
+inspect a derived `$securitysearch_waf_args` value. Clear that derived value
+only when `$uri` is exactly `/proxy` or `/proxy.php`, because `i=` necessarily
+contains a remote URL; do not clear `$args` and do not disable argument
+inspection on any other path.
+
+Before changing NPM's database-backed advanced configuration or generated host
+file, create exact timestamped backups on the mounted data filesystem and keep
+both until all post-deployment checks pass:
+
+```bash
+npm_data_host=$(
+  docker inspect --format \
+    '{{range .Mounts}}{{if eq .Destination "/data"}}{{.Source}}{{end}}{{end}}' \
+    "$npm_container"
+)
+test -d "$npm_data_host"
+npm_backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+npm_database_backup="$npm_data_host/database.pre-securitysearch-v0.9.7-${npm_backup_stamp}.sqlite"
+npm_generated_backup="$npm_data_host/nginx/proxy_host/${npm_host_config##*/}.pre-securitysearch-v0.9.7-${npm_backup_stamp}"
+cp --preserve=mode,timestamps "$npm_data_host/database.sqlite" "$npm_database_backup"
+cp --preserve=mode,timestamps \
+  "$npm_data_host/nginx/proxy_host/${npm_host_config##*/}" \
+  "$npm_generated_backup"
+test -s "$npm_database_backup"
+test -s "$npm_generated_backup"
+sha256sum "$npm_database_backup" "$npm_generated_backup"
+```
+
+Apply the reviewed change persistently to NPM's database-backed advanced
+configuration and regenerate or update the matching host file; changing only
+the generated file will be lost. After reloading, prove that the live host has
+one narrowly scoped proxy exemption and that all three SQL/XSS rules inspect
+the derived value:
+
+```bash
+docker exec "$npm_container" nginx -t
+docker exec "$npm_container" nginx -s reload
+npm_host_text=$(docker exec "$npm_container" cat "$npm_host_config")
+printf '%s\n' "$npm_host_text" | grep -Fq 'set $securitysearch_waf_args $args;'
+test "$(printf '%s\n' "$npm_host_text" | grep -Fc 'set $securitysearch_waf_args "";')" = 1
+printf '%s\n' "$npm_host_text" | grep -Eq 'if \(\$uri [^)]*\^/proxy'
+test "$(printf '%s\n' "$npm_host_text" | grep -Ec 'if \(\$securitysearch_waf_args ')" -ge 3
+! printf '%s\n' "$npm_host_text" | grep -Fq '$request_uri'
+```
+
+After reloading NPM and deploying the candidate, assert that an encoded public
+WordPress upload is no longer rejected by the WAF and that the application
+still blocks a loopback SSRF target:
+
+```bash
+wp_body=$(mktemp)
+wp_status=$(curl -sS --get -o "$wp_body" -w '%{http_code}' \
+  --data-urlencode 'i=http://cdn.osxdaily.com/wp-content/uploads/2013/07/dancing-banana.gif' \
+  --data-urlencode 's=animated' \
+  'https://securityops.co/proxy')
+test "$wp_status" != 444
+test "$wp_status" = 200
+test "$(head -c 6 "$wp_body")" = GIF89a
+rm -f -- "$wp_body"
+
+ssrf_status=$(curl -sS --get -o /dev/null -w '%{http_code}' \
+  --data-urlencode 'i=http://127.0.0.1/' \
+  --data-urlencode 's=animated' \
+  'https://securityops.co/proxy')
+test "$ssrf_status" = 404
+
+non_proxy_waf_status=$(curl -sS --get -o /dev/null -w '%{http_code}' \
+  --data-urlencode 'securitysearch_waf_probe=<script>alert(1)</script>' \
+  'https://securityops.co/')
+test "$non_proxy_waf_status" = 444
+```
+
+A checked-in sample does not prove the live NPM process loaded the directives.
+Retain `$npm_database_backup` and `$npm_generated_backup` through image, public
+domain, log, WordPress-upload, and SSRF verification; record their exact paths
+with the release evidence.
 
 ## Deploy on the current IONOS VPS
 
@@ -339,11 +529,11 @@ Use the approved Evelin profile and upload both files:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz
+  dist/securitysearch-v0.9.7.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.6.tar.gz.sha256 \
-  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz.sha256
+  dist/securitysearch-v0.9.7.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -352,12 +542,12 @@ exact rollback archive before changing the active tree:
 
 ```bash
 cd /srv/evelin
-sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.7.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.6-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.7-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.6
+release_tree=/root/security-search-v0.9.7
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -368,7 +558,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf /srv/evelin/securitysearch-v0.9.6.tar.gz \
+tar -xzf /srv/evelin/securitysearch-v0.9.7.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -397,9 +587,9 @@ the current image under a rollback tag first:
 ```bash
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.6
+docker image tag "$previous_image_id" security-search:pre-v0.9.7
 
-cd /root/security-search-v0.9.6
+cd /root/security-search-v0.9.7
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -415,7 +605,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.6 /root/security-search-update
+mv /root/security-search-v0.9.7 /root/security-search-update
 
 cd /root/security-search-update
 docker compose up -d --no-build
@@ -472,10 +662,10 @@ timestamped old directory, and retag the preserved image:
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
 mv /root/security-search-update \
-  /root/security-search-update-failed-v0.9.6
+  /root/security-search-update-failed-v0.9.7
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.6 security-search:latest
+docker image tag security-search:pre-v0.9.7 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -488,7 +678,7 @@ cutover. If that old directory is unavailable, extract the exact predeploy
 
 After health, result-bearing local checks, both public domains, NPM limits, and
 logs pass, remove the timestamped old directory and the
-`security-search:pre-v0.9.6` image tag:
+`security-search:pre-v0.9.7` image tag:
 
 ```bash
 test -n "${old_tree:-}"
@@ -499,7 +689,7 @@ esac
 test -d "$old_tree"
 test -s "$rollback_archive"
 rm -rf -- "$old_tree"
-docker image rm security-search:pre-v0.9.6
+docker image rm security-search:pre-v0.9.7
 test -s "$rollback_archive"
 ```
 

@@ -1,5 +1,76 @@
 # Security Search — Migration Notes
 
+## v0.9.7 — image delivery and provider reliability corrections
+
+v0.9.7 is a drop-in update from v0.9.6 with no persistent-data migration.
+Rebuild the container so the static asset version `13`, early image scripts,
+proxy admission logic, structural validators, and provider parsers are deployed
+as one tested unit.
+
+- Image result records are defensively validated before rendering. Each poster
+  may use two alternate provider sources through the same-origin proxy, and a
+  local unavailable state replaces permanently broken cards without exposing a
+  direct result-host request.
+- Deferred fallback and motion scripts are emitted in the document head, before
+  the result grid can finish loading. Infinite-scroll additions are registered,
+  candidates are prepared up to 700 pixels ahead of the viewport, and an
+  in-flight load is never interrupted merely because its card moves off-screen.
+  Completed animations have a soft LRU retention budget of 36 on desktop or 18
+  on mobile; only settled off-screen entries are evicted, and the observer
+  automatically prepares them again when they return. A provider motion
+  fallback covers alternate sources. Eligible non-WebP candidates (normally
+  GIF/APNG) receive one delayed cache-busted retry, while low-confidence WebP
+  still receives validation/fallback but skips that automatic retry.
+  User-initiated work stays first, followed by GIF/APNG ahead of WebP in the
+  automatic queue.
+- GIF and animated WebP use bounded structural container parsers instead of
+  ImageMagick frame discovery; APNG retains its strict PNG chunk validator. The
+  animation download ceiling is 32 MiB. Three validations may run concurrently,
+  up to nine requests may wait for at most three seconds, busy rejections are
+  not charged, and admitted requests are limited to 900/client/minute. The
+  eligible non-WebP retry waits 2.2–3.0 seconds, beyond the two-second retry
+  hint; low-confidence WebP skips it.
+- Thumbnail downloads are capped at 16 MiB. A JPEG no larger than 128 KiB and
+  512 pixels per side, or a structurally validated animated GIF, WebP, or APNG,
+  can pass through natively. The animated fast path is limited to 1.5 MiB,
+  2,048 pixels per side, and 4 megapixels. Larger JPEG poster fallbacks and
+  static or malformed animation-capable formats keep the bounded ImageMagick
+  path. Its proxy MIME allowlist is JPEG/PNG/GIF/WebP/AVIF; conversion is limited
+  to one frame, 16,384 pixels per side, 40 MP, 64 MiB each of memory/map, no disk
+  cache, one thread, and ten seconds. The container policy denies delegates,
+  filters, indirect paths, and all coders by default before enabling the narrow
+  raster coder set. An animated GIF above 1.5 MiB may fail as a poster, but a
+  poster failure does not block the separate 32-MiB motion endpoint from
+  starting automatically without a click. Image requests derive a bounded
+  Referer from the already validated public source URL.
+- Brave image results preserve a valid animation-capable resized source and
+  infer GIF/WebP/APNG hints from provider metadata or URL paths. Invalid URLs,
+  credentials in URLs, and invalid dimensions are discarded. Google CSE parses
+  result items before deciding whether the cursor has another page, preventing
+  final-page image loss; an invalid `tbLargeUrl` falls back to a valid `tbUrl`.
+- Google CSE's query-free bootstrap token cache is five minutes. Recognized
+  Google anti-abuse failures have a separate 30-second negative cache during
+  bootstrap and at `cse/element/v1`. The bootstrap owner lock expires after 60
+  seconds; waiters consume a published result for up to six seconds and then
+  fail fast rather than starting duplicate upstream work.
+- Static asset cache version `13` replaces v0.9.6 version `12`.
+
+Google unusual-traffic and Brave proof-of-work responses are upstream egress
+restrictions, not successful searches. v0.9.7 reports them explicitly and does
+not silently send the query to DuckDuckGo, Yandex, or another provider. A
+reviewed private proxy pool or an intentionally configured official API remains
+an operational choice, not an application guarantee.
+
+At Nginx Proxy Manager, update both the database-backed advanced configuration
+and the generated host configuration. WAF path rules must inspect `$uri`, never
+`$request_uri`, so the encoded target in `/proxy?i=...` cannot make a legitimate
+WordPress upload path look like a local scanner request. Derive argument WAF
+input separately and clear it only when the local path is `/proxy` or
+`/proxy.php`; do not clear `$args` or disable argument inspection globally.
+Keep timestamped database and generated-config backups until nginx syntax,
+public WordPress-upload media, animated media, and SSRF rejection controls all
+pass.
+
 ## v0.9.6 — UI, provider, motion, and packaging corrections
 
 v0.9.6 is a drop-in update from v0.9.5 with no persistent-data migration.
@@ -339,7 +410,7 @@ effective Compose-published endpoint. If a post-cutover check fails, it attempts
 to restore the previously tagged image and reports whether that restart
 succeeded. There is no separate `--rollback` option.
 
-Production v0.9.6 uses the clean-sibling, checksum-verified artifact workflow in
+Production v0.9.7 uses the clean-sibling, checksum-verified artifact workflow in
 [`docs/RELEASE.md`](docs/RELEASE.md). Do not unzip or recursively copy a bundle
 over the active source tree, and do not use an unresolved recursive-delete
 command as rollback. The release guide preserves exact old-tree and image

@@ -34,6 +34,14 @@ if ! git rev-parse --verify --quiet HEAD >/dev/null; then
     exit 1
 fi
 
+# A deletion commit is insufficient for explicitly forbidden prompt artifacts:
+# refuse a release while any matching path remains reachable from a local ref.
+if git log --all --format= --name-only |
+   LC_ALL=C grep -Eiq '(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/)'; then
+    echo "ERROR: prompt artifact remains in reachable history." >&2
+    exit 1
+fi
+
 archive_dir="dist"
 archive_name="securitysearch-v${version}.tar.gz"
 mkdir -p "$archive_dir"
@@ -78,14 +86,25 @@ if ! tar -tf "$tar_tmp" | grep -Fxq "${archive_prefix}/icons/"; then
 fi
 
 gzip -n -9 < "$tar_tmp" > "$gzip_tmp"
-tar -tzf "$gzip_tmp" | grep -Fxq "${archive_prefix}/icons/" || {
-    echo "ERROR: release archive is missing the required icons/ directory." >&2
+archive_listing=$(tar -tzf "$gzip_tmp")
+for required_path in \
+    "${archive_prefix}/icons/" \
+    "${archive_prefix}/banner/securitysearch.webp" \
+    "${archive_prefix}/static/misc/secops.gif" \
+    "${archive_prefix}/static/images-fallback.js" \
+    "${archive_prefix}/static/images-motion.js" \
+    "${archive_prefix}/lib/animated_preview.php"
+do
+    printf '%s\n' "$archive_listing" | grep -Fxq "$required_path" || {
+        echo "ERROR: release archive is missing $required_path." >&2
+        exit 1
+    }
+done
+if printf '%s\n' "$archive_listing" |
+   LC_ALL=C grep -Eiq '(data/api_keys/|securitysearch\.zip|Kuruminha\.css|mimi\.jpg|(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/))'; then
+    echo "ERROR: release archive contains forbidden content." >&2
     exit 1
-}
-tar -tzf "$gzip_tmp" | grep -Fxq "${archive_prefix}/banner/securitysearch.webp" || {
-    echo "ERROR: release archive is missing the SecOps logo." >&2
-    exit 1
-}
+fi
 mv -f -- "$gzip_tmp" "$archive"
 
 (cd "$archive_dir" && sha256sum "$archive_name") > "${archive}.sha256"

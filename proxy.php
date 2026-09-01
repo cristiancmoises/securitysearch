@@ -5,11 +5,26 @@ include "lib/curlproxy.php";
 include "lib/animated_preview.php";
 $proxy = new proxy();
 
-if(!isset($_GET["i"])){
+if(
+	!isset($_GET["i"]) ||
+	!is_string($_GET["i"]) ||
+	$_GET["i"] === "" ||
+	strlen($_GET["i"]) > 16384
+){
 	
-	header("X-Error: No URL(i) provided!");
+	header("X-Error: Missing or invalid URL(i)");
 	$proxy->do404();
-	die();
+}
+if(
+	isset($_GET["s"]) &&
+	(
+		!is_string($_GET["s"]) ||
+		!in_array($_GET["s"], ["original", "animated", "portrait", "landscape", "square", "thumb", "cover"], true)
+	)
+){
+
+	header("X-Error: Invalid image size mode");
+	$proxy->do404();
 }
 
 try{
@@ -31,7 +46,7 @@ try{
 		if(!admit_animated_preview()){
 
 			http_response_code(429);
-			header("Retry-After: 60");
+			header("Retry-After: 2");
 			header("Cache-Control: no-store");
 			header("Pragma: no-cache");
 			header("Expires: 0");
@@ -46,7 +61,9 @@ try{
 			true,
 			null,
 			0,
-			20000000
+			33554432,
+			null,
+			"image/gif,image/apng,image/png,image/webp;q=0.9,*/*;q=0.1"
 		);
 
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
@@ -64,21 +81,10 @@ try{
 
 		try{
 
-			if($mime === "image/png" || $mime === "image/apng"){
-
-				// Reject malformed or structurally expensive PNGs before invoking
-				// ImageMagick's decoder on attacker-controlled chunk streams.
-				$frame_count = animated_preview_apng_frame_count($payload["body"]);
-				if($frame_count < 2){
-
-					throw new Exception("Animated PNG failed structural validation");
-				}
-				$inspection = animated_preview_inspect_raster($payload["body"]);
-			}else{
-
-				$inspection = animated_preview_inspect_raster($payload["body"]);
-				$frame_count = $inspection["frames"];
-			}
+			// One bounded structural pass validates GIF, WebP, or APNG and rejects
+			// static/malformed data. In particular, avoid CRC-scanning APNG twice.
+			$inspection = animated_preview_inspect_raster($payload["body"]);
+			$frame_count = $inspection["frames"];
 			$width = $inspection["width"];
 			$height = $inspection["height"];
 		}catch(Throwable $error){
@@ -144,16 +150,15 @@ try{
 	if(
 		isset($image["host"]) &&
 		preg_match(
-			'/^[A-z0-9.]*bing\.(net|com)$/i',
+			'/\A(?:[A-Za-z0-9-]+\.)*bing\.(?:net|com)\z/i',
 			$image["host"]
 		)
 	){
 		
-		if(!isset($image["path"])){
+			if(!isset($image["path"])){
 			
-			header("X-Error: Missing bing image path");
-			$proxy->do404();
-			die();
+				header("X-Error: Missing bing image path");
+				$proxy->do404();
 		}
 		
 		//
@@ -177,20 +182,19 @@ try{
 			
 			$id = explode("/th/id/", $image["path"], 2);
 			
-			if(count($id) !== 2){
-				
-				// malformed
-				return $url;
+				if(count($id) !== 2){
+
+					header("X-Error: Missing bing image id");
+					$proxy->do404();
 			}
 			
 			$id = $id[1];
 		}
 		
-		if(is_array($id)){
+		if(!is_string($id) || $id === "" || strlen($id) > 4096){
 			
 			header("X-Error: Missing bing id parameter");
 			$proxy->do404();
-			die();
 		}
 			
 		switch($_GET["s"]){
@@ -207,22 +211,149 @@ try{
 	}
 	
 	// resize image ourselves
-	$payload = $proxy->get($_GET["i"], $proxy::req_image, true);
-	
-	// get image format & set imagick
-	$image = null;
-	$format = $proxy->getimageformat($payload, $image);
-	
-	try{
-		
-		if($format !== false){
-			$image->setFormat($format);
+	$payload = $proxy->get($_GET["i"], $proxy::req_image, true, null, 0, 16777216);
+	$resize_finfo = new finfo(FILEINFO_MIME_TYPE);
+	$resize_mime = strtolower((string)$resize_finfo->buffer($payload["body"]));
+	if(!in_array($resize_mime, ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"], true)){
+
+		throw new Exception("Remote thumbnail returned an unsupported raster format");
+	}
+
+	// Image grids already request a provider thumbnail. Relaying a genuinely
+	// small JPEG or a structurally validated animation avoids an unnecessary
+	// ImageMagick cycle. Originals used as poster fallbacks must still be resized
+	// so a result page cannot download hundreds of megabytes of large JPEGs.
+	if($_GET["s"] === "thumb" && strlen($payload["body"]) <= 1572864){
+
+		$direct_mime = $resize_mime;
+		$direct_types = [
+			"image/jpeg" => "jpg",
+			"image/png" => "png",
+			"image/apng" => "png",
+			"image/gif" => "gif",
+			"image/webp" => "webp"
+		];
+		$direct_dimensions = @getimagesizefromstring($payload["body"]);
+		$direct_passthrough =
+			$direct_mime === "image/jpeg" &&
+			strlen($payload["body"]) <= 131072 &&
+			is_array($direct_dimensions) &&
+			isset($direct_dimensions[0], $direct_dimensions[1]) &&
+			$direct_dimensions[0] > 0 &&
+			$direct_dimensions[1] > 0 &&
+			$direct_dimensions[0] <= 512 &&
+			$direct_dimensions[1] <= 512;
+		if(in_array($direct_mime, ["image/png", "image/apng", "image/gif", "image/webp"], true)){
+
+			try{
+
+				$direct_motion = animated_preview_inspect_raster($payload["body"]);
+				$direct_passthrough =
+					$direct_motion["frames"] >= 2 &&
+					$direct_motion["frames"] <= 1000 &&
+					$direct_motion["width"] >= 1 &&
+					$direct_motion["height"] >= 1 &&
+					$direct_motion["width"] <= 2048 &&
+					$direct_motion["height"] <= 2048 &&
+					$direct_motion["width"] * $direct_motion["height"] <= 4000000 &&
+					$direct_motion["width"] * $direct_motion["height"] * $direct_motion["frames"] <= 250000000;
+			}catch(Throwable $error){
+
+				// Static or malformed animation-capable formats use the established
+				// ImageMagick thumbnail path instead of bypassing frame validation.
+				$direct_passthrough = false;
+			}
 		}
-		
+		if(
+			$direct_passthrough &&
+			isset($direct_types[$direct_mime]) &&
+			is_array($direct_dimensions) &&
+			isset($direct_dimensions[0], $direct_dimensions[1]) &&
+			$direct_dimensions[0] > 0 &&
+			$direct_dimensions[1] > 0 &&
+			$direct_dimensions[0] <= 2048 &&
+			$direct_dimensions[1] <= 2048 &&
+			$direct_dimensions[0] * $direct_dimensions[1] <= 4000000
+		){
+
+			$proxy->getfilenameheader($payload["headers"], $_GET["i"], $direct_types[$direct_mime]);
+			header("Content-Type: " . $direct_mime);
+			header("Content-Length: " . strlen($payload["body"]));
+			echo $payload["body"];
+			die();
+		}
+	}
+	
+	// Reject implausible raster headers before asking ImageMagick to allocate a
+	// pixel cache. Decoder limits below remain authoritative when a format does
+	// not expose dimensions through getimagesizefromstring().
+	$raster_dimensions = @getimagesizefromstring($payload["body"]);
+	if(
+		is_array($raster_dimensions) &&
+		isset($raster_dimensions[0], $raster_dimensions[1]) &&
+		(
+			$raster_dimensions[0] < 1 ||
+			$raster_dimensions[1] < 1 ||
+			$raster_dimensions[0] > 16384 ||
+			$raster_dimensions[1] > 16384 ||
+			$raster_dimensions[0] > intdiv(40000000, $raster_dimensions[1])
+		)
+	){
+
+		throw new Exception("Remote image dimensions exceed the configured limit");
+	}
+
+	// ImageMagick's distribution defaults are intentionally broad. Thumbnail
+	// conversion is instead confined to one frame, bounded memory/map/time, no
+	// disk-backed pixel cache, and the same dimension envelope checked above.
+	$imagick_resource_limits = [
+		Imagick::RESOURCETYPE_AREA => 40000000,
+		Imagick::RESOURCETYPE_MEMORY => 67108864,
+		Imagick::RESOURCETYPE_MAP => 67108864,
+		Imagick::RESOURCETYPE_DISK => 0,
+		Imagick::RESOURCETYPE_THREAD => 1,
+		Imagick::RESOURCETYPE_TIME => 10,
+		Imagick::RESOURCETYPE_WIDTH => 16384,
+		Imagick::RESOURCETYPE_HEIGHT => 16384,
+		// ImageMagick rejects when the next frame reaches this value, so two
+		// permits one static frame while refusing a second decoded frame.
+		Imagick::RESOURCETYPE_LISTLENGTH => 2
+	];
+	$imagick_previous_limits = [];
+	$image = null;
+	$conversion_error = null;
+	try{
+
+		foreach($imagick_resource_limits as $resource_type => $resource_limit){
+
+			$previous_limit = Imagick::getResourceLimit($resource_type);
+			$imagick_previous_limits[$resource_type] =
+				is_int($previous_limit) ?
+				$previous_limit :
+				($previous_limit >= PHP_INT_MAX ? PHP_INT_MAX : max(0, (int)$previous_limit));
+			Imagick::setResourceLimit($resource_type, $resource_limit);
+		}
+
+		// The MIME allowlist above is authoritative. Let ImageMagick sniff the
+		// blob instead of pre-setting an input format; pre-setting it can leave the
+		// image without a writable current frame under a strict list policy.
+		$image = new Imagick();
+
+		if($resize_mime === "image/jpeg"){
+
+			// Ask the JPEG decoder to subsample large originals near thumbnail size
+			// before constructing its pixel cache.
+			$image->setOption("jpeg:size", "512x512");
+		}
+
 		$image->readImageBlob($payload["body"]);
 		
 		$image_width = $image->getImageWidth();
 		$image_height = $image->getImageHeight();
+		if($image_width < 1 || $image_height < 1){
+
+			throw new ImagickException("Image has invalid dimensions");
+		}
 		
 		switch($_GET["s"]){
 			
@@ -270,7 +401,8 @@ try{
 		$image->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
 		
 		$image->stripImage();
-		$image->setFormat("jpeg");
+		// ImageMagick policy coder patterns are case-sensitive.
+		$image->setFormat("JPEG");
 		$image->setImageCompressionQuality(90);
 		$image->setImageCompression(Imagick::COMPRESSION_JPEG2000);
 		
@@ -280,10 +412,27 @@ try{
 		
 		header("Content-Type: image/jpeg");
 		echo $image->getImageBlob();
-		
-	}catch(ImagickException $error){
-		
-		header("X-Error: Could not convert the image: (" . $error->getMessage() . ")");
+
+	}catch(Throwable $error){
+
+		$conversion_error = $error;
+	}finally{
+
+		if($image instanceof Imagick){
+
+			$image->clear();
+			$image->destroy();
+		}
+		foreach($imagick_previous_limits as $resource_type => $resource_limit){
+
+			Imagick::setResourceLimit($resource_type, $resource_limit);
+		}
+	}
+
+	if($conversion_error !== null){
+
+		$error_message = preg_replace('/[\r\n]+/', ' ', $conversion_error->getMessage());
+		header("X-Error: Could not convert the image: (" . substr((string)$error_message, 0, 512) . ")");
 		$proxy->do404();
 	}
 	
@@ -298,5 +447,4 @@ try{
 	
 	header("X-Error: " . $error->getMessage());
 	$proxy->do404();
-	die();
 }

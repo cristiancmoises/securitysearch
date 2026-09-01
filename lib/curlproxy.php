@@ -16,6 +16,44 @@ class proxy{
 		
 		$this->cache = $cache;
 	}
+
+	private function imagereferer($url){
+
+		$parts = parse_url($url);
+		if(
+			!is_array($parts) ||
+			!isset($parts["scheme"], $parts["host"]) ||
+			!in_array(strtolower($parts["scheme"]), ["http", "https"], true) ||
+			$parts["host"] === ""
+		){
+
+			return null;
+		}
+
+		$host = $parts["host"];
+		if(strpos($host, ":") !== false && $host[0] !== "["){
+
+			$host = "[" . $host . "]";
+		}
+		$referer = strtolower($parts["scheme"]) . "://" . $host;
+		if(isset($parts["port"])){
+
+			$referer .= ":" . (int)$parts["port"];
+		}
+
+		$path = isset($parts["path"]) && is_string($parts["path"]) ? $parts["path"] : "/";
+		if($path === "" || $path[0] !== "/"){
+
+			$path = "/";
+		}
+		$last_slash = strrpos($path, "/");
+		$referer .= $last_slash === false ? "/" : substr($path, 0, $last_slash + 1);
+
+		return
+			strlen($referer) <= 8192 && preg_match('/[\r\n]/', $referer) !== 1 ?
+			$referer :
+			null;
+	}
 	
 	public function do404(){
 		
@@ -260,7 +298,7 @@ class proxy{
 		return $this->resolvepublictarget($url) !== false;
 	}
 	
-	public function get($url, $reqtype = self::req_web, $acceptallcodes = false, $referer = null, $redirectcount = 0, $max_bytes = 100000000, $request_budget = null){
+	public function get($url, $reqtype = self::req_web, $acceptallcodes = false, $referer = null, $redirectcount = 0, $max_bytes = 100000000, $request_budget = null, $image_accept = null){
 
 		$max_bytes = is_int($max_bytes) && $max_bytes > 0 ? $max_bytes : 100000000;
 		if($request_budget === null){
@@ -353,25 +391,38 @@ class proxy{
 			case self::req_image:
 				
 				if($referer === null){
-					$referer = explode("/", $url, 4);
-					array_pop($referer);
-					
-					$referer = implode("/", $referer);
+					$referer = $this->imagereferer($url);
 				}
 				
-				curl_setopt(
-					$curl,
-					CURLOPT_HTTPHEADER,
+				if(
+					!is_string($image_accept) ||
+					$image_accept === "" ||
+					strlen($image_accept) > 512 ||
+					preg_match('/[\r\n]/', $image_accept) === 1
+				){
+
+					$image_accept = "image/avif,image/webp,*/*";
+				}
+
+				$image_headers =
 					[
 						"User-Agent: " . config::USER_AGENT,
-						"Accept: image/avif,image/webp,*/*",
+						"Accept: " . $image_accept,
 						"Accept-Language: en-US,en;q=0.5",
 						"Accept-Encoding: gzip, deflate",
 						"DNT: 1",
-						"Connection: keep-alive",
-						"Referer: {$referer}"
-					]
-				);
+						"Connection: keep-alive"
+					];
+				if(
+					is_string($referer) &&
+					$referer !== "" &&
+					strlen($referer) <= 8192 &&
+					preg_match('/[\r\n]/', $referer) !== 1
+				){
+
+					$image_headers[] = "Referer: " . $referer;
+				}
+				curl_setopt($curl, CURLOPT_HTTPHEADER, $image_headers);
 				break;
 		}
 		
@@ -532,7 +583,8 @@ class proxy{
 				$referer,
 				$redirectcount,
 				$max_bytes,
-				$request_budget
+				$request_budget,
+				$image_accept
 			);
 		}else{
 			if(
@@ -631,9 +683,7 @@ class proxy{
 
 		if($referer === null){
 
-			$referer = explode("/", $url, 4);
-			array_pop($referer);
-			$referer = implode("/", $referer);
+			$referer = $this->imagereferer($url);
 		}
 
 		$curl = curl_init();
@@ -661,19 +711,25 @@ class proxy{
 		$accept = $format === "audio"
 			? "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5"
 			: "image/avif,image/webp,*/*";
-		curl_setopt(
-			$curl,
-			CURLOPT_HTTPHEADER,
+		$stream_headers =
 			[
 				"User-Agent: " . config::USER_AGENT,
 				"Accept: " . $accept,
 				"Accept-Language: en-US,en;q=0.5",
 				"Accept-Encoding: gzip, deflate, br",
 				"DNT: 1",
-				"Connection: keep-alive",
-				"Referer: {$referer}"
-			]
-		);
+				"Connection: keep-alive"
+			];
+		if(
+			is_string($referer) &&
+			$referer !== "" &&
+			strlen($referer) <= 8192 &&
+			preg_match('/[\r\n]/', $referer) !== 1
+		){
+
+			$stream_headers[] = "Referer: " . $referer;
+		}
+		curl_setopt($curl, CURLOPT_HTTPHEADER, $stream_headers);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, $remaining_milliseconds);
