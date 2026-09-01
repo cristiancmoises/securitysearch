@@ -1,6 +1,6 @@
 #!/bin/sh
 # Create a reproducible source release from the current committed revision.
-# Usage: ./release.sh 0.9.0
+# Usage: ./release.sh <version>
 
 set -eu
 

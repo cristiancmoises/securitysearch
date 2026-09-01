@@ -5,15 +5,15 @@
 From a clean, committed working tree:
 
 ```bash
-./release.sh 0.9.0
-git tag -a v0.9.0 -m "Security Search v0.9.0"
+./release.sh 0.9.1
+git tag -a v0.9.1 -m "Security Search v0.9.1"
 ```
 
 This produces:
 
 ```text
-dist/securitysearch-v0.9.0.tar.gz
-dist/securitysearch-v0.9.0.tar.gz.sha256
+dist/securitysearch-v0.9.1.tar.gz
+dist/securitysearch-v0.9.1.tar.gz.sha256
 ```
 
 The archive is created with `git archive`, so it contains only committed source
@@ -26,15 +26,15 @@ Use the configured Evelin profile rather than copying credentials into scripts:
 ```bash
 # Local: upload the verified release.
 ev --config ~/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.0.tar.gz \
-  remote:/tmp/securitysearch-v0.9.0.tar.gz
+  dist/securitysearch-v0.9.1.tar.gz \
+  remote:/tmp/securitysearch-v0.9.1.tar.gz
 
 # Open the approved remote shell, then run the following on the VPS.
 ev --config ~/.evelin/client.toml shell
-sha256sum /tmp/securitysearch-v0.9.0.tar.gz
+sha256sum /tmp/securitysearch-v0.9.1.tar.gz
 mkdir -p /opt/securitysearch/releases
-tar -xzf /tmp/securitysearch-v0.9.0.tar.gz -C /opt/securitysearch/releases
-cd /opt/securitysearch/releases/securitysearch-v0.9.0
+tar -xzf /tmp/securitysearch-v0.9.1.tar.gz -C /opt/securitysearch/releases
+cd /opt/securitysearch/releases/securitysearch-v0.9.1
 ./deploy.sh --fresh
 ```
 

@@ -45,6 +45,11 @@ class autocomplete{
 		/*
 			Get $scraper
 		*/
+		$default_scraper = config::DEFAULT_SCRAPER_WEB;
+		if(!isset($this->scrapers[$default_scraper])){
+			$default_scraper = "brave";
+		}
+
 		if(!isset($_GET["scraper"])){
 			
 			if(isset($_COOKIE["scraper_ac"])){
@@ -52,7 +57,7 @@ class autocomplete{
 				$scraper = $_COOKIE["scraper_ac"];
 			}else{
 				
-				$scraper = "brave"; // default option
+				$scraper = $default_scraper;
 			}
 		}else{
 			
@@ -68,7 +73,7 @@ class autocomplete{
 		// make sure it exists
 		if(!isset($this->scrapers[$scraper])){
 			
-			$scraper = "brave"; // default option
+			$scraper = $default_scraper;
 		}
 		
 		// return results
@@ -164,11 +169,15 @@ class autocomplete{
 			default:
 				// if it respects the openSearch protocol
 				$json = json_decode($this->get($this->scrapers[$scraper], $_GET["s"]), true);
+				$suggestions = [];
+				if(is_array($json) && isset($json[1]) && is_array($json[1])){
+					$suggestions = $json[1];
+				}
 				
 				echo json_encode(
 					[
 						$_GET["s"],
-						$json[1] // ensure it contains valid key 0
+						$suggestions
 					],
 					JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE
 				);

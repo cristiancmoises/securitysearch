@@ -12,18 +12,18 @@ IONOS host by itself.
 
 ```bash
 # Create a source release from a clean, committed revision.
-./release.sh 0.9.0
+./release.sh 0.9.1
 
 # Upload with the approved Evelin profile.
 ev --config ~/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.0.tar.gz \
-  remote:/tmp/securitysearch-v0.9.0.tar.gz
+  dist/securitysearch-v0.9.1.tar.gz \
+  remote:/tmp/securitysearch-v0.9.1.tar.gz
 
 # Open the IONOS VPS shell, unpack and deploy there.
 ev --config ~/.evelin/client.toml shell
 mkdir -p /opt/securitysearch/releases
-tar -xzf /tmp/securitysearch-v0.9.0.tar.gz -C /opt/securitysearch/releases
-cd /opt/securitysearch/releases/securitysearch-v0.9.0
+tar -xzf /tmp/securitysearch-v0.9.1.tar.gz -C /opt/securitysearch/releases
+cd /opt/securitysearch/releases/securitysearch-v0.9.1
 ./deploy.sh --fresh
 ```
 
@@ -37,7 +37,7 @@ Mint's docker daemon might have.
 
 ```bash
 # On the workstation
-cd /path/to/securitysearch-v0.9.0
+cd /path/to/securitysearch-v0.9.1
 docker compose build
 
 # Save the built image to a tarball
@@ -51,7 +51,7 @@ ev --config ~/.evelin/client.toml cp \
 # On the IONOS VPS — load and run
 ev --config ~/.evelin/client.toml shell
 docker load < /tmp/security-search-image.tar.gz
-cd /opt/securitysearch/releases/securitysearch-v0.9.0
+cd /opt/securitysearch/releases/securitysearch-v0.9.1
 docker compose up -d              # uses the loaded image, doesn't rebuild
 ```
 
@@ -63,7 +63,7 @@ most VPS connections.
 ## Local-only testing on Mint (without touching the VPS)
 
 ```bash
-cd /path/to/securitysearch-v0.9.0
+cd /path/to/securitysearch-v0.9.1
 docker compose up -d
 curl -I http://127.0.0.1:5140/
 ```

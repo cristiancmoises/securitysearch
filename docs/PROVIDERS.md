@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.0 defaults to **Google** for web and image searches.
+Security Search v0.9.1 defaults to **Google** for web and image searches.
 The provider can be changed per request with the **Scraper** picker, or saved
 from **Settings** as a browser preference. Brave is always available in both
 web and image search.
