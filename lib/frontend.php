@@ -1052,7 +1052,6 @@ class frontend{
 						"ddg" => "DuckDuckGo",
 						"brave" => "Brave",
 						"yandex" => "Yandex",
-						"google" => "Google",
 						"yahoo_japan" => "Yahoo! JAPAN",
 						"startpage" => "Startpage",
 						"qwant" => "Qwant",
@@ -1069,7 +1068,6 @@ class frontend{
 					"option" => [
 						"ddg" => "DuckDuckGo",
 						"brave" => "Brave",
-						//"google" => "Google",
 						"yahoo_japan" => "Yahoo! JAPAN",
 						"startpage" => "Startpage",
 						"qwant" => "Qwant",
@@ -1121,12 +1119,15 @@ class frontend{
 		$_GET["scraper"] = $scraper_out;
 		
 		// set nsfw on $_GET
-		if(
-			isset($_COOKIE["nsfw"]) &&
-			!isset($_GET["nsfw"])
-		){
-			
-			$_GET["nsfw"] = $_COOKIE["nsfw"];
+		if(!isset($_GET["nsfw"])){
+
+			if(isset($_COOKIE["nsfw"]) && is_string($_COOKIE["nsfw"])){
+
+				$_GET["nsfw"] = $_COOKIE["nsfw"];
+			}else{
+
+				$_GET["nsfw"] = config::DEFAULT_NSFW;
+			}
 		}
 		
 		return
@@ -1404,6 +1405,45 @@ class frontend{
 
 			return null;
 		}
+
+		$format = $this->animationformathint($decoded);
+		if($format !== null){
+
+			return $format;
+		}
+
+		// GitHub Camo can hide the original URL as a hexadecimal path segment.
+		// Decode only its documented, tightly bounded URL shape and retain the
+		// Camo address as the eventual proxy target. This is only a candidate
+		// hint; /proxy still verifies MIME, size, and multiple frames.
+		$parts = parse_url($decoded);
+		if(
+			is_array($parts) &&
+			isset($parts["host"], $parts["path"]) &&
+			strtolower($parts["host"]) === "camo.githubusercontent.com" &&
+			preg_match('#\A/[a-f0-9]{64}/([a-f0-9]{2,8192})\z#i', $parts["path"], $match) === 1 &&
+			strlen($match[1]) % 2 === 0
+		){
+
+			$embedded = hex2bin($match[1]);
+			$embedded_parts = is_string($embedded) ? parse_url($embedded) : false;
+			if(
+				is_array($embedded_parts) &&
+				isset($embedded_parts["scheme"], $embedded_parts["host"]) &&
+				in_array(strtolower($embedded_parts["scheme"]), ["http", "https"], true) &&
+				$embedded_parts["host"] !== "" &&
+				!isset($embedded_parts["user"]) &&
+				!isset($embedded_parts["pass"])
+			){
+
+				return $this->animationformathint($embedded);
+			}
+		}
+
+		return null;
+	}
+
+	private function animationformathint($decoded){
 
 		$path = parse_url($decoded, PHP_URL_PATH);
 		if(is_string($path)){

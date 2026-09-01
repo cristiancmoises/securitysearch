@@ -20,6 +20,7 @@ scraper/yandex.html
 scraper/soundcloud.json
 scraper/mp3-pm.html
 banner/*
+!banner/securitysearch.webp
 data/captcha/birds/
 data/captcha/fumo_plushies/
 data/captcha/minecraft/

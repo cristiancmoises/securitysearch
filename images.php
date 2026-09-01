@@ -73,7 +73,12 @@ foreach($results["image"] as $image){
 	$thumbnail_url = $image["source"][count($image["source"]) - 1]["url"];
 	$original_animation_format = $frontend->animatedimageformat($original_url);
 	$thumbnail_animation_format = $frontend->animatedimageformat($thumbnail_url);
-	$animation_format = $original_animation_format ?? $thumbnail_animation_format;
+	$provider_animation_format = strtolower((string)($image["motion_format"] ?? ""));
+	$provider_animation_format =
+		in_array($provider_animation_format, ["gif", "webp", "apng"], true) ?
+		strtoupper($provider_animation_format) :
+		null;
+	$animation_format = $provider_animation_format ?? $original_animation_format ?? $thumbnail_animation_format;
 	// A hint from either URL identifies the result as a motion candidate, but
 	// always validate and play the provider's full-size original when available.
 	// The thumbnail remains only the poster and a fallback for malformed results.

@@ -5,6 +5,9 @@ class calculator extends oracle {
 		"name" => "calculator"
 	];
 	public function check_query($q) {
+		if (trim($q) === "") {
+			return false;
+		}
 		// straight numerics should go to that oracle
 		if (is_numeric($q)) {
 			return false;
@@ -18,8 +21,7 @@ class calculator extends oracle {
 		}
 		return true;
 	}
-	// A custom parser and calculator keeps this oracle self-contained; libraries are
-	//  gay.
+	// A custom parser and calculator keeps this oracle self-contained.
 	public function generate_response($q)
 	{
 		$nums = str_split("1234567890.");
@@ -115,7 +117,11 @@ class calculator extends oracle {
 		if (count($tokens) >= 2 && $tokens[0][0] == "o" && $tokens[0][1] == "-" && $tokens[1][0] == "n") {
 			array_splice($tokens, 0, 2, [["n", -1 * (float)$tokens[1][1]]]);
 		}
-		if (count($tokens) > 0 && $tokens[0][0] == "o" || $tokens[count($tokens)-1][0] == "o") {
+		if (
+			count($tokens) === 0 ||
+			$tokens[0][0] == "o" ||
+			$tokens[count($tokens)-1][0] == "o"
+		) {
 			throw new Exception("Error Processing Request", 1);
 		}
 		while (in_array(["g", "("], $tokens)) {

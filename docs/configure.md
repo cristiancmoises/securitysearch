@@ -71,6 +71,13 @@ If you see spammy entries in your instances list, simply remove the instance fro
 # Proxies
 4get supports rotating proxies for scrapers! Configuring one is really easy.
 
+> [!IMPORTANT]
+> In the supported container, keep private pool files under host
+> `./data/proxies/`, uncomment the optional read-only
+> `./data/proxies:/var/www/html/4get/data/proxies:ro` volume in
+> `docker-compose.yml`, and set the matching `FOURGET_PROXY_*` value. Private
+> proxy files and credentials must remain outside Git and release artifacts.
+
 1. Head over to the **proxies** folder. Give it any name you want, like `myproxy`, but make sure it has the `txt` extension.
 2. Add your proxies to the file. Examples:
 	```conf

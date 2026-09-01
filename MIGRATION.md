@@ -1,5 +1,38 @@
 # Security Search — Migration Notes
 
+## v0.9.6 — UI, provider, motion, and packaging corrections
+
+v0.9.6 is a drop-in update from v0.9.5 with no persistent-data migration.
+Rebuild the container so the corrected assets, configuration, and scripts reach
+the production image.
+
+- Clean Git archives and release packages include the Security Search logo, and
+  an empty banner directory no longer produces a PHP warning.
+- Docker build context excludes all private API-key and proxy-pool files;
+  intentional container use requires the documented read-only runtime mounts.
+- SecOps again uses the tracked `static/misc/secops.gif` home background, with a
+  static CSS fallback for reduced-motion and reduced-data preferences. Static
+  asset version 12 invalidates the previous theme/background cache.
+- `DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes` allow NSFW content by
+  default for provider filters that support it. An explicit request or saved
+  user preference still overrides the default.
+- Animated-result validation loads are queued at three concurrent desktop or
+  two coarse-pointer/mobile requests, while every visible validated GIF,
+  animated WebP, or APNG continues playing without a click. Provider
+  MIME/format hints improve extensionless discovery; off-screen cards restore
+  their posters. A bounded GitHub Camo hint covers encoded GIF/WebP/APNG source
+  URLs while the proxy remains the authoritative multi-frame validator.
+- The animated-preview admission limit is 120 requests per client address per
+  minute under a three-slot global server semaphore.
+- Brave direct egress fails fast after the first recognized proof-of-work
+  challenge. A configured proxy pool may rotate addresses for at most three
+  bounded Brave attempts. Google and Brave use 10-second connect and 20-second
+  total timeouts for each upstream transfer; Compose provides an optional
+  read-only `./data/proxies` mount for private pools.
+- Bare Google HTTP 429 responses use the neutral rate-limit state instead of a
+  generic parse error. Unsupported Google video/news choices were removed, and
+  an empty web query no longer reaches the calculator oracle or emits warnings.
+
 ## v0.9.5 — release packaging correction
 
 v0.9.5 is a drop-in update from v0.9.4 with no persistent-data migration. The
@@ -306,7 +339,7 @@ effective Compose-published endpoint. If a post-cutover check fails, it attempts
 to restore the previously tagged image and reports whether that restart
 succeeded. There is no separate `--rollback` option.
 
-Production v0.9.5 uses the clean-sibling, checksum-verified artifact workflow in
+Production v0.9.6 uses the clean-sibling, checksum-verified artifact workflow in
 [`docs/RELEASE.md`](docs/RELEASE.md). Do not unzip or recursively copy a bundle
 over the active source tree, and do not use an unresolved recursive-delete
 command as rollback. The release guide preserves exact old-tree and image

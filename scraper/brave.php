@@ -197,8 +197,8 @@ class brave{
 		curl_setopt($curlproc, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 30);
-		curl_setopt($curlproc, CURLOPT_TIMEOUT, 30);
+		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 10);
+		curl_setopt($curlproc, CURLOPT_TIMEOUT, 20);
 
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
@@ -212,7 +212,7 @@ class brave{
 		return $data;
 	}
 
-	private function get_search_page($proxy, $url, $get = [], $nsfw, $country){
+	private function get_search_page(&$proxy, $url, $get = [], $nsfw, $country){
 
 		$last_page = "";
 		for($attempt = 0; $attempt < self::CHALLENGE_ATTEMPTS; $attempt++){
@@ -222,6 +222,19 @@ class brave{
 
 				return $last_page;
 			}
+
+			// Retrying the same datacenter address only repeats the challenge and
+			// increases latency. Direct egress fails fast; a configured pool rotates
+			// to a different address for the remaining bounded attempts.
+			if(
+				$proxy === "raw_ip::::" ||
+				$attempt + 1 >= self::CHALLENGE_ATTEMPTS
+			){
+
+				break;
+			}
+
+			$proxy = $this->backend->get_ip();
 		}
 
 		// Return the final challenge page so the existing parser produces the
@@ -1274,10 +1287,11 @@ class brave{
 			"image" => []
 		];
 		
+		$proxy = $this->backend->get_ip();
 		try{
 			$html =
 				$this->get_search_page(
-					$this->backend->get_ip(), // no nextpage right now, pass proxy directly
+					$proxy, // no nextpage right now, but challenge retries may rotate it
 					"https://search.brave.com/images",
 					[
 						"q" => $search,
@@ -1314,8 +1328,23 @@ class brave{
 			as $result
 		){
 			
+			$motion_format = null;
+			if(
+				isset($result["properties"]["format"]) &&
+				is_string($result["properties"]["format"]) &&
+				preg_match(
+					'#\A(?:image/)?(gif|webp|apng)(?:\s*;.*)?\z#i',
+					trim($result["properties"]["format"]),
+					$format_match
+				) === 1
+			){
+
+				$motion_format = strtolower($format_match[1]);
+			}
+
 			$out["image"][] = [
 				"title" => $result["title"],
+				"motion_format" => $motion_format,
 				"source" => [
 					[
 						"url" => $result["properties"]["url"],

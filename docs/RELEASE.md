@@ -1,50 +1,14 @@
 # Release and deployment
 
-These instructions prepare and deploy v0.9.5. They do not imply that the tag,
+These instructions prepare and deploy v0.9.6. They do not imply that the tag,
 remote commit, hosted release, or IONOS deployment already exists.
 
 ## Build the source artifact
 
 Commit the tested change first. The sanitized history published with v0.9.4
-must remain clean across every advertised ref, so run the history gate later in
-this section before the helper or tag command. Then, from a clean working tree:
-
-```bash
-git diff --check
-git status --short
-./release.sh 0.9.5
-(cd dist && sha256sum -c securitysearch-v0.9.5.tar.gz.sha256)
-git tag -a v0.9.5 -m "Security Search v0.9.5"
-```
-
-The release helper uses `git archive`, respects `.gitattributes`, and adds only
-the required empty `icons/` runtime-cache directory that Git cannot track:
-
-```text
-dist/securitysearch-v0.9.5.tar.gz
-dist/securitysearch-v0.9.5.tar.gz.sha256
-```
-
-Inspect the archive before publishing:
-
-```bash
-tar -tzf dist/securitysearch-v0.9.5.tar.gz | head
-tar -tzf dist/securitysearch-v0.9.5.tar.gz |
-  grep -Fxq 'securitysearch-v0.9.5/icons/'
-if tar -tzf dist/securitysearch-v0.9.5.tar.gz |
-   grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.5/dist/|prompt.*\.md|securitysearch\.zip|Kuruminha\.css|mimi\.jpg)'; then
-  echo "unexpected release content"
-  exit 1
-fi
-```
-
-The required-directory check must succeed, and the forbidden-content check
-must print nothing. The package must contain no API keys, proxy credentials,
-cookies, or Evelin/SSH material.
-
-The v0.9.4 release rewrote and sanitized history. Before packaging or pushing
-v0.9.5, prove that none of the removed paths has become reachable again from
-any local branch, remote-tracking ref, or tag:
+must remain clean across every advertised ref. Before running the release helper
+or creating a tag, prove that none of the removed paths is reachable from any
+local branch, remote-tracking ref, or tag:
 
 ```bash
 for removed_path in \
@@ -64,6 +28,45 @@ An ordinary deletion commit does not satisfy this check. If a stale clone has
 reintroduced removed objects, stop and repeat the coordinated history-cleaning
 procedure before publication; do not silently force-push from that clone.
 
+Then, from a clean working tree:
+
+```bash
+git diff --check
+git status --short
+./release.sh 0.9.6
+(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
+git tag -a v0.9.6 -m "Security Search v0.9.6"
+```
+
+The release helper uses `git archive`, respects `.gitattributes`, and adds only
+the required empty `icons/` runtime-cache directory that Git cannot track:
+
+```text
+dist/securitysearch-v0.9.6.tar.gz
+dist/securitysearch-v0.9.6.tar.gz.sha256
+```
+
+Inspect the archive before publishing:
+
+```bash
+tar -tzf dist/securitysearch-v0.9.6.tar.gz | head
+tar -tzf dist/securitysearch-v0.9.6.tar.gz |
+  grep -Fxq 'securitysearch-v0.9.6/icons/'
+tar -tzf dist/securitysearch-v0.9.6.tar.gz |
+  grep -Fxq 'securitysearch-v0.9.6/banner/securitysearch.webp'
+tar -tzf dist/securitysearch-v0.9.6.tar.gz |
+  grep -Fxq 'securitysearch-v0.9.6/static/misc/secops.gif'
+if tar -tzf dist/securitysearch-v0.9.6.tar.gz |
+   grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.6/dist/|prompt.*\.md|securitysearch\.zip|Kuruminha\.css|mimi\.jpg)'; then
+  echo "unexpected release content"
+  exit 1
+fi
+```
+
+The required-directory, logo, and SecOps-background checks must succeed, and the
+forbidden-content check must print nothing. The package must contain no API
+keys, proxy credentials, cookies, or Evelin/SSH material.
+
 ## Publish to Git remotes
 
 List the configured remotes and confirm their targets:
@@ -81,7 +84,7 @@ not embed credentials:
 - `securityops_br` → `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
 
 The remote inventory must contain only `main` and release tags v0.9.0 through
-v0.9.5. Capture the exact current remote object IDs immediately before each
+v0.9.6. Capture the exact current remote object IDs immediately before each
 push and use an explicit lease for every ref. A lease mismatch means someone
 updated that remote; stop and investigate instead of overwriting their work.
 The following Bash block publishes the branch and complete tag inventory
@@ -89,7 +92,7 @@ atomically while also asserting that a previously absent ref is still absent:
 
 ```bash
 set -euo pipefail
-release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5)
+release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5 v0.9.6)
 expected_refs=(refs/heads/main)
 for tag in "${release_tags[@]}"; do
   expected_refs+=("refs/tags/${tag}")
@@ -159,6 +162,7 @@ release_refs=(
   refs/tags/v0.9.3
   refs/tags/v0.9.4
   refs/tags/v0.9.5
+  refs/tags/v0.9.6
 )
 for remote in origin codeberg securityops securityops_br; do
   remote_listing=$(git ls-remote --heads --tags "$remote")
@@ -244,18 +248,30 @@ The browser-like User-Agent is required for these command-line HTML `/web` and
 `/images` checks because header bot protection rejects curl's default agent.
 The API commands do not require it.
 
+When testing challenge behavior, confirm direct Brave egress stops after the
+first recognized proof-of-work response. If a reviewed private pool is enabled,
+confirm it rotates addresses for no more than three total attempts. A deliberately
+unreachable Google/Brave test route should also demonstrate the per-transfer
+10-second connect and 20-second total timeout bounds without an unbounded loop.
+
 Verify the SecOps cascade and cache version:
 
 ```bash
 home=$(curl -fsS http://127.0.0.1:5140/)
-printf '%s' "$home" | grep -q '/static/themes/SecOps.css?v11'
-curl -fsSI http://127.0.0.1:5140/static/themes/SecOps.css?v11 |
+printf '%s' "$home" | grep -q '/static/themes/SecOps.css?v12'
+curl -fsSI http://127.0.0.1:5140/static/themes/SecOps.css?v12 |
   grep -qi '^Content-Type: text/css'
+curl -fsSI http://127.0.0.1:5140/static/misc/secops.gif |
+  grep -qi '^Content-Type: image/gif'
+curl -fsS http://127.0.0.1:5140/static/themes/SecOps.css?v12 |
+  grep -Fq 'url("/static/misc/secops.gif?v12")'
+docker compose exec -T security-search php -r \
+  'include "/var/www/html/4get/data/config.php"; exit(config::DEFAULT_NSFW === "yes" ? 0 : 1);'
 
 invalid_theme=$(curl -fsS -H 'Cookie: theme=missing-theme' \
   http://127.0.0.1:5140/)
 printf '%s' "$invalid_theme" |
-  grep -q '/static/themes/SecOps.css?v11'
+  grep -q '/static/themes/SecOps.css?v12'
 ```
 
 Complete the visual, cookie, keyboard, narrow-screen, error-action, and
@@ -265,16 +281,18 @@ fixtures. Verify poster-first loading, same-origin `/proxy?...&s=animated`, the
 chunk/`acTL` frame validation for APNG—including an APNG that Alpine Imagick
 reports as one frame. Confirm PNG/APNG CRC and ordering checks,
 `acTL`/`fcTL`/`fdAT` sequence/count/data checks, canvas bounds, and rejection of
-a forged acTL-only static PNG. Verify poster fallback, three/two active limits
-and oldest eviction. For both automatic and deliberate requests, verify poster
+a forged acTL-only static PNG. Verify poster fallback, three/two concurrent-load
+queues, all visible validated animations playing without a click, and queue
+advancement as off-screen cards restore. For both automatic and deliberate requests, verify poster
 settling; require the two-animation-frame/one-paint gate only after a successful
 poster, and verify that a broken poster may proceed once settled. Verify that
 user intent upgrades pending automatic prep without duplication, pointer/focus
 rechecks viewport geometry, and off-screen restoration cancels pending work.
 Cover reduced-motion/data-saver behavior, infinite-append registration,
 full-size-original selection, generic-WebP probing/static fallback, and data-URL exclusion. Include recognized
-explicit APNG/animated-PNG filenames ending in `.png`, missed
-extensionless/ordinary-`.png` APNG, rejected static WebP, and an unsupported
+explicit APNG/animated-PNG filenames ending in `.png`, Google/Brave MIME or
+format metadata identifying extensionless originals, conservative misses when
+no hint exists, rejected static WebP, and an unsupported
 raster case. Verify that the hint-labelled motion badge appears only after
 multi-frame validation. Confirm there is no direct result-host image request.
 
@@ -285,7 +303,7 @@ write-callback output exceeds 20 MB even when progress/content length would not
 prove that; it must be rejected. Snapshot the Imagick memory, map, disk, file,
 thread, time, width, height, and list-length resource limits and prove they are
 restored after successful and failed inspection. Confirm the app returns 429
-after 30 animated candidate admissions/client/minute and admits no more than
+after 120 animated candidate admissions/client/minute and admits no more than
 three generation-tagged validations globally in flight. Verify port 5140 is
 loopback/private and unreachable on the public interface. On the VPS, validate the live NPM configuration (adjust the
 container name only if the installation uses a different one):
@@ -321,11 +339,11 @@ Use the approved Evelin profile and upload both files:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.5.tar.gz \
-  remote:/tmp/securitysearch-v0.9.5.tar.gz
+  dist/securitysearch-v0.9.6.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.5.tar.gz.sha256 \
-  remote:/tmp/securitysearch-v0.9.5.tar.gz.sha256
+  dist/securitysearch-v0.9.6.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -333,13 +351,13 @@ In the Evelin shell, verify the artifact, prepare a clean sibling, and make an
 exact rollback archive before changing the active tree:
 
 ```bash
-cd /tmp
-sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
+cd /srv/evelin
+sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.5-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.6-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.5
+release_tree=/root/security-search-v0.9.6
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -350,7 +368,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf /tmp/securitysearch-v0.9.5.tar.gz \
+tar -xzf /srv/evelin/securitysearch-v0.9.6.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -361,10 +379,17 @@ Do not overlay the archive into `/root/security-search-update`. Inventory the
 active tree for runtime-only material and approve an exact allowlist before
 copying anything. Do not carry forward `.git`, cache, generated
 `data/config.php`, or whole directories. The current production review found no
-Google API key files, so copy no `data/api_keys/google_api.txt`. Copy a private
+Google API key files, so copy no `data/api_keys/google_api.txt`. If a later
+deployment deliberately enables `google_api`, copy only its exact reviewed key
+file and enable the optional read-only `./data/api_keys:/var/www/html/4get/data/api_keys:ro`
+Compose mount; Docker build context excludes the directory. Copy a private
 Compose override, environment file, proxy credential file, or other secret only
 if it is actually present, required, and individually reviewed; preserve its
-restrictive mode.
+restrictive mode. When `FOURGET_PROXY_GOOGLE` or `FOURGET_PROXY_BRAVE`
+deliberately names a private pool, copy only the exact reviewed
+`data/proxies/<pool>.txt` file into the clean sibling and enable the optional
+read-only `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount. Do
+not copy the whole old proxies directory or publish the pool.
 
 Build from the clean sibling while the old container remains online. Preserve
 the current image under a rollback tag first:
@@ -372,9 +397,9 @@ the current image under a rollback tag first:
 ```bash
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.5
+docker image tag "$previous_image_id" security-search:pre-v0.9.6
 
-cd /root/security-search-v0.9.5
+cd /root/security-search-v0.9.6
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -390,7 +415,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.5 /root/security-search-update
+mv /root/security-search-v0.9.6 /root/security-search-update
 
 cd /root/security-search-update
 docker compose up -d --no-build
@@ -447,10 +472,10 @@ timestamped old directory, and retag the preserved image:
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
 mv /root/security-search-update \
-  /root/security-search-update-failed-v0.9.5
+  /root/security-search-update-failed-v0.9.6
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.5 security-search:latest
+docker image tag security-search:pre-v0.9.6 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -463,7 +488,7 @@ cutover. If that old directory is unavailable, extract the exact predeploy
 
 After health, result-bearing local checks, both public domains, NPM limits, and
 logs pass, remove the timestamped old directory and the
-`security-search:pre-v0.9.5` image tag:
+`security-search:pre-v0.9.6` image tag:
 
 ```bash
 test -n "${old_tree:-}"
@@ -474,7 +499,7 @@ esac
 test -d "$old_tree"
 test -s "$rollback_archive"
 rm -rf -- "$old_tree"
-docker image rm security-search:pre-v0.9.5
+docker image rm security-search:pre-v0.9.6
 test -s "$rollback_archive"
 ```
 

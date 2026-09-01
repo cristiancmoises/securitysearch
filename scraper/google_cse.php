@@ -274,8 +274,8 @@ class google_cse{
 			"nsfw" => [
 				"display" => "NSFW",
 				"option" => [
-					"yes" => "Yes", // safe=active
-					"no" => "No" // safe=off
+					"yes" => "Yes", // safe=off
+					"no" => "No" // safe=active
 				]
 			],
 			"spellcheck" => [
@@ -477,19 +477,34 @@ class google_cse{
 		curl_setopt($curlproc, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 30);
-		curl_setopt($curlproc, CURLOPT_TIMEOUT, 30);
+		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 10);
+		curl_setopt($curlproc, CURLOPT_TIMEOUT, 20);
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
 		$data = curl_exec($curlproc);
-		
-		if(curl_errno($curlproc)){
-			
-			throw new Exception(curl_error($curlproc));
-		}
-		
+		$curl_error = curl_errno($curlproc) ? curl_error($curlproc) : null;
+		$status = (int)curl_getinfo($curlproc, CURLINFO_RESPONSE_CODE);
 		curl_close($curlproc);
+
+		if($curl_error !== null){
+
+			throw new Exception($curl_error);
+		}
+
+		if(
+			$status === 429 ||
+			($status === 403 && $this->is_google_anti_abuse_error($data))
+		){
+
+			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+		}
+
+		if(!is_string($data)){
+
+			throw new Exception("Google returned an empty response");
+		}
+
 		return $data;
 	}
 
@@ -986,6 +1001,7 @@ class google_cse{
 			
 			$out["image"][] = [
 				"title" => rtrim($result["titleNoFormatting"], " ."),
+				"motion_format" => $this->motion_format_hint($result),
 				"source" => [
 					[
 						"url" => $result["unescapedUrl"],
@@ -1013,6 +1029,23 @@ class google_cse{
 			);
 		
 		return $out;
+	}
+
+	private function motion_format_hint($result){
+
+		foreach(["mime", "fileFormat"] as $field){
+
+			if(
+				isset($result[$field]) &&
+				is_string($result[$field]) &&
+				preg_match('#\A(?:image/)?(gif|webp|apng)(?:\s*;.*)?\z#i', trim($result[$field]), $match) === 1
+			){
+
+				return strtolower($match[1]);
+			}
+		}
+
+		return null;
 	}
 	
 	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){

@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > Legacy upstream reference only. The package commands, upstream clone, and
-> service examples below are not a supported Security Search v0.9.5 deployment.
+> service examples below are not a supported Security Search v0.9.6 deployment.
 > Use Nginx Proxy Manager only as the TLS/private-port edge described in
 > [RELEASE.md](RELEASE.md), with the reviewed sample in
 > [`docker/nginx-proxy-manager.conf`](../docker/nginx-proxy-manager.conf).

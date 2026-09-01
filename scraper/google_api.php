@@ -261,8 +261,8 @@ class google_api{
 			"nsfw" => [
 				"display" => "NSFW",
 				"option" => [
-					"yes" => "Yes", // safe=active
-					"no" => "No" // safe=off
+					"yes" => "Yes", // safe=off
+					"no" => "No" // safe=active
 				]
 			],
 			"sort" => [ // sort

@@ -82,6 +82,10 @@ tar -tzf "$gzip_tmp" | grep -Fxq "${archive_prefix}/icons/" || {
     echo "ERROR: release archive is missing the required icons/ directory." >&2
     exit 1
 }
+tar -tzf "$gzip_tmp" | grep -Fxq "${archive_prefix}/banner/securitysearch.webp" || {
+    echo "ERROR: release archive is missing the SecOps logo." >&2
+    exit 1
+}
 mv -f -- "$gzip_tmp" "$archive"
 
 (cd "$archive_dir" && sha256sum "$archive_name") > "${archive}.sha256"

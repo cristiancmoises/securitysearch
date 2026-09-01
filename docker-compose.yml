@@ -19,6 +19,7 @@ services:
       - FOURGET_SERVER_NAME=Security Search
       - FOURGET_SERVER_SHORT_DESCRIPTION=Privacy-first proxy search engine
       - FOURGET_DEFAULT_THEME=SecOps
+      - FOURGET_DEFAULT_NSFW=yes
 
       # Provider defaults. Google is backed by the bundled CSE-compatible
       # implementation; Brave remains available in every provider picker.
@@ -72,6 +73,8 @@ services:
       # - ./banners:/var/www/html/4get/banner:ro
       # - ./static/themes:/var/www/html/4get/static/themes:ro
       # - ./data/captcha:/var/www/html/4get/data/captcha:ro
+      # - ./data/api_keys:/var/www/html/4get/data/api_keys:ro
+      # - ./data/proxies:/var/www/html/4get/data/proxies:ro
       # ---- HTTPS direct mode (not needed if behind NPM) ----
       # - /etc/letsencrypt/live/securityops.co:/etc/4get/certs:ro
 

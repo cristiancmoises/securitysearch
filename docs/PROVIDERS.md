@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.5 keeps **Google** as the configured default for web and
+Security Search v0.9.6 keeps **Google** as the configured default for web and
 image searches. Users can select another provider for one request with the
 **Scraper** filter or save a preference in **Settings**. Brave is selectable for
 both web and image search; availability still depends on Brave accepting the
@@ -21,6 +21,21 @@ provider. If Google is unavailable, the results page explains the upstream
 failure and offers **Retry search**, **Provider settings**, and an explicit
 **Try Brave** link for web and image searches. Choosing that link is the action
 that sends the query to Brave.
+
+## NSFW filter default
+
+The application sets `config::DEFAULT_NSFW=yes`, and the production container
+sets `FOURGET_DEFAULT_NSFW=yes`. Providers that expose the common NSFW filter
+therefore receive the allow-NSFW value by default. Selection follows this
+precedence:
+
+1. An explicit valid `nsfw` request value.
+2. A valid `nsfw` cookie saved through Settings.
+3. `config::DEFAULT_NSFW` (`yes` in the tracked source and production Compose).
+
+Users can save `maybe` or `no` without changing server configuration. Upstream
+providers map these values to their own safe-search controls, so exact filtering
+and result coverage remain provider-specific.
 
 ## Google default
 
@@ -71,21 +86,32 @@ production defaults are explicit in `docker-compose.yml`:
 ```yaml
 FOURGET_DEFAULT_SCRAPER_WEB: google
 FOURGET_DEFAULT_SCRAPER_IMAGES: google
+FOURGET_DEFAULT_NSFW: yes
 ```
 
 To replace the Programmable Search identifier, set
 `FOURGET_GOOGLE_CX_ENDPOINT` in a private Compose override or host environment.
-Do not commit secrets.
+Google uses direct egress unless `FOURGET_PROXY_GOOGLE=<pool-name>` names a
+private proxy pool. For a container deployment, keep the reviewed
+`data/proxies/<pool-name>.txt` file only on the host and enable the optional
+read-only `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount.
+Do not commit secrets or include a private pool in a release archive.
 
 ### Optional Google API provider
 
 `google_api` remains an opt-in provider for operators who already have Google
 Custom Search JSON API credentials. It reads keys from
 `data/api_keys/google_api.txt`, which is excluded from source releases. The
-tracked production configuration contains zero Google API keys, and the v0.9.5
+tracked production configuration contains zero Google API keys, and the v0.9.6
 packaging rules exclude that directory. Selecting `google_api` without privately
 provisioning a key produces a configuration error. It is not an automatic
 fallback for `google`.
+
+Docker build context also excludes the entire `data/api_keys/` directory so a
+locally provisioned key cannot be baked into an image layer. Container operators
+who intentionally enable `google_api` must uncomment the optional read-only
+`./data/api_keys:/var/www/html/4get/data/api_keys:ro` Compose mount and protect
+the host file. The default `google` provider does not use this key directory.
 
 Google's [official API overview](https://developers.google.com/custom-search/v1/overview)
 says Custom Search JSON API is closed to new customers and that existing
@@ -96,17 +122,31 @@ this opt-in path as a new-customer availability solution.
 
 Brave is the primary user-selectable alternative for web and image search. The
 parser recognizes upstream CAPTCHA, proof-of-work, regional, and range-ban
-responses. When Brave intermittently schedules its proof-of-work page, the
-scraper makes at most three attempts against Brave itself before reporting the
-provider failure. It does not solve the challenge, change providers, or loop
-indefinitely. Successful first attempts have no retry overhead. It uses the
-instance's direct egress by default. Operators can set `FOURGET_PROXY_BRAVE` to
-the name of a privately configured proxy pool.
+responses. When direct egress receives a recognized proof-of-work page, the
+scraper reports the provider failure after that first attempt; repeating the
+same datacenter address would only add latency. When `FOURGET_PROXY_BRAVE` names
+a configured proxy pool, the scraper may rotate to another pool address for up
+to three total, bounded Brave attempts. It does not solve the challenge, change
+providers, or loop indefinitely. Successful first attempts have no retry
+overhead.
+
+For the supported container, store a private `<pool-name>.txt` under
+`./data/proxies`, uncomment the optional read-only
+`./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount, and set
+`FOURGET_PROXY_BRAVE=<pool-name>`. Keep credentials out of Git and release
+artifacts and restrict the host file's permissions.
 
 Datacenter addresses can receive a Brave proof-of-work or CAPTCHA response.
 That condition is presented through the same neutral provider-unavailable view,
 not as a PHP crash. The existence of the picker or **Try Brave** link does not
 guarantee that Brave will accept a particular VPS address.
+
+## Upstream timeouts
+
+Google CSE and Brave use a 10-second connection timeout and a 20-second total
+timeout for each upstream cURL transfer. These bounds reduce stalls from an
+unreachable route; a search can still contain more than one bounded transfer,
+such as Google's cold bootstrap or a Brave proxy-pool rotation.
 
 ## API selection
 
@@ -141,8 +181,11 @@ enabled by default:
 ### Animated image results
 
 The grid renders the ordinary proxied thumbnail as a lazy poster first. A
-motion hint from either result URL selects the provider's full-size original
-for validation and playback. Ordinary `.gif`, `.webp`, and
+motion hint from either result URL, an encoded format parameter, a bounded
+GitHub Camo source URL, or supported provider MIME/format metadata selects the
+provider's full-size original for validation and playback. Google CSE consumes
+its `mime`/`fileFormat` fields and Brave consumes its result `format` field.
+Ordinary `.gif`, `.webp`, and
 `.apng` URLs are candidates; an explicit provider format filter selects the
 full-size original even when its signed URL is extensionless. Static WebP is
 rejected by multi-frame validation and returns to its poster. Inline data URLs
@@ -173,7 +216,7 @@ directly, although a verified full-size animation can use more instance
 bandwidth than the thumbnail.
 
 The production image adds two application admission bounds around this costly
-path: at most 30 animated-candidate requests per minute for each client address
+path: at most 120 animated-candidate requests per minute for each client address
 seen by the app, and at most three generation-tagged validations in flight
 globally. A candidate is also rejected above 1,000 frames, 16,384 pixels on
 either dimension, 40 megapixels per frame, 250 million decoded pixel-frames, or
@@ -193,28 +236,32 @@ raw query encoding misses the conditional edge map. Port 5140 binds to loopback
 by default, or to an explicitly configured private Docker-host bridge for NPM;
 it must never be public.
 
-Automatic motion is viewport-scoped and limited to three cards on desktop or two
-on coarse-pointer devices. Automatic and deliberate activation both request the
-poster and wait for its load/error state. A successfully loaded or already
-complete valid poster gets two animation-frame boundaries and one paint before
-motion; a broken poster is only settled and may proceed without a paint
-guarantee. User intent upgrades pending automatic preparation instead of
-duplicating it. Pointer/focus activation requires the actual image wrapper to
-be in the viewport, uses the same limit, and evicts the oldest active card.
-Off-screen cards cancel pending work and restore their posters; appended
-infinite-scroll cards are observed.
+Automatic motion is viewport-scoped. The browser queues validation loads and
+runs at most three concurrently on desktop or two on coarse-pointer/mobile
+devices. This does not cap playback: every visible candidate that validates
+continues playing in the grid without a click. Automatic and deliberate
+activation both request the poster and wait for its load/error state. A
+successfully loaded or already complete valid poster gets two animation-frame
+boundaries and one paint before motion; a broken poster is only settled and may
+proceed without a paint guarantee. User intent upgrades pending automatic
+preparation instead of duplicating it. Pointer/focus activation requires the
+actual image wrapper to be in the viewport and can promote queued work.
+Off-screen cards cancel pending work and restore their posters; released slots
+advance the queue, and appended infinite-scroll cards are observed.
 Reduced-motion disables animation and data-saver disables automatic activation.
-Because discovery uses URL/filter hints before the proxy fetch, an extensionless
-animation can remain a static poster unless the selected filter identifies it.
+Discovery combines URL/filter hints, bounded GitHub Camo source decoding, and
+supported provider metadata, so Google or Brave can identify many extensionless
+originals through source or MIME/format fields.
 Explicit APNG/animated-PNG filename hints are recognized even with a `.png`
-extension, but an APNG with only an ordinary `.png` name can still be missed.
+extension. Without any usable URL, filter, or provider hint, an extensionless
+animation or APNG with only an ordinary `.png` name can still be missed.
 Ordinary WebP is probed; static candidates are rejected by frame validation.
 Other
 raster formats are not motion candidates. An automatic failure is not retried
 automatically; pointer/focus can make one deliberate retry for that card, and a
 second failure leaves its poster in place. The motion badge appears only after
-validation, and its format text is a candidate hint rather than an authoritative
-MIME result.
+validation, and its format text is a URL/filter/provider candidate hint rather
+than an authoritative MIME result.
 
 ## Operations
 

@@ -1,6 +1,6 @@
 # Search-first interface
 
-Security Search v0.9.5 keeps the logo and search field as the landing page's
+Security Search v0.9.6 keeps the logo and search field as the landing page's
 primary visual anchors. Navigation and SecurityOps links remain available
 without competing with the search task.
 
@@ -12,7 +12,7 @@ The first page presents:
 2. The Security Search logo.
 3. The primary search field and submit action.
 4. One compact hint: Google is the default and Brave is available.
-5. Quiet text links to [securityops.co](https://securityops.co/) and
+5. Quiet text links to [securitytops.co](https://securitytops.co/) and
    [securityops.com.br](https://securityops.com.br/).
 
 The portal links are not large buttons or promotional cards. Additional
@@ -29,9 +29,15 @@ cascade is:
 2. The selected theme stylesheet supplies shared color tokens.
 3. Home-page component rules consume those tokens, with safe fallback values.
 
-The SecOps stylesheet remains `static/themes/SecOps.css`. Asset URLs use
-`config::VERSION=11`, so v0.9.4 requests `?v11` and does not reuse the stale
-v10 response.
+The SecOps stylesheet remains `static/themes/SecOps.css`. v0.9.4 introduced
+asset version 11 to replace stale v10 CSS; v0.9.6 uses `config::VERSION=12` so
+the restored background and current theme load through `?v12`.
+
+On the home page, SecOps uses the genuine tracked
+`static/misc/secops.gif` background behind a restrained dark overlay. The CSS
+`prefers-reduced-motion: reduce` and `prefers-reduced-data: reduce` paths replace
+that image with a static radial background. The logo remains the primary visual
+anchor above either treatment.
 
 Theme selection remains a browser preference:
 
@@ -46,6 +52,15 @@ Theme selection remains a browser preference:
 Container deployments also set `FOURGET_DEFAULT_THEME=SecOps`. Keep that
 environment value, `config::DEFAULT_THEME`, the exact-case filename, and the
 Settings option aligned.
+
+## NSFW preference
+
+`config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes` allow NSFW content by
+default wherever the selected provider exposes that filter. An explicit
+request value overrides a valid saved cookie, and Settings can persist `yes`,
+`maybe`, or `no`; the application default applies only when neither override is
+present. Provider-specific interpretation is documented in
+[PROVIDERS.md](PROVIDERS.md).
 
 ## Responsive and accessible behavior
 
@@ -84,7 +99,8 @@ the required browser APIs are missing. A failed automatic load stops additional
 attempts and offers a first-page restart that preserves the query and filters.
 
 An animated GIF, WebP, or APNG candidate starts with its normal lazy thumbnail
-poster. A candidate hint from either result URL selects the full-size original,
+poster. A candidate hint from either result URL or supported provider
+MIME/format metadata selects the full-size original,
 and ordinary `.gif`, `.webp`, and `.apng` URLs are all probed; static WebP is
 restored to its poster after frame validation. An active animation format filter
 uses the full-size original even when its CDN URL is extensionless. Inline data
@@ -101,36 +117,40 @@ than trusting `acTL` alone; this also handles APNGs that Alpine Imagick exposes
 as one frame. A validation or loading failure restores the poster; SVG, video,
 gifv, and data URLs are ineligible.
 
-The controller allows at most three active cards on desktop or two on
-coarse-pointer devices. Automatic and deliberate activation both request the
-poster and wait until it loads or errors. A successfully loaded or already
-complete valid poster gets two animation-frame boundaries and one paint before
-the motion source; a broken poster may proceed once settled without a paint
-guarantee. User intent upgrades any pending automatic preparation rather than
-duplicating it. Pointer/focus activation requires the actual image wrapper to
-be in the viewport, respects the same cap, and evicts the oldest active card.
-Leaving the viewport cancels pending listeners/frames and restores the poster;
-a mutation observer registers infinite-scroll additions. Reduced-motion
-disables motion entirely; data-saver disables automatic activation. Conservative
-URL/filter discovery recognizes explicit APNG/animated-PNG filename hints even
-with a `.png` extension, but may leave an extensionless animation or an APNG
-with only an ordinary `.png` name as a static poster. Ordinary WebP is a
-candidate; frame validation restores static WebP. Other raster
-formats are not motion candidates.
+The controller queues candidates and allows at most three original-validation
+loads at once on desktop or two on coarse-pointer/mobile devices. That is a
+loading limit, not a playback cap: every visible candidate that validates keeps
+playing in the grid without a click. Automatic and deliberate activation both
+request the poster and wait until it loads or errors. A successfully loaded or
+already complete valid poster gets two animation-frame boundaries and one paint
+before the motion source; a broken poster may proceed once settled without a
+paint guarantee. User intent upgrades any pending automatic preparation rather
+than duplicating it. Pointer/focus activation requires the actual image wrapper
+to be in the viewport and can promote its queued work. Leaving the viewport
+cancels pending work and restores the poster; available slots then advance the
+queue. A mutation observer registers infinite-scroll additions. Reduced-motion
+disables motion entirely; data-saver disables automatic activation. URL/filter
+discovery recognizes explicit APNG/animated-PNG filename hints even with a
+`.png` extension, encoded format parameters, and Google/Brave MIME or format
+metadata. These provider hints can identify extensionless originals; providers
+without a usable hint can still leave an extensionless animation or ordinary
+`.png` APNG as a static poster. Ordinary WebP is a candidate; frame validation
+restores static WebP. Other raster formats are not motion candidates.
 An automatically failed candidate is suppressed individually; pointer or focus
 can request one deliberate retry, after which another failure removes its motion
 source and retains the poster.
 
 The motion badge becomes visible only after a candidate passes multi-frame
-validation and loads. Its label reflects the URL/filter candidate hint; it is
-not an authoritative MIME report.
+validation and loads. Its label reflects the URL, filter, or provider candidate
+hint; it is not an authoritative MIME report.
 
 ## Release checks
 
 Before promotion:
 
 1. Fetch the home page without a theme cookie and verify it links to
-   `/static/themes/SecOps.css?v11`.
+   `/static/themes/SecOps.css?v12`; verify `static/misc/secops.gif` loads for the
+   normal SecOps home and the static fallback applies under reduced motion/data.
 2. Verify that stylesheet returns HTTP 200 with a CSS content type.
 3. Test no cookie, an invalid cookie, `theme=Dark`, and a valid nondefault
    theme on the home, results, and Settings pages.
@@ -144,18 +164,21 @@ Before promotion:
    itself is not evidence of a working scraper. Give command-line HTML `/web`
    and `/images` requests a browser-like User-Agent; API requests do not need
    one.
-8. Test image automatic loading, its opt-out, and the ordinary pagination link.
+8. Test image automatic loading, its opt-out, the ordinary pagination link, and
+   the default `nsfw=yes` plus saved/request `maybe` and `no` overrides.
 9. Include verified animated and false-positive/static fixtures. Confirm the
    poster-first flow, 20 MB proxy cap, MIME rejection fallback,
    Imagick-validated GIF/WebP, strict PNG chunk/`acTL`-validated APNG, and
    poster fallback for invalid/static candidates. Check the same-origin motion
-   URL, desktop/coarse caps, oldest-card eviction, off-screen restore,
+   URL, three/two concurrent-load queues, all-visible validated playback,
+   off-screen restore and queue advancement,
    poster settling for automatic and deliberate requests, successful-poster
    two-frame paint, broken-poster behavior, user-intent upgrade, pending-work
    cancellation, viewport-only pointer/focus, reduced-motion/data-saver
    behavior, data-URL exclusion, full-size-original selection, explicit
-   animated-PNG `.png` discovery, conservative ordinary `.png`
-   APNG/extensionless handling, rejection outside the GIF/WebP/PNG allowlist,
+   animated-PNG `.png` discovery, provider metadata for extensionless motion,
+   conservative fallback without such metadata, rejection outside the
+   GIF/WebP/PNG allowlist,
    truthful post-validation motion-badge visibility, and infinite-append
    registration.
 10. Verify decompressed-byte rejection, temporary Imagick resource-limit

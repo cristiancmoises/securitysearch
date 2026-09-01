@@ -40,13 +40,11 @@ body.home::before{
     z-index: -1;
     pointer-events: none;
     background:
-        radial-gradient(circle at 50% 28%, rgba(41,217,237,.12), transparent 34rem),
-        linear-gradient(rgba(41,217,237,.045) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(41,217,237,.045) 1px, transparent 1px);
-    background-size: auto, 48px 48px, 48px 48px;
-    opacity: .58;
-    -webkit-mask-image: linear-gradient(to bottom, #000, transparent 92%);
-    mask-image: linear-gradient(to bottom, #000, transparent 92%);
+        linear-gradient(180deg, rgba(2,7,10,.36), rgba(2,7,10,.72)),
+        url("/static/misc/secops.gif?v12") center / cover no-repeat;
+    opacity: .78;
+    -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
+    mask-image: linear-gradient(to bottom, #000 0%, #000 78%, transparent 100%);
     animation: none;
 }
 
@@ -138,10 +136,24 @@ code{
 }
 
 @media (prefers-reduced-motion: reduce){
+    body.home::before{
+        background:
+            radial-gradient(circle at 50% 28%, rgba(41,217,237,.12), transparent 34rem),
+            #02070a;
+    }
+
     *, *::before, *::after{
         scroll-behavior: auto !important;
         animation-duration: .001ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: .001ms !important;
+    }
+}
+
+@media (prefers-reduced-data: reduce){
+    body.home::before{
+        background:
+            radial-gradient(circle at 50% 28%, rgba(41,217,237,.12), transparent 34rem),
+            #02070a;
     }
 }

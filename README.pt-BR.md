@@ -7,7 +7,12 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.5
+## Versão atual do código-fonte: v0.9.6
+
+- A v0.9.6 restaura o logotipo rastreado do Security Search nos pacotes limpos,
+  impede avisos PHP quando o diretório de banners está vazio e recupera o fundo
+  SecOps genuíno `static/misc/secops.gif`. Preferências de movimento reduzido e
+  economia de dados recebem um fundo estático.
 
 - A v0.9.5 corrige o empacotamento: os arquivos de versão agora preservam o
   diretório vazio obrigatório `icons/`, usado como cache em tempo de execução,
@@ -15,13 +20,16 @@ em [securityops.co](https://securityops.co/).
   e interface mantêm a implementação testada da v0.9.4.
 
 - A página inicial prioriza o logotipo e a busca, com apenas Configurações, uma
-  indicação curta de privacidade/provedor e dois links discretos:
-  [SecurityOps](https://securityops.co/) e
+  indicação curta de privacidade/provedor e dois links discretos para
+  [SecurityTops](https://securitytops.co/) e
   [SecurityOps Brasil](https://securityops.com.br/).
 - SecOps é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 11 evita
-  reutilização do CSS v10.
+  válidos já salvos continuam tendo precedência, e a versão de assets 12 evita
+  reutilização de CSS e fundos antigos.
+- Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
+  `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da
+  requisição ou uma preferência salva ainda pode selecionar `maybe` ou `no`.
 - Google continua sendo o provedor padrão de web e imagens. Um cache curto de
   90 segundos por saída reutiliza apenas os parâmetros CSE de inicialização e
   remove duas chamadas upstream de buscas próximas; consultas e resultados não
@@ -71,9 +79,9 @@ Requisitos recomendados:
 Mantenha o arquivo e o checksum no mesmo diretório:
 
 ```bash
-sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
-tar -xzf securitysearch-v0.9.5.tar.gz
-cd securitysearch-v0.9.5
+sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
+tar -xzf securitysearch-v0.9.6.tar.gz
+cd securitysearch-v0.9.6
 docker compose up -d --build
 docker compose ps
 curl -fsSI http://127.0.0.1:5140/
@@ -104,6 +112,7 @@ produção ficam explícitos em `docker-compose.yml`:
 ```yaml
 environment:
   - FOURGET_DEFAULT_THEME=SecOps
+  - FOURGET_DEFAULT_NSFW=yes
   - FOURGET_DEFAULT_SCRAPER_WEB=google
   - FOURGET_DEFAULT_SCRAPER_IMAGES=google
 ```
@@ -112,6 +121,11 @@ Uma preferência válida salva no navegador tem precedência sobre o respectivo
 padrão. Um parâmetro de provedor na URL tem precedência sobre cookie e padrão.
 Credenciais, chaves de API e dados privados de proxy não devem ser gravados no
 repositório nem incluídos no pacote de versão.
+
+Nos filtros compatíveis com NSFW, o parâmetro explícito `nsfw` tem precedência
+sobre o cookie salvo, que tem precedência sobre `DEFAULT_NSFW`. O padrão de
+produção `yes` permite resultados NSFW; o usuário pode salvar `maybe` ou `no`
+nas Configurações. O comportamento exato ainda depende do provedor upstream.
 
 Falhas de provedor não acionam fallback silencioso. Nas páginas de erro de web
 e imagens, **Try Brave** é uma ação iniciada pelo usuário que preserva consulta
@@ -122,12 +136,18 @@ filtro).
 Configurações importantes:
 
 - `FOURGET_DEFAULT_THEME=SecOps`: tema usado quando não há cookie de tema válido;
+- `FOURGET_DEFAULT_NSFW=yes`: permite NSFW nos filtros compatíveis por padrão;
 - `FOURGET_DEFAULT_SCRAPER_WEB=google`: provedor web padrão;
 - `FOURGET_DEFAULT_SCRAPER_IMAGES=google`: provedor de imagens padrão;
-- `FOURGET_PROXY_BRAVE`: nome de um pool de proxy configurado para o Brave,
+- `FOURGET_PROXY_GOOGLE`: nome de um pool de proxy privado configurado para o Google;
+- `FOURGET_PROXY_BRAVE`: nome de um pool de proxy privado configurado para o Brave,
   quando necessário;
 - `FOURGET_GOOGLE_CX_ENDPOINT`: endpoint da pesquisa programável do Google, se
   uma implantação precisar substituir o valor padrão.
+
+Para um pool privado, descomente o volume opcional somente leitura
+`./data/proxies:/var/www/html/4get/data/proxies:ro` no Compose. Mantenha o
+arquivo não rastreado com credenciais protegido no host; nunca o publique.
 
 Leia [docs/PROVIDERS.md](docs/PROVIDERS.md) para precedência e limitações dos
 provedores e [docs/configure.md](docs/configure.md) para a configuração geral.
@@ -156,11 +176,11 @@ causas na [orientação oficial sobre tráfego incomum](https://support.google.c
 
 Brave é a alternativa principal disponível no seletor para web e imagens. Um
 IP de datacenter pode receber CAPTCHA, proof-of-work ou bloqueio de faixa do
-Brave. Quando a página de proof-of-work aparece de forma intermitente, o scraper
-faz no máximo três tentativas no próprio Brave; não resolve o desafio, não entra
-em loop e não troca de provedor. Depois desse limite, o aplicativo apresenta a
-condição como indisponibilidade do provedor. Um pool legítimo em
-`FOURGET_PROXY_BRAVE` pode ser necessário para disponibilidade consistente. A
+Brave. No acesso direto, um desafio proof-of-work reconhecido encerra a busca
+após a primeira tentativa. Somente um pool configurado pode girar para outro
+endereço, com no máximo três tentativas limitadas no Brave; o scraper não
+resolve o desafio, não entra em loop e não troca de provedor. Um pool legítimo
+em `FOURGET_PROXY_BRAVE` pode ser necessário para disponibilidade consistente. A
 existência do seletor ou de **Try Brave** não garante que o Brave aceitará o IP
 do VPS. Não se deve afirmar que um provedor está operacional antes de um teste
 real a partir do host de produção.
@@ -194,7 +214,7 @@ A hierarquia da página inicial é intencionalmente curta:
 2. o logotipo Security Search;
 3. o campo e a ação principal de busca;
 4. uma indicação compacta: Google padrão, Brave disponível;
-5. links de texto discretos para `securityops.co` e `securityops.com.br`.
+5. links de texto discretos para `securitytops.co` e `securityops.com.br`.
 
 Não há grade promocional de botões ou cartões competindo com a busca. O fluxo
 principal funciona sem JavaScript, possui foco visível por teclado, alvos
@@ -206,7 +226,8 @@ Na v0.9.4, `static/style.css` fornece a base, o CSS do tema selecionado fornece
 tokens compartilhados e os componentes da página inicial consomem esses tokens
 com valores de segurança. Sem cookie, com cookie inválido ou com tema
 inexistente, o resultado é `SecOps`; `Dark` e outros temas válidos continuam
-preservados. A URL `/static/themes/SecOps.css?v11` faz a invalidação do cache.
+preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.6 usa
+`/static/themes/SecOps.css?v12` para atualizar também o fundo restaurado.
 
 Falhas de scraper usam o título neutro **Search provider unavailable**. O texto
 do upstream é escapado, e as ações oferecem repetir a mesma busca, abrir
@@ -234,8 +255,9 @@ Esse comportamento mantém a paginação progressiva e não transforma uma falha
 do upstream em falha total da página.
 
 Candidatos GIF, WebP e APNG começam com a miniatura estática comum, carregada de
-forma preguiçosa. Um indício de movimento em qualquer URL do resultado seleciona
-o original full-size para validação e reprodução. Toda URL `.gif`, `.webp` ou `.apng` é candidata,
+forma preguiçosa. Um indício de movimento em qualquer URL do resultado ou nos
+metadados MIME/formato compatíveis do provedor seleciona o original full-size
+para validação e reprodução. Toda URL `.gif`, `.webp` ou `.apng` é candidata,
 inclusive WebP com nome comum; a validação de múltiplos frames devolve ao poster
 qualquer WebP que seja estático. Um filtro de formato explícito também escolhe o
 original full-size quando uma URL CDN assinada não possui extensão útil. URLs
@@ -251,25 +273,35 @@ Alpine pode expor um APNG conhecido como um único frame. Em caso de falha
 automática, o cartão volta ao poster e só tenta
 novamente após ação deliberada por ponteiro/foco.
 
-Há no máximo três animações ativas no desktop ou duas em ponteiro grosso,
-inclusive por foco/ponteiro; ao atingir o limite, o cartão mais antigo volta ao
-poster. Cartões fora da tela também voltam ao poster, novos resultados da
-rolagem contínua são registrados, `prefers-reduced-motion` desativa animações e
-o modo de economia de dados desativa a ativação automática. A descoberta é
-conservadora: um indício explícito de APNG ou animated-PNG no nome do arquivo é
-reconhecido mesmo com extensão `.png`, mas animações sem extensão ou APNGs com
-apenas um nome `.png` comum podem permanecer estáticos se o filtro do provedor
-não os identificar. WebP estático falha na validação de frames e volta ao poster.
-SVG, vídeo, gifv, URLs `data:` e formatos raster fora da lista GIF/WebP/APNG não
-são aceitos.
+As validações entram em fila, com no máximo três originais carregando ao mesmo
+tempo no desktop ou dois em dispositivos móveis/de ponteiro grosso. Esse limite
+controla cargas, não reprodução: todos os candidatos visíveis já validados
+continuam animados na grade sem clique. Cartões fora da tela voltam ao poster e
+a fila avança quando surgem vagas. Novos resultados da rolagem contínua são
+registrados; `prefers-reduced-motion` desativa animações e a economia de dados
+desativa a ativação automática. A descoberta reconhece extensões GIF/WebP,
+indícios explícitos de APNG/animated-PNG, parâmetros de formato em URLs
+codificadas, origens limitadas do GitHub Camo e metadados MIME/formato do Google
+ou Brave. Esses indícios permitem validar originais sem extensão; WebP estático
+ainda volta ao poster. SVG, vídeo, gifv, URLs `data:` e formatos raster fora da
+lista GIF/WebP/APNG não são aceitos.
+
+A aplicação admite no máximo 120 solicitações de preview animado por endereço de
+cliente a cada minuto e usa um semáforo global de três validações. Esses limites
+cooperam com a fila do navegador sem limitar quantas animações visíveis e já
+validadas continuam reproduzindo.
 
 ## Desempenho
 
 A imagem de produção habilita PHP OPcache, compressão HTTP e cache de arquivos
 estáticos. Miniaturas e favicons usam carregamento preguiçoso (`loading=lazy`) e
-decodificação assíncrona. O fundo SecOps padrão é gerado por CSS e não baixa mais
-a animação anterior de 18,9 MB. O Google reutiliza parâmetros CSE validados por
+decodificação assíncrona. A página SecOps usa o fundo rastreado
+`static/misc/secops.gif`; navegadores que pedem movimento reduzido ou economia
+de dados recebem um fundo CSS estático. O Google reutiliza parâmetros CSE
+validados por
 até 90 segundos por backend, CX e saída, sem armazenar consultas ou resultados.
+Cada transferência upstream do Google ou Brave usa timeout de 10 segundos para
+conexão e 20 segundos no total, limitando a latência de cada requisição lenta.
 Isso normalmente elimina as chamadas ao HTML e ao script de inicialização em
 buscas próximas e reduz o volume upstream. Uma rejeição reconhecida do token em
 cache apaga a entrada, faz uma inicialização nova e repete apenas uma vez;
@@ -312,17 +344,17 @@ Com todas as mudanças rastreadas já commitadas e a árvore de trabalho limpa:
 
 ```bash
 git diff --check
-./release.sh 0.9.5
-(cd dist && sha256sum -c securitysearch-v0.9.5.tar.gz.sha256)
-git tag -a v0.9.5 -m "Security Search v0.9.5"
+./release.sh 0.9.6
+(cd dist && sha256sum -c securitysearch-v0.9.6.tar.gz.sha256)
+git tag -a v0.9.6 -m "Security Search v0.9.6"
 ```
 
 O script usa `git archive`, respeita `.gitattributes` e acrescenta somente o
 diretório vazio obrigatório `icons/`, que o Git não consegue rastrear:
 
 ```text
-dist/securitysearch-v0.9.5.tar.gz
-dist/securitysearch-v0.9.5.tar.gz.sha256
+dist/securitysearch-v0.9.6.tar.gz
+dist/securitysearch-v0.9.6.tar.gz.sha256
 ```
 
 Antes de publicar, faça lint de todos os arquivos PHP na imagem, compile sem
@@ -340,9 +372,9 @@ configuradas sem credenciais embutidas são:
 - `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`;
 - `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`.
 
-A publicação v0.9.4 reescreveu o histórico sanitizado. A v0.9.5 deve preservar
+A publicação v0.9.4 reescreveu o histórico sanitizado. A v0.9.6 deve preservar
 esse histórico e publicar o inventário exato `main` mais as tags `v0.9.0` a
-`v0.9.5`. Siga exatamente o procedimento com lease por ref, push atômico,
+`v0.9.6`. Siga exatamente o procedimento com lease por ref, push atômico,
 imutabilidade de tags e verificação de OID em
 [docs/RELEASE.md](docs/RELEASE.md) para cada remoto.
 
@@ -357,11 +389,11 @@ para scripts:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.5.tar.gz \
-  remote:/tmp/securitysearch-v0.9.5.tar.gz
+  dist/securitysearch-v0.9.6.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.5.tar.gz.sha256 \
-  remote:/tmp/securitysearch-v0.9.5.tar.gz.sha256
+  dist/securitysearch-v0.9.6.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.6.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -369,13 +401,13 @@ No VPS, valide o pacote, crie uma árvore irmã limpa e arquive a árvore ativa
 exata antes de alterá-la:
 
 ```bash
-cd /tmp
-sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
+cd /srv/evelin
+sha256sum -c securitysearch-v0.9.6.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.5-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.6-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.5
+release_tree=/root/security-search-v0.9.6
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -386,7 +418,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf securitysearch-v0.9.5.tar.gz \
+tar -xzf securitysearch-v0.9.6.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -394,9 +426,9 @@ test -f "$release_tree/Dockerfile"
 
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.5
+docker image tag "$previous_image_id" security-search:pre-v0.9.6
 
-cd /root/security-search-v0.9.5
+cd /root/security-search-v0.9.6
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -406,7 +438,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.5 /root/security-search-update
+mv /root/security-search-v0.9.6 /root/security-search-update
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -428,7 +460,7 @@ override privado do Compose, arquivo de ambiente, credencial de proxy ou outro
 segredo somente se ele existir, for necessário e tiver sido revisado
 individualmente, mantendo permissões restritas.
 
-Depois, confirme `/static/themes/SecOps.css?v11`, o tipo CSS, cartões reais de
+Depois, confirme `/static/themes/SecOps.css?v12`, o tipo CSS, cartões reais de
 web/imagens, arrays `status=ok` não vazios na API, Brave separadamente, logs sem
 avisos/fatais PHP e HTTP público em `securityops.co` e
 `securityops.com.br`. Use um User-Agent semelhante ao de navegador nos curls
@@ -447,10 +479,10 @@ preservados usando o timestamp exato registrado no corte:
 ```bash
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
-mv /root/security-search-update /root/security-search-update-failed-v0.9.5
+mv /root/security-search-update /root/security-search-update-failed-v0.9.6
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.5 security-search:latest
+docker image tag security-search:pre-v0.9.6 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 ```

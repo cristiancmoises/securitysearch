@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > This guide retains upstream `luuul/4get`/Tor examples and open listener
-> assumptions for historical reference. It is not a Security Search v0.9.5
+> assumptions for historical reference. It is not a Security Search v0.9.6
 > production recipe. Do not publish its SOCKS or application ports. Start from
 > the hardened repository [`docker-compose.yml`](../docker-compose.yml) and the
 > current private-port workflow in [RELEASE.md](RELEASE.md); treat Tor integration

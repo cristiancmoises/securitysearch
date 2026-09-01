@@ -353,9 +353,10 @@ function admit_animated_preview(){
 		}
 	}
 
-	// A normal client loads at most three at once. This wider fixed window still
-	// permits scrolling while bounding repeated 20 MB validation probes.
-	if(is_int($requests) && $requests > 30){
+	// Browser-side loading remains limited to three concurrent validations, but
+	// every visible animation is queued. Keep enough room for several
+	// infinite-scroll pages while the global semaphore bounds server pressure.
+	if(is_int($requests) && $requests > 120){
 
 		return false;
 	}

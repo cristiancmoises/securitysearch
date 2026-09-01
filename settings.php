@@ -11,7 +11,7 @@ $settings = [
 		"name" => "General",
 		"settings" => [
 			[
-				"description" => "Allow NSFW content",
+				"description" => "Allow NSFW content (enabled by default)",
 				"parameter" => "nsfw",
 				"options" => [
 					[
@@ -325,10 +325,6 @@ $settings = [
 						"text" => "Yandex"
 					],
 					[
-						"value" => "google",
-						"text" => "Google"
-					],
-					[
 						"value" => "yahoo_japan",
 						"text" => "Yahoo! JAPAN",
 					],
@@ -365,10 +361,6 @@ $settings = [
 					[
 						"value" => "brave",
 						"text" => "Brave"
-					],
-					[
-						"value" => "google",
-						"text" => "Google"
 					],
 					[
 						"value" => "yahoo_japan",

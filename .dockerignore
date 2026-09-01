@@ -54,7 +54,8 @@ icons/*
 data/captcha/birds/
 data/captcha/fumo_plushies/
 data/captcha/minecraft/
-data/proxies/proxies-*.txt
-data/api_keys/*.key
+data/proxies/*.txt
+!data/proxies/onion.txt
+data/api_keys/
 .env
 .env.*

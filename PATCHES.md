@@ -1,11 +1,31 @@
 # Quick-Apply Patches
 
+## v0.9.6 UI, provider, motion, and packaging corrections
+
+Current installations should use the complete tagged v0.9.6 source archive. It
+includes the required Security Search logo, prevents empty-banner PHP warnings,
+restores the tracked animated SecOps background with reduced-motion/data
+fallbacks, and sets NSFW-capable filters to `yes` by default while retaining
+user overrides. Animated originals now use a bounded validation queue rather
+than a three/two playback cap: all visible validated GIF/WebP/APNG results keep
+playing without a click. Provider MIME/format hints improve extensionless
+discovery, including bounded GitHub Camo source hints, and the application
+admits 120 motion requests/client/minute under a three-slot server semaphore.
+Brave direct egress now fails after its first
+recognized proof-of-work response; only a configured pool rotates for up to
+three attempts. Google and Brave use 10-second connect and 20-second total
+timeouts per upstream transfer; bare Google 429 responses receive the neutral
+rate-limit state. Unsupported Google video/news choices and the empty-query
+calculator warning are removed. Docker build context excludes private API-key
+and proxy-pool files, with optional read-only runtime mounts documented for
+intentional use. This is a drop-in update from v0.9.5.
+
 ## v0.9.5 packaging correction
 
-Current installations should use the complete tagged v0.9.5 source archive.
-Its release helper preserves the required empty `icons/` runtime-cache
-directory even though Git cannot track empty directories and generated icons
-remain excluded. v0.9.5 does not change the v0.9.4 application behavior.
+The tagged v0.9.5 source archive preserves the required empty `icons/`
+runtime-cache directory. It is retained here as a historical packaging note.
+Generated icons remain excluded, and v0.9.5 does not change the v0.9.4
+application behavior.
 
 ## v0.9.4 patch set
 

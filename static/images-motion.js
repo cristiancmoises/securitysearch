@@ -14,7 +14,10 @@
 	var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 	var saveData = navigator.connection && navigator.connection.saveData;
 	var coarsePointer = window.matchMedia && window.matchMedia("(hover: none), (pointer: coarse)").matches;
-	var maxActive = coarsePointer ? 2 : 3;
+	// Validate only a small number of originals concurrently, but do not cap
+	// how many already-loaded, visible animations may keep playing.
+	var maxConcurrentLoads = coarsePointer ? 2 : 3;
+	var loading = 0;
 	var active = [];
 	var waiting = [];
 	var requests = new WeakMap();
@@ -29,9 +32,28 @@
 		}
 	}
 
-	function queue(image) {
-		if (waiting.indexOf(image) === -1) {
-			waiting.push(image);
+	function waitingIndex(image) {
+		for (var index = 0; index < waiting.length; index++) {
+			if (waiting[index].image === image) {
+				return index;
+			}
+		}
+		return -1;
+	}
+
+	function removeWaiting(image) {
+		var index = waitingIndex(image);
+		if (index !== -1) {
+			waiting.splice(index, 1);
+		}
+	}
+
+	function queue(image, userInitiated) {
+		var index = waitingIndex(image);
+		if (index === -1) {
+			waiting.push({ image: image, userInitiated: userInitiated });
+		} else if (userInitiated) {
+			waiting[index].userInitiated = true;
 		}
 	}
 
@@ -43,6 +65,10 @@
 
 		image.removeEventListener("load", request.onLoad);
 		image.removeEventListener("error", request.onError);
+		if (request.loading) {
+			request.loading = false;
+			loading = Math.max(0, loading - 1);
+		}
 		requests.delete(image);
 		if (image.dataset.motionGeneration === String(request.generation)) {
 			delete image.dataset.motionGeneration;
@@ -111,7 +137,7 @@
 			return;
 		}
 
-		if (waiting.indexOf(image) !== -1) {
+		if (waitingIndex(image) !== -1) {
 			if (userInitiated) {
 				activate(image, true);
 			}
@@ -228,7 +254,7 @@
 		cancelPosterStart(image);
 		clearRequest(image);
 		removeFrom(active, image);
-		removeFrom(waiting, image);
+		removeWaiting(image);
 		var poster = image.getAttribute("data-poster-src");
 		if (poster && image.src !== new URL(poster, document.baseURI).href) {
 			image.src = poster;
@@ -258,32 +284,24 @@
 		}
 
 		cancelPosterStart(image);
-		removeFrom(waiting, image);
+		removeWaiting(image);
 		if (active.indexOf(image) !== -1) {
 			if (userInitiated) {
-				removeFrom(active, image);
-				active.push(image);
+				var activeRequest = requests.get(image);
+				if (activeRequest) {
+					activeRequest.userInitiated = true;
+				}
 			}
 			return;
 		}
 
-		if (active.length >= maxActive) {
-			if (!userInitiated) {
-				queue(image);
-				return;
-			}
-
-			var evicted = active[0];
-			var reprepareEvicted =
-				evicted.dataset.motionIntersecting === "yes" &&
-				evicted.dataset.motionAutoFailed !== "yes";
-			restore(evicted, false);
-			if (reprepareEvicted) {
-				prepare(evicted, false);
-			}
+		if (loading >= maxConcurrentLoads) {
+			queue(image, userInitiated);
+			return;
 		}
 
 		active.push(image);
+		loading++;
 		var generation = ++nextGeneration;
 		image.dataset.motionGeneration = String(generation);
 
@@ -292,12 +310,20 @@
 			if (!request || request.generation !== generation) {
 				return;
 			}
+			if (
+				!preparationAllowed(image, request.userInitiated) ||
+				image.src !== new URL(source, document.baseURI).href
+			) {
+				restore(image);
+				return;
+			}
 			clearRequest(image);
 			delete image.dataset.motionAutoFailed;
 			var card = image.closest(".image-wrapper");
 			if (card && image.getAttribute("data-motion-src")) {
 				card.classList.add("motion-active");
 			}
+			pump();
 		}
 
 		function motionFailed() {
@@ -305,8 +331,9 @@
 			if (!request || request.generation !== generation) {
 				return;
 			}
+			var requestedByUser = request.userInitiated;
 			clearRequest(image);
-			if (userInitiated) {
+			if (requestedByUser) {
 				image.removeAttribute("data-motion-src");
 			} else {
 				image.dataset.motionAutoFailed = "yes";
@@ -317,7 +344,9 @@
 		requests.set(image, {
 			generation: generation,
 			onLoad: motionLoaded,
-			onError: motionFailed
+			onError: motionFailed,
+			loading: true,
+			userInitiated: userInitiated
 		});
 		image.addEventListener("load", motionLoaded);
 		image.addEventListener("error", motionFailed);
@@ -325,15 +354,16 @@
 	}
 
 	function pump() {
-		while (maxActive > 0 && active.length < maxActive && waiting.length) {
-			activate(waiting.shift(), false);
+		while (maxConcurrentLoads > 0 && loading < maxConcurrentLoads && waiting.length) {
+			var next = waiting.shift();
+			activate(next.image, next.userInitiated);
 		}
 	}
 
 	var observer = new IntersectionObserver(function (entries) {
 		entries.forEach(function (entry) {
 			var image = entry.target;
-			if (entry.isIntersecting) {
+			if (entry.isIntersecting && entry.intersectionRatio > 0) {
 				image.dataset.motionIntersecting = "yes";
 				prepare(image, false);
 			} else {
@@ -341,7 +371,7 @@
 				restore(image);
 			}
 		});
-	}, { rootMargin: "120px 0px", threshold: 0.05 });
+	}, { rootMargin: "0px", threshold: [0, 0.05] });
 
 	function register(root) {
 		root.querySelectorAll("img[data-motion-src]").forEach(function (image) {
