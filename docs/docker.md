@@ -1,4 +1,12 @@
-#### Install guide for Docker
+#### Legacy upstream Docker reference
+
+> [!WARNING]
+> The commands, public port mappings, and `luuul/4get` images below are retained
+> only as upstream reference; they are not the supported Security Search v0.9.4
+> deployment. Do not use them for production. Use the repository
+> [`docker-compose.yml`](../docker-compose.yml) and the private-port,
+> checksum-verified workflow in [RELEASE.md](RELEASE.md) and
+> [BUILD-LOCATION.md](BUILD-LOCATION.md).
 
 When using docker container any environment variables prefixed with `FOURGET_` will be added to the generated config located at `/var/www/html/4get/data/config.php`
 

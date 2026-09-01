@@ -7,20 +7,24 @@ class frontend{
 		$replacements["server_name"] = htmlspecialchars(config::SERVER_NAME);
 		$replacements["version"] = config::VERSION;
 
-		if(isset($_COOKIE["theme"])){
-			
-			$theme = str_replace(["/". "."], "", $_COOKIE["theme"]);
-			
-			if(
-				$theme != "Dark" &&
-				!is_file("static/themes/" . $theme . ".css")
+		$theme = config::DEFAULT_THEME;
+		if(isset($_COOKIE["theme"]) && is_string($_COOKIE["theme"])){
+
+			$requested_theme = $_COOKIE["theme"];
+			$valid_theme_name =
+				strlen($requested_theme) <= 100 &&
+				preg_match('/\A[A-Za-z0-9][A-Za-z0-9 _-]*\z/', $requested_theme) === 1;
+
+			if($requested_theme === "Dark"){
+
+				$theme = "Dark";
+			}elseif(
+				$valid_theme_name &&
+				is_file(dirname(__DIR__) . "/static/themes/" . $requested_theme . ".css")
 			){
-				
-				$theme = config::DEFAULT_THEME;
+
+				$theme = $requested_theme;
 			}
-		}else{
-			
-			$theme = config::DEFAULT_THEME;
 		}
 		
 		if($theme != "Dark"){
@@ -144,7 +148,7 @@ class frontend{
 			apcu_inc("captcha_gen");
 			
 			$this->drawerror(
-				"Tshh, blocked!",
+				"Request blocked",
 				'Your browser, IP or IP range has been blocked from this 4get instance. If this is an error, please <a href="/about">contact the administrator</a>.'
 			);
 			die();
@@ -161,7 +165,7 @@ class frontend{
 		echo
 			$this->load("search.html", [
 				"timetaken" => $timetaken,
-				"class" => "",
+				"class" => " error-view",
 				"right-left" => "",
 				"right-right" => "",
 				"left" =>
@@ -180,17 +184,30 @@ class frontend{
 			$timetaken = microtime(true);
 		}
 		
+		$target = in_array($target, ["web", "images", "videos", "news", "music"], true) ? $target : "web";
+		$retry_url = "/" . $target . "?" . $this->buildquery($get, false);
+		$actions =
+			'<a href="' . htmlspecialchars($retry_url) . '">Retry search</a>' .
+			'<a href="/settings">Provider settings</a>';
+
+		$current_scraper = isset($get["scraper"]) && is_string($get["scraper"]) ? strtolower($get["scraper"]) : "";
+		if(
+			in_array($target, ["web", "images"], true) &&
+			$current_scraper !== "brave"
+		){
+
+			$alternate = $get;
+			$alternate["scraper"] = "brave";
+			$alternate_url = "/" . $target . "?" . $this->buildquery($alternate, false);
+			$actions .= '<a href="' . htmlspecialchars($alternate_url) . '">Try Brave</a>';
+		}
+
 		$this->drawerror(
-			"Shit",
-			'This scraper returned an error:' .
+			"Search provider unavailable",
+			'<p>The selected provider could not complete this search.</p>' .
 			'<div class="code">' . htmlspecialchars($error) . '</div>' .
-			'Things you can try:' .
-			'<ul>' . 
-				'<li>Use a different scraper</li>' .
-				'<li>Remove keywords that could cause errors</li>' .
-				'<li><a href="/instances?target=' . $target . "&" . $this->buildquery($get, false) . '">Try your search on another 4get instance</a></li>' .
-			'</ul><br>' .
-			'If the error persists, please <a href="/about">contact the administrator</a>.',
+			'<div class="error-actions">' . $actions . '</div>' .
+			'<p class="error-note">Upstream providers can temporarily rate-limit server traffic. Retrying later or selecting another provider usually resolves the issue.</p>',
 			$timetaken
 		);
 	}
@@ -972,6 +989,7 @@ class frontend{
 					"option" => [
 						"google" => "Google",
 						"brave" => "Brave",
+						"google_api" => "Google API",
 						"ddg" => "DuckDuckGo",
 						"yandex" => "Yandex",
 						"google_cse" => "Google CSE",
@@ -1371,6 +1389,56 @@ class frontend{
 		return http_build_query($out);
 	}
 	
+	public function animatedimageformat($image){
+
+		if(!is_string($image) || $image === ""){
+
+			return null;
+		}
+
+		$decoded = rawurldecode($image);
+		// Remote image results must pass through the same-origin proxy so the
+		// payload size, MIME type, and frame count can be validated. htmlimage()
+		// intentionally returns data URLs unchanged, so they are not candidates.
+		if(stripos($decoded, "data:") === 0){
+
+			return null;
+		}
+
+		$path = parse_url($decoded, PHP_URL_PATH);
+		if(is_string($path)){
+
+			$extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+			if(in_array($extension, ["gif", "webp", "apng"], true)){
+
+				return strtoupper($extension);
+			}
+
+			// APNG is commonly served with the ordinary .png extension. Only
+			// promote explicit filename hints; the proxy still verifies acTL and
+			// frame count, so a false-positive name safely falls back to its poster.
+			if(
+				$extension === "png" &&
+				preg_match('/(?:^|[-_.])(?:apng|animated[-_.]?png)(?:[-_.]|$)/i', basename($path))
+			){
+
+				return "APNG";
+			}
+		}
+
+		// Some CDNs put an encoded source URL or an explicit format in the
+		// query string. Limit recognition to animation-capable raster formats.
+		if(
+			preg_match('/\.(gif|webp|apng)(?:$|[?&#])/i', $decoded, $match) ||
+			preg_match('/(?:^|[?&])(?:format|fmt|fm|ext|type|mime)=(?:image\/)?(gif|webp|apng)(?:$|[&#])/i', $decoded, $match)
+		){
+
+			return strtoupper($match[1]);
+		}
+
+		return null;
+	}
+
 	public function htmlimage($image, $format){
 		
 		if(

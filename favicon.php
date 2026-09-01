@@ -360,7 +360,7 @@ class favicon{
 	
 	private function defaulticon(){
 		
-		// give 404 and fuck off
+		// return a placeholder response
 		http_response_code(404);
 		
 		$handle = fopen("lib/favicon404.png", "r");

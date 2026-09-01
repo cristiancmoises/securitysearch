@@ -508,7 +508,7 @@ class baidu{
 			//
 			$proxy = $this->backend->get_ip();
 			
-			// running this will give us shit in $this->cookie
+			// Running this populates $this->cookie.
 			// @TODO probably not needed? I get blocked anyways ffs
 			//$this->get($proxy, "https://www.baidu.com", []);
 			
@@ -552,7 +552,7 @@ class baidu{
 	private function parse_search($proxy, $pagetype, $npt_data, $html){
 		
 		// @HACK
-		// remove newlines from the html, cause it fucks with fuckhtml
+		// Remove newlines before parsing the HTML.
 		$html = str_replace(["\n", "\r"], "", $html);
 		
 		$out = [
@@ -1077,7 +1077,7 @@ class baidu{
 							
 							if(!isset($data2["url"])){
 								
-								// no link, fuck off
+								// Ignore entries that do not provide a link.
 								continue;
 							}
 							

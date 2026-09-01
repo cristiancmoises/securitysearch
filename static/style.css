@@ -43,7 +43,7 @@ body,html{
 }
 
 body{
-  background:#000000 !important;
+  background:#000000;
   color:var(--a89984);
   font-size:16px;
   box-sizing:border-box;
@@ -532,6 +532,29 @@ form[role="search"]{
 }
 
 .provider-status span{ color:var(--8ec07c); padding:0 .22rem; }
+
+.web.error-view .right-wrapper{ display:none; }
+.web.error-view .left{ width:min(100%, 780px); }
+.error-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
+  margin:.85rem 0 .5rem;
+}
+.infobox .error-actions a{
+  display:inline-flex;
+  align-items:center;
+  min-height:2.5rem;
+  padding:0 .8rem;
+  border:1px solid var(--504945);
+  border-radius:.4rem;
+  text-decoration:none;
+}
+.infobox .error-actions a:hover{
+  border-color:var(--8ec07c);
+  text-decoration:none;
+}
+.error-note{ margin:.65rem 0 0; color:var(--928374); }
 
 .tabs,
 .filters{

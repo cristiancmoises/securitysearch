@@ -15,7 +15,7 @@ class backend{
 		$pool = constant("config::PROXY_" . strtoupper($this->scraper));
 		if($pool === false){
 			
-			// we don't want a proxy, fuck off!
+			// The request explicitly disables proxy use.
 			return 'raw_ip::::';
 		}
 		

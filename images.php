@@ -2,7 +2,7 @@
 include_once __DIR__ . "/lib/security_headers.php";
 
 /*
-	Initialize random shit
+	Initialize request dependencies
 */
 include "data/config.php";
 include "lib/frontend.php";
@@ -63,18 +63,67 @@ if(count($results["image"]) === 0){
 }
 
 /* ============================================================
-   RESULTS — unchanged structure (4get lightbox JS depends on
-   the .image-wrapper[data-json] attribute and class chain)
+   RESULTS — preserve the .image-wrapper[data-json] structure and
+   class chain that the lightbox JavaScript depends on.
    ============================================================ */
 foreach($results["image"] as $image){
 
 	$host = parse_url($image["url"], PHP_URL_HOST) ?? "source";
+	$original_url = $image["source"][0]["url"];
+	$thumbnail_url = $image["source"][count($image["source"]) - 1]["url"];
+	$original_animation_format = $frontend->animatedimageformat($original_url);
+	$thumbnail_animation_format = $frontend->animatedimageformat($thumbnail_url);
+	$animation_format = $original_animation_format ?? $thumbnail_animation_format;
+	// A hint from either URL identifies the result as a motion candidate, but
+	// always validate and play the provider's full-size original when available.
+	// The thumbnail remains only the poster and a fallback for malformed results.
+	$motion_url =
+		is_string($original_url) && preg_match('#^https?://#i', $original_url) === 1 ?
+		$original_url :
+		$thumbnail_url;
+
+	// Provider filters can identify animation even when a signed CDN URL has
+	// no useful extension. Default searches still use conservative URL hints.
+	if($animation_format === null){
+
+		$selected_format = strtolower((string)($get["format"] ?? ""));
+		$selected_type = strtolower((string)($get["type"] ?? $get["imagetype"] ?? ""));
+		if(in_array($selected_format, ["gif", "webp", "apng"], true)){
+
+			$animation_format = strtoupper($selected_format);
+			$motion_url = $original_url;
+		}elseif($selected_format === "6" || $selected_type === "gif" || strpos($selected_type, "animated") !== false){
+
+			$animation_format = $selected_format === "6" || $selected_type === "gif" || strpos($selected_type, "gif") !== false ? "GIF" : "ANIMATED";
+			$motion_url = $original_url;
+		}
+	}
+
+	// Only remote HTTP(S) sources can use the validated animated proxy path.
+	// In particular, do not let an active format filter turn a data URL into a
+	// direct, unbounded browser payload.
+	if(!is_string($motion_url) || preg_match('#^https?://#i', $motion_url) !== 1){
+
+		$animation_format = null;
+	}
+
+	$thumbnail_src = $frontend->htmlimage($thumbnail_url, "thumb");
+	if($animation_format !== null){
+
+		$image_markup =
+			'<img src="' . $thumbnail_src . '" data-motion-src="' . $frontend->htmlimage($motion_url, "animated") . '" data-poster-src="' . $thumbnail_src . '" alt="' . htmlspecialchars($image["title"]) . '" class="animated-preview" loading="lazy" decoding="async" fetchpriority="low">' .
+			'<span class="motion-badge" aria-hidden="true">' . htmlspecialchars($animation_format) . '</span>';
+	}else{
+
+		$image_markup =
+			'<img src="' . $thumbnail_src . '" alt="' . htmlspecialchars($image["title"]) . '" loading="lazy" decoding="async" fetchpriority="low">';
+	}
 
 	$payload["images"] .=
-		'<div class="image-wrapper" title="' . htmlspecialchars($image["title"]) .'" data-json="' . htmlspecialchars(json_encode($image["source"])) . '">' .
+		'<div class="image-wrapper' . ($animation_format === null ? '' : ' animated-result') . '" title="' . htmlspecialchars($image["title"]) .'" data-json="' . htmlspecialchars(json_encode($image["source"])) . '">' .
 			'<div class="image">' .
-				'<a href="' . htmlspecialchars($image["source"][0]["url"]) . '" rel="noreferrer nofollow" class="thumb">' .
-					'<img src="' . $frontend->htmlimage($image["source"][count($image["source"]) - 1]["url"], "thumb") . '" alt="thumbnail" loading="lazy" decoding="async">';
+				'<a href="' . htmlspecialchars($original_url) . '" rel="noreferrer nofollow" class="thumb">' .
+					$image_markup;
 
 				if($image["source"][0]["width"] !== null){
 					$payload["images"] .= '<div class="duration">' . $image["source"][0]["width"] . 'x' . $image["source"][0]["height"] . '</div>';

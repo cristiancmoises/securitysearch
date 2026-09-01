@@ -2,6 +2,7 @@
 include_once __DIR__ . "/lib/security_headers_minimal.php";
 include "data/config.php";
 include "lib/curlproxy.php";
+include "lib/animated_preview.php";
 $proxy = new proxy();
 
 if(!isset($_GET["i"])){
@@ -20,6 +21,120 @@ try{
 	){
 		
 		$proxy->stream_linear_image($_GET["i"]);
+		die();
+	}
+
+	// Preserve animation for lazy image-grid previews. This path stays behind
+	// the privacy proxy and is capped more tightly than the full-size viewer.
+	if($_GET["s"] == "animated"){
+
+		if(!admit_animated_preview()){
+
+			http_response_code(429);
+			header("Retry-After: 60");
+			header("Cache-Control: no-store");
+			header("Pragma: no-cache");
+			header("Expires: 0");
+			header("Content-Length: 0");
+			die();
+		}
+		$proxy = new proxy(false);
+
+		$payload = $proxy->get(
+			$_GET["i"],
+			$proxy::req_image,
+			true,
+			null,
+			0,
+			20000000
+		);
+
+		$finfo = new finfo(FILEINFO_MIME_TYPE);
+		$mime = $finfo->buffer($payload["body"]);
+		$allowed_mimes = [
+			"image/gif",
+			"image/webp",
+			"image/apng",
+			"image/png"
+		];
+		if(!is_string($mime) || !in_array(strtolower($mime), $allowed_mimes, true)){
+
+			throw new Exception("Animated preview returned an unsupported image format");
+		}
+
+		try{
+
+			if($mime === "image/png" || $mime === "image/apng"){
+
+				// Reject malformed or structurally expensive PNGs before invoking
+				// ImageMagick's decoder on attacker-controlled chunk streams.
+				$frame_count = animated_preview_apng_frame_count($payload["body"]);
+				if($frame_count < 2){
+
+					throw new Exception("Animated PNG failed structural validation");
+				}
+				$inspection = animated_preview_inspect_raster($payload["body"]);
+			}else{
+
+				$inspection = animated_preview_inspect_raster($payload["body"]);
+				$frame_count = $inspection["frames"];
+			}
+			$width = $inspection["width"];
+			$height = $inspection["height"];
+		}catch(Throwable $error){
+
+			throw new Exception("Animated preview could not be inspected");
+		}
+
+		if(
+			$frame_count < 2 ||
+			$frame_count > 1000 ||
+			$width < 1 ||
+			$height < 1 ||
+			$width > 16384 ||
+			$height > 16384 ||
+			$width * $height > 40000000 ||
+			$width * $height * $frame_count > 250000000
+		){
+
+			throw new Exception("Animated preview exceeds the validation limits");
+		}
+
+		$filetype = explode("/", strtolower($mime), 2)[1];
+		$source = parse_url($_GET["i"]);
+		$upstream_cache = strtolower((string)($payload["headers"]["cache-control"] ?? ""));
+		$upstream_pragma = strtolower((string)($payload["headers"]["pragma"] ?? ""));
+		$upstream_no_store = preg_match('/(?:^|,)\s*(?:no-store|no-cache)\b/', $upstream_cache) === 1 ||
+			preg_match('/(?:^|,)\s*no-cache\b/', $upstream_pragma) === 1;
+		$upstream_private = preg_match('/(?:^|,)\s*private\b/', $upstream_cache) === 1 ||
+			isset($payload["headers"]["set-cookie"]);
+		$public_source = is_array($source) &&
+			!isset($source["user"]) &&
+			!isset($source["pass"]) &&
+			!isset($source["query"]);
+		$public_cache = $public_source && !$upstream_private && !$upstream_no_store;
+		if($upstream_no_store){
+
+			$cache_ttl = 0;
+			header("Cache-Control: no-store");
+			header("Pragma: no-cache");
+		}elseif($public_cache){
+
+			$cache_ttl = 300;
+			header("Cache-Control: public, max-age=300, s-maxage=300, stale-while-revalidate=30");
+			header("Pragma: public");
+		}else{
+
+			$cache_ttl = 120;
+			header("Cache-Control: private, max-age=120");
+			header("Pragma: private");
+		}
+		header("Expires: " . ($cache_ttl === 0 ? "0" : gmdate("D, d M Y H:i:s", time() + $cache_ttl) . " GMT"));
+		header_remove("Set-Cookie");
+		$proxy->getfilenameheader($payload["headers"], $_GET["i"], $filetype);
+		header("Content-Type: " . strtolower($mime));
+		header("Content-Length: " . strlen($payload["body"]));
+		echo $payload["body"];
 		die();
 	}
 	
@@ -173,6 +288,13 @@ try{
 	}
 	
 }catch(Exception $error){
+
+	if(isset($_GET["s"]) && $_GET["s"] === "animated"){
+
+		header("Cache-Control: no-store");
+		header("Pragma: no-cache");
+		header("Expires: 0");
+	}
 	
 	header("X-Error: " . $error->getMessage());
 	$proxy->do404();

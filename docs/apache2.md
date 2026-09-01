@@ -1,4 +1,12 @@
 # Install guide for Apache2 webserver
+
+> [!WARNING]
+> Legacy upstream reference only. Package/socket versions, clone targets, and
+> writable-permission commands below have not been validated for Security Search
+> v0.9.4 and must not be used for production. The supported image already ships
+> its tested Apache/PHP configuration with root-owned source; use
+> [RELEASE.md](RELEASE.md) and [BUILD-LOCATION.md](BUILD-LOCATION.md).
+
 Welcome to the new and revamped 4get install manual for apache2. Even if you already have services running on an existing installation of apache2, you should still be able to adapt this guide to your needs.
 
 For starters, login as `root`.

@@ -1,88 +1,153 @@
 # Where to build
 
-**Short answer: build on the VPS.** Build locally only for testing or when you
-intend to transfer an image with Evelin; a local image does not appear on the
-IONOS host by itself.
+Build and test locally first, then perform the release deployment build on the
+IONOS VPS. A local Docker image does not appear on the VPS merely because the
+source was committed or pushed.
 
----
+## Current production workflow
 
-## Recommended workflow
-
-### From a workstation, upload a release and build on the VPS
+The active IONOS source tree is `/root/security-search-update`. v0.9.4 uses a
+source artifact and a no-cache build on that host:
 
 ```bash
-# Create a source release from a clean, committed revision.
-./release.sh 0.9.3
+# Workstation: after tests and commit.
+./release.sh 0.9.4
+(cd dist && sha256sum -c securitysearch-v0.9.4.tar.gz.sha256)
 
-# Upload with the approved Evelin profile.
-ev --config ~/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.3.tar.gz \
-  remote:/tmp/securitysearch-v0.9.3.tar.gz
-
-# Open the IONOS VPS shell, unpack and deploy there.
-ev --config ~/.evelin/client.toml shell
-mkdir -p /opt/securitysearch/releases
-tar -xzf /tmp/securitysearch-v0.9.3.tar.gz -C /opt/securitysearch/releases
-cd /opt/securitysearch/releases/securitysearch-v0.9.3
-./deploy.sh --fresh
+ev --config /home/berkeley/.evelin/client.toml cp \
+  dist/securitysearch-v0.9.4.tar.gz \
+  remote:/tmp/securitysearch-v0.9.4.tar.gz
+ev --config /home/berkeley/.evelin/client.toml cp \
+  dist/securitysearch-v0.9.4.tar.gz.sha256 \
+  remote:/tmp/securitysearch-v0.9.4.tar.gz.sha256
+ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
-This is the simplest setup. The VPS pulls Alpine packages directly from
-their CDN, bypassing whatever connectivity issues your home network or
-Mint's docker daemon might have.
-
----
-
-## If you really want to build locally and ship the image
+In the Evelin shell, verify the package, create a clean sibling, and archive the
+exact active tree before changing it:
 
 ```bash
-# On the workstation
-cd /path/to/securitysearch-v0.9.3
-docker compose build
+cd /tmp
+sha256sum -c securitysearch-v0.9.4.tar.gz.sha256
 
-# Save the built image to a tarball
-docker save security-search:latest | gzip > security-search-image.tar.gz
+rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
+rollback_archive=/root/security-search-pre-v0.9.4-${rollback_stamp}.tgz
+old_tree=/root/security-search-update-old-${rollback_stamp}
+release_tree=/root/security-search-v0.9.4
+test -d /root/security-search-update
+test ! -e "$old_tree"
+test ! -e "$release_tree"
 
-# Transfer to the IONOS VPS
-ev --config ~/.evelin/client.toml cp \
-    security-search-image.tar.gz \
-    remote:/tmp/security-search-image.tar.gz
+umask 077
+tar -czf "$rollback_archive" -C /root security-search-update
+test -s "$rollback_archive"
+chmod 600 "$rollback_archive"
 
-# On the IONOS VPS — load and run
-ev --config ~/.evelin/client.toml shell
-docker load < /tmp/security-search-image.tar.gz
-cd /opt/securitysearch/releases/securitysearch-v0.9.3
-docker compose up -d              # uses the loaded image, doesn't rebuild
+install -d -m 0750 "$release_tree"
+tar -xzf securitysearch-v0.9.4.tar.gz \
+  --strip-components=1 \
+  -C "$release_tree"
+test -f "$release_tree/docker-compose.yml"
+test -f "$release_tree/Dockerfile"
 ```
 
-The image is ~150-200 MB compressed. Slower than rsync + remote build for
-most VPS connections.
+Inventory runtime-only files before the build and write down an explicit
+allowlist. Do not copy the old tree, generated `data/config.php`, `.git`, cache,
+or all of `data/` into the sibling. The current production review found no
+Google API key files, so there is no `data/api_keys/google_api.txt` to preserve.
+If a private Compose override, environment file, proxy credential file, or
+other runtime secret is actually found, copy only that exact reviewed path into
+the sibling with restrictive permissions.
 
----
-
-## Local-only testing on Mint (without touching the VPS)
+Keep the old container serving while the clean sibling builds. Preserve the
+old image under a rollback tag before the candidate takes the `latest` tag:
 
 ```bash
-cd /path/to/securitysearch-v0.9.3
+previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
+test -n "$previous_image_id"
+docker image tag "$previous_image_id" security-search:pre-v0.9.4
+
+cd /root/security-search-v0.9.4
+umask 077
+printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
+chmod 600 .env
+docker compose build --no-cache --pull
+```
+
+Only after the clean build succeeds, stop production and rename both sibling
+directories on the same filesystem. Each `mv` is an atomic rename; no release
+files are overlaid into the old tree:
+
+```bash
+cd /root
+docker compose -f /root/security-search-update/docker-compose.yml \
+  down --remove-orphans
+mv /root/security-search-update "$old_tree"
+mv /root/security-search-v0.9.4 /root/security-search-update
+
+cd /root/security-search-update
+docker compose up -d --no-build
+docker compose ps
+```
+
+Keep both the timestamped old directory and exact `.tgz` until the local and
+public result-bearing checks in [RELEASE.md](RELEASE.md) pass. Then remove the
+old directory and rollback image tag only; retain the `.tgz` as the one
+rollback archive for this release.
+
+## Why the VPS rebuilds
+
+- The deployed container runs on the VPS's kernel and Docker daemon.
+- The VPS validates outbound access from the same address Google and Brave see.
+- Remote building avoids transferring a large local image.
+- The sibling's no-cache build prevents a stale Docker layer or v10 CSS
+  response from hiding the SecOps v11 cache-busting and provider changes.
+
+The Dockerfile tries multiple Alpine mirrors, which reduces sensitivity to a
+single CDN route. Mirror failover does not fix general host DNS or connectivity
+problems; inspect the exact build failure if all mirrors fail.
+
+## Local candidate testing
+
+```bash
+cd /path/to/securitysearch
+docker compose build --no-cache
 docker compose up -d
-curl -I http://127.0.0.1:5140/
+docker compose ps
+curl -fsSI http://127.0.0.1:5140/
 ```
 
-If that works, the build is good. Tear down with `docker compose down`
-before deploying for real.
+Use the result-bearing and theme checks in [RELEASE.md](RELEASE.md). A healthy
+container and HTTP 200 home page prove only that the application started; they
+do not prove that an upstream scraper returned results.
 
----
+Tear down the local candidate after testing:
 
-## Why I'm not panicking about the apk error you saw
+```bash
+docker compose down
+```
 
-The error you saw was `apk update` getting `temporary error (try again later)`
-from `dl-cdn.alpinelinux.org`. The Dockerfile in this bundle now tries 5
-different mirrors automatically before failing — that error should not
-recur even if your home connection has flaky routing to one of them.
+## Optional image-transfer workflow
 
-The `pull access denied for security-search` message that came first is
-**harmless** and not actually an error. Compose always checks the registry
-first, fails (because we're not pulling, we're building), then falls back
-to local build. You'll see this message every time you run
-`docker compose up` on a project that uses `build:` instead of `image:` from
-a registry. Ignore it.
+If the VPS temporarily cannot build but can run the local target architecture,
+save and upload the tested image:
+
+```bash
+docker image tag security-search:latest security-search:v0.9.4
+docker save security-search:v0.9.4 | gzip > security-search-v0.9.4-image.tar.gz
+ev --config /home/berkeley/.evelin/client.toml cp \
+  security-search-v0.9.4-image.tar.gz \
+  remote:/tmp/security-search-v0.9.4-image.tar.gz
+```
+
+Then load it in the Evelin shell. It replaces only the clean sibling build step
+above; preserve the old image tag first and perform the same directory cutover:
+
+```bash
+docker load < /tmp/security-search-v0.9.4-image.tar.gz
+docker image tag security-search:v0.9.4 security-search:latest
+```
+
+This alternative must use a compatible architecture and does not replace the
+clean source sibling, checksum, Git tag, exact backup, atomic renames, or
+production smoke tests.

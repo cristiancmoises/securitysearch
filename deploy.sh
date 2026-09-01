@@ -45,25 +45,58 @@ if [ ! -f Dockerfile ]; then
 fi
 
 # ---- 2. Pre-deploy backup ------------------------------------------------
-TS=$(date +%F-%H%M)
+TS=$(date -u +%Y%m%dT%H%M%SZ)
 PARENT=$(cd .. && pwd)
 PROJECT=$(basename "$SCRIPT_DIR")
 BACKUP="$PARENT/sec-search-backup-$TS.tgz"
 
 echo "==> Creating backup: $BACKUP"
-tar --exclude="./.git" \
-    --exclude="./icons/*" \
-    --exclude="./*.tgz" \
-    -czf "$BACKUP" -C "$PARENT" "$PROJECT" 2>/dev/null || {
-    echo "WARN: backup failed — continuing anyway"
+umask 077
+tar --exclude="$PROJECT/.git" \
+    --exclude="$PROJECT/icons/*" \
+    --exclude="$PROJECT/dist/*" \
+    --exclude="$PROJECT/*.tgz" \
+    -czf "$BACKUP" -C "$PARENT" "$PROJECT"
+chmod 600 "$BACKUP"
+ls -lh "$BACKUP"
+
+OLD_IMAGE=$(docker image inspect --format '{{.Id}}' security-search:latest 2>/dev/null || true)
+DEPLOY_SUCCEEDED=0
+CUTOVER_STARTED=0
+rollback_on_failure() {
+    code=$?
+    if [ "$DEPLOY_SUCCEEDED" = "1" ]; then
+        return
+    fi
+
+    set +e
+    if [ "$CUTOVER_STARTED" = "1" ]; then
+        echo "ERROR: deployment failed; attempting container-image rollback" >&2
+        docker compose down --remove-orphans >/dev/null 2>&1
+        if [ -n "$OLD_IMAGE" ]; then
+            if docker image tag "$OLD_IMAGE" security-search:latest &&
+               docker compose up -d &&
+               test "$(docker inspect --format='{{.State.Running}}' security-search 2>/dev/null)" = true; then
+                echo "Rollback image restored and container started. Source backup: $BACKUP" >&2
+            else
+                echo "CRITICAL: automatic image rollback failed. Restore manually from: $BACKUP" >&2
+            fi
+        else
+            echo "No previous image was available. Restore from: $BACKUP" >&2
+        fi
+    else
+        # A failed pre-cutover build must not interrupt the running service.
+        if [ -n "$OLD_IMAGE" ]; then
+            docker image tag "$OLD_IMAGE" security-search:latest
+        fi
+        echo "Build failed before cutover; the existing container was left running." >&2
+        echo "Source backup: $BACKUP" >&2
+    fi
+    exit "$code"
 }
-ls -lh "$BACKUP" 2>/dev/null || true
+trap rollback_on_failure EXIT
 
-# ---- 3. Stop the existing container --------------------------------------
-echo "==> Stopping existing container (if running)"
-docker compose down --remove-orphans || true
-
-# ---- 4. Build ------------------------------------------------------------
+# ---- 3. Build while the existing container remains online ----------------
 if [ "$FRESH" = "1" ]; then
     echo "==> Full rebuild (--no-cache)"
     docker compose build --no-cache --pull
@@ -72,18 +105,25 @@ else
     docker compose build --pull
 fi
 
+# ---- 4. Cut over only after a successful build ---------------------------
+echo "==> Stopping existing container (if running)"
+CUTOVER_STARTED=1
+docker compose down --remove-orphans
+
 # ---- 5. Launch -----------------------------------------------------------
 echo "==> Starting container"
 docker compose up -d
 
 # ---- 6. Wait for healthy state ------------------------------------------
 echo "==> Waiting for healthcheck (up to 60s)"
+HEALTHY=0
 for i in $(seq 1 12); do
     sleep 5
     STATUS=$(docker inspect --format='{{.State.Health.Status}}' security-search 2>/dev/null || echo "unknown")
     case "$STATUS" in
         healthy)
             echo "==> Container is healthy ✓"
+            HEALTHY=1
             break
             ;;
         unhealthy)
@@ -96,20 +136,32 @@ for i in $(seq 1 12); do
             ;;
     esac
 done
+if [ "$HEALTHY" != "1" ]; then
+    echo "ERROR: healthcheck did not become healthy within 60 seconds"
+    docker compose logs --tail=50 security-search
+    exit 1
+fi
 
 # ---- 7. Smoke test the app ----------------------------------------------
-echo "==> Smoke test: GET http://127.0.0.1:5140/"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5140/ || echo "000")
+PUBLISHED_ENDPOINT=$(docker compose port security-search 80 | tail -n 1)
+if [ -z "$PUBLISHED_ENDPOINT" ]; then
+    echo "ERROR: compose did not report a published HTTP endpoint"; exit 1
+fi
+echo "==> Smoke test: GET http://$PUBLISHED_ENDPOINT/"
+HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://$PUBLISHED_ENDPOINT/" || true)
 case "$HTTP_CODE" in
     200) echo "==> HTTP 200 ✓" ;;
-    *)   echo "WARN: got HTTP $HTTP_CODE — check logs" ;;
+    *)   echo "ERROR: got HTTP ${HTTP_CODE:-000}"; exit 1 ;;
 esac
+
+DEPLOY_SUCCEEDED=1
+trap - EXIT
 
 echo
 echo "============================================"
 echo " Security Search deployed."
 echo " Container:    security-search"
-echo " Local URL:    http://127.0.0.1:5140/"
+echo " HTTP endpoint: http://$PUBLISHED_ENDPOINT/"
 echo " Backup at:    $BACKUP"
 echo "============================================"
 echo

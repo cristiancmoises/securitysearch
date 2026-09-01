@@ -1,5 +1,32 @@
 # Quick-Apply Patches
 
+## v0.9.4 patch set
+
+For current installations, use the tagged v0.9.4 source archive rather than
+copying individual files. The list below is only a narrow Google/theme/error
+subset for code review; it is **not** a complete or safe v0.9.3-to-v0.9.4
+upgrade. The full release also changes animation validation, proxy/SSRF
+handling, Apache/NPM hardening, container permissions, infinite scrolling,
+performance, packaging, and documentation:
+
+1. Replace `scraper/google_cse.php` to use a 90-second, query-free bootstrap
+   cache scoped by backend, CX, and outbound egress; preserve one-use encrypted
+   pagination state; and bound recognized token-error refreshes to one retry.
+2. Replace `lib/frontend.php`, `static/style.css`, `template/home.html`, and
+   `data/config.php` together. These files contain the professional error state,
+   strict theme-name validation, SecOps cascade correction, and asset version
+   `11`; deploying only part of this group can retain stale/broken styling.
+3. Replace `scraper/qwant.php`, `captcha.php`, `resolver.php`, and
+   `template/about.html` for warning-free and neutral user-facing failures.
+4. Do not deploy this subset by itself. Build the full tagged archive, verify
+   real Google/Brave web/image results and pagination, then inspect logs before
+   switching production traffic.
+
+The remainder of this file records the older fork bootstrap patches and is kept
+for historical reference.
+
+---
+
 If you'd rather merge changes into your existing fork manually instead of
 replacing files wholesale, here are the smallest atomic patches grouped
 by risk level. Apply them in order; you can stop at any phase.
@@ -102,18 +129,15 @@ Replace your `Dockerfile`. Key changes:
 
 ### 7. Hardened `docker-compose.yml`
 
-Big change: removes `ports:` mapping. After this update, the container
-is ONLY reachable through nginx-proxy-manager on the shared docker
-network. Steps to deploy safely:
+The current Compose file publishes port 5140 on loopback by default. For the
+containerized NPM layout used on IONOS, set `SECURITYSEARCH_BIND_ADDRESS` in a
+mode-0600 `.env` to the private Docker-host bridge address NPM can reach (for
+example `172.17.0.1`) and configure NPM for that address and port 5140. Do not
+bind the application to the VPS public address or `0.0.0.0`.
 
-1. Find your NPM network name: `docker network ls | grep npm`.
-2. Edit `networks.npm.name` in the new `docker-compose.yml` to match.
-3. Make sure NPM's proxy host points to `security-search:80` (the
-   container name) instead of `host:5140`.
-4. `docker compose down && docker compose up -d`.
-
-If the container can't reach NPM, you'll see it in `docker compose logs`
-and you can roll back with the original `docker-compose.yml`.
+After recreating the container, use `docker compose port security-search 80`
+to discover the effective private endpoint, verify it from the NPM container,
+and verify externally that direct access to port 5140 is closed.
 
 ### 8. Apache config tightening
 

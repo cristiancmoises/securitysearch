@@ -1,9 +1,8 @@
 # Security Search — production docker-compose.
 #
-# Matches the existing deployment (host port 5140 -> container port 80,
-# bridge network) so NPM keeps reaching the container exactly as before.
-# Security hardening, healthcheck, and resource limits are layered on top
-# without changing the network model.
+# Publishes host port 5140 on loopback by default. Set
+# SECURITYSEARCH_BIND_ADDRESS to a private Docker-host bridge address when a
+# containerized reverse proxy must reach it; never expose this port publicly.
 
 services:
   security-search:
@@ -33,9 +32,9 @@ services:
       # NPM hits us over HTTP.  Only meaningful behind a TLS terminator.
       - HTTPS=on
 
-    # Same port mapping as the existing setup — NPM does not need to change.
+    # Private published endpoint used by local clients or the reverse proxy.
     ports:
-      - "0.0.0.0:5140:80"
+      - "${SECURITYSEARCH_BIND_ADDRESS:-127.0.0.1}:5140:80"
 
     networks:
       - bridge
@@ -48,18 +47,16 @@ services:
     cap_drop:
       - ALL
     cap_add:
-      - CHOWN              # apache drops privileges from root after start
-      - DAC_OVERRIDE       # read files owned by other UIDs
       - SETUID
       - SETGID
       - NET_BIND_SERVICE   # bind to port 80
 
     # ------------------------------------------------------------------
-    # Read-only root + writable tmpfs only where Apache/PHP need to write.
-    # If something breaks, comment out `read_only: true` and report which
-    # path failed in the logs.
+    # The root filesystem remains writable for root during entrypoint config
+    # generation. Shipped source is root-owned/0644, so Apache workers cannot
+    # modify PHP or application assets; only the icons volume is worker-writable.
     # ------------------------------------------------------------------
-    read_only: false #true
+    read_only: false
     tmpfs:
       - /tmp:size=64M,mode=1777
      # - /run:size=8M

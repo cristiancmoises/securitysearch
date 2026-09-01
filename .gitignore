@@ -27,3 +27,12 @@ data/captcha/minecraft/
 scraper/curlie.html
 icons/*
 dist/
+.env
+securitysearch.zip
+
+# Local planning/prompt artifacts are never repository content.
+prompts/
+**/prompts/
+**/*PROMPT*.md
+**/*Prompt*.md
+**/*prompt*.md

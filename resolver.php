@@ -47,7 +47,7 @@ class resolver{
 			}
 		}catch(Exception $error){
 			
-			$this->do404("Fuck! Failed to resolve URL: " . $error->getMessage());
+			$this->do404("Unable to resolve URL: " . $error->getMessage());
 		}
 	}
 	

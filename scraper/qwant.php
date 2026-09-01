@@ -354,6 +354,7 @@ class qwant{
 		];
 		
 		if(
+			isset($json["status"], $json["data"]["error_code"]) &&
 			$json["status"] != "success" &&
 			$json["data"]["error_code"] === 5
 		){

@@ -20,6 +20,15 @@ if ! git diff --quiet || ! git diff --cached --quiet; then
     exit 1
 fi
 
+# `git diff` ignores untracked files. Refuse to publish a source archive that
+# silently omits a newly referenced controller, template, or other source file.
+untracked=$(git ls-files --others --exclude-standard | grep -v '^dist/' || true)
+if [ -n "$untracked" ]; then
+    echo "ERROR: untracked source files would be missing from the archive:" >&2
+    printf '%s\n' "$untracked" >&2
+    exit 1
+fi
+
 if ! git rev-parse --verify --quiet HEAD >/dev/null; then
     echo "ERROR: no commit is available to package." >&2
     exit 1

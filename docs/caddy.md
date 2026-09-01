@@ -1,5 +1,12 @@
 # Install guide for Caddy webserver
 
+> [!WARNING]
+> Legacy upstream reference only. The clone target and world-writable
+> permissions below do not describe Security Search v0.9.4 and must not be used
+> for its production deployment. Use the root-owned container source and private
+> reverse-proxy workflow in [RELEASE.md](RELEASE.md) and
+> [BUILD-LOCATION.md](BUILD-LOCATION.md).
+
 1. Install dependencies:
 
 `sudo apt install caddy php8.2-dom php8.2-imagick imagemagick php8.2-curl curl php8.2-apcu git`
@@ -34,7 +41,7 @@ Caddy deals with SSL certificates automatically so you don't have to mess with a
 `sudo systemctl restart caddy`
 
 # Encryption setup
-I'm schizoid (as you should) so I'm gonna setup 4096bit key encryption. To complete this step, you need a domain or subdomain in your possession. Make sure that the DNS shit for your domain has propagated properly before continuing, because certbot is a piece of shit that will error out the ass once you reach 5 attempts under an hour.
+This example uses 4096-bit key encryption. To complete this step, you need a domain or subdomain you control. Confirm that its DNS records have propagated before continuing, because repeated failed certificate requests can trigger issuance rate limits.
 
 ## Encryption setup on Apache
 

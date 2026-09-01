@@ -9,7 +9,7 @@ FROM alpine:3.21
 
 LABEL org.opencontainers.image.title="Security Search"
 LABEL org.opencontainers.image.description="Privacy-first proxy search engine (4get fork)"
-LABEL org.opencontainers.image.source="https://git.securityops.co/securityops/securitysearch"
+LABEL org.opencontainers.image.source="https://git.securityops.co/cristiancmoises/securitysearch"
 LABEL org.opencontainers.image.licenses="AGPL-3.0"
 LABEL org.opencontainers.image.vendor="SecurityOps"
 
@@ -108,16 +108,16 @@ RUN printf '%s\n' \
     'upload_max_filesize = 8M' \
     > /etc/php84/conf.d/99_security.ini
 
-# Tighten filesystem permissions.  Apache user owns everything; only
-# `icons/` is writable for the favicon cache.
-RUN chown -R apache:apache /var/www/html/4get && \
+# Tighten filesystem permissions. Application code remains root-owned and
+# read-only to Apache; only `icons/` is writable for the favicon cache.
+RUN chown -R root:root /var/www/html/4get && \
     find /var/www/html/4get -type d -exec chmod 755 {} \; && \
     find /var/www/html/4get -type f -exec chmod 644 {} \; && \
+    chown apache:apache /var/www/html/4get/icons && \
     chmod 775 /var/www/html/4get/icons && \
     chmod +x /var/www/html/4get/docker/docker-entrypoint.sh
 
 EXPOSE 80
-EXPOSE 443
 
 ENV FOURGET_PROTO=http
 

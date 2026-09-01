@@ -4,7 +4,11 @@ class google_cse{
 	
 	public const req_html = 0;
 	public const req_js = 1;
-	private const TOKEN_TTL = 300;
+	private const TOKEN_TTL = 90;
+	private const TOKEN_LOCK_TTL = 15;
+	private const TOKEN_FAILURE_TTL = 5;
+	private const TOKEN_WAIT_USEC = 50000;
+	private const TOKEN_WAIT_ATTEMPTS = 120;
 	private $backend;
 	private $fuckhtml;
 	private $backend_name;
@@ -499,6 +503,11 @@ class google_cse{
 			)
 		){
 
+			if($this->is_google_anti_abuse_error($payload)){
+
+				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+			}
+
 			throw new Exception("Failed to grep JSON");
 		}
 
@@ -511,7 +520,17 @@ class google_cse{
 		return $json;
 	}
 
-	private function request_cse($proxy, &$req_params, $refresh_on_failure){
+	private function is_google_anti_abuse_error($text){
+
+		return
+			is_string($text) &&
+			preg_match(
+				'/unusual\s+traffic|automated\s+(?:queries|traffic)|captcha|throttl|rate[ -]?limit|too many requests|(?:http|status|code)[^0-9]{0,8}429/i',
+				$text
+			) === 1;
+	}
+
+	private function request_cse($proxy, &$req_params, $retry_token_error){
 
 		$payload =
 			$this->get(
@@ -523,23 +542,32 @@ class google_cse{
 
 		$json = $this->decode_response($payload);
 		$error_text = isset($json["error"]) ? json_encode($json["error"]) : "";
+		$anti_abuse_error = $this->is_google_anti_abuse_error($error_text);
+		$token_error =
+			is_string($error_text) &&
+			preg_match(
+				'/cse[_ -]?tok|token|expired|unauthorized|unauthorised|internal[ -]?api/i',
+				$error_text
+			) === 1;
 
 		if(
-			!$refresh_on_failure ||
+			!$retry_token_error ||
 			$error_text === "" ||
-			!preg_match(
-				'/cse_tok|token|expired|unauthorized access to internal api|"reason":"forbidden"/i',
-				$error_text
-			)
+			$anti_abuse_error ||
+			!$token_error
 		){
 
 			return $json;
 		}
 
-		// Google also reports rejected historical CSE tokens as a 403
-		// "forbidden" internal-API error without naming the token. Refresh once;
-		// never cache query responses or loop on provider errors.
-		$params = $this->generate_token($proxy, true);
+		// A short-cached or continuation token can expire. Bootstrap once with a
+		// fresh token, then return the second response so provider errors never loop.
+		$params =
+			$this->generate_token(
+				$proxy,
+				true,
+				$req_params["cse_tok"] ?? null
+			);
 		$req_params["cse_tok"] = $params["token"];
 		$req_params["cselibv"] = $params["lib"];
 
@@ -553,6 +581,33 @@ class google_cse{
 				)
 			);
 	}
+
+	private function format_google_error($json){
+
+		$message = "Google returned an error object";
+		if(
+			isset($json["error"]["errors"][0]["message"]) &&
+			is_string($json["error"]["errors"][0]["message"]) &&
+			$json["error"]["errors"][0]["message"] !== ""
+		){
+
+			$message = $json["error"]["errors"][0]["message"];
+		}elseif(
+			isset($json["error"]["message"]) &&
+			is_string($json["error"]["message"]) &&
+			$json["error"]["message"] !== ""
+		){
+
+			$message = $json["error"]["message"];
+		}
+
+		if($this->is_google_anti_abuse_error($message)){
+
+			return "Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.";
+		}
+
+		return strpos($message, "Google returned") === 0 ? $message : "Google returned an error: " . $message;
+	}
 	
 	public function web($get){
 		
@@ -563,7 +618,7 @@ class google_cse{
 		// https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=10&hl=en&source=gcsc&start=10&cselibv=8fa85d58e016b414&cx=d4e68b99b876541f0&q=asmr&safe=active&cse_tok=AB-tC_6RPUTmB4XK0lE9e1AFFC5r%3A1729563832926&lr=&cr=&gl=&filter=0&sort=&as_oq=&as_sitesearch=&exp=cc%2Capo&callback=google.search.cse.api3595&rurl=https%3A%2F%2Fcse.google.com%2Fcse%3Fcx%3Dd4e68b99b876541f0%23gsc.tab%3D0%26gsc.q%3Dtest%26gsc.sort%3D
 		
 		if($get["npt"]){
-			$refresh_token = true;
+			$retry_token_error = true;
 			
 			[$req_params, $proxy] =
 				$this->backend->get(
@@ -581,7 +636,7 @@ class google_cse{
 			
 			$proxy = $this->backend->get_ip();
 			$params = $this->generate_token($proxy);
-			$refresh_token = $params["cached"];
+			$retry_token_error = $params["cached"];
 			
 			//$json = file_get_contents("scraper/google_cse.txt");
 			$req_params = [
@@ -616,7 +671,7 @@ class google_cse{
 			
 		}
 
-		$json = $this->request_cse($proxy, $req_params, $refresh_token);
+		$json = $this->request_cse($proxy, $req_params, $retry_token_error);
 
 		if(!$get["npt"]){
 
@@ -627,18 +682,8 @@ class google_cse{
 		$req_params["start"] += 20;
 		
 		if(isset($json["error"])){
-			
-			if(isset($json["error"]["errors"][0]["message"])){
-				
-				throw new Exception("Google returned an error: " . $json["error"]["errors"][0]["message"]);
-			}
-			
-			if(isset($json["error"]["message"])){
-				
-				throw new Exception("Google returned an error: " . $json["error"]["message"]);
-			}
-			
-			throw new Exception("Google returned an error object");
+
+			throw new Exception($this->format_google_error($json));
 		}
 		
 		$out = [
@@ -827,7 +872,7 @@ class google_cse{
 	public function image($get){
 		
 		if($get["npt"]){
-			$refresh_token = true;
+			$retry_token_error = true;
 			
 			[$req_params, $proxy] =
 				$this->backend->get(
@@ -845,7 +890,7 @@ class google_cse{
 			
 			$proxy = $this->backend->get_ip();
 			$params = $this->generate_token($proxy);
-			$refresh_token = $params["cached"];
+			$retry_token_error = $params["cached"];
 			
 			//$json = file_get_contents("scraper/google_cse.txt");
 			$req_params = [
@@ -908,7 +953,7 @@ class google_cse{
 			
 		}
 
-		$json = $this->request_cse($proxy, $req_params, $refresh_token);
+		$json = $this->request_cse($proxy, $req_params, $retry_token_error);
 
 		if(!$get["npt"]){
 
@@ -918,18 +963,8 @@ class google_cse{
 		$req_params["start"] += 20;
 		
 		if(isset($json["error"])){
-			
-			if(isset($json["error"]["errors"][0]["message"])){
-				
-				throw new Exception("Google returned an error: " . $json["error"]["errors"][0]["message"]);
-			}
-			
-			if(isset($json["error"]["message"])){
-				
-				throw new Exception("Google returned an error: " . $json["error"]["message"]);
-			}
-			
-			throw new Exception("Google returned an error object");
+
+			throw new Exception($this->format_google_error($json));
 		}
 		
 		$out = [
@@ -980,111 +1015,289 @@ class google_cse{
 		return $out;
 	}
 	
-	private function generate_token($proxy, $force_refresh = false){
+	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){
 
 		$cache_key =
-			"g.cse.token." .
+			"g.cse.bootstrap." .
 			hash(
 				"sha256",
-				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . $proxy
+				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . (string)$proxy
 			);
+		$lock_key = $cache_key . ".lock";
+		$failure_key = $cache_key . ".failure";
+		$cache_available =
+			function_exists("apcu_fetch") &&
+			function_exists("apcu_store") &&
+			(
+				!function_exists("apcu_enabled") ||
+				apcu_enabled()
+			);
+		$singleflight_available =
+			$cache_available &&
+			function_exists("apcu_add") &&
+			function_exists("apcu_cas") &&
+			function_exists("apcu_delete");
+		$previous_flight = null;
 
-		if($force_refresh){
+		if($cache_available){
 
-			apcu_delete($cache_key);
-		}else{
+			$cached = $this->get_cached_bootstrap($cache_key);
+			if($cached !== null){
 
-			$cached = apcu_fetch($cache_key, $hit);
-			if(
-				$hit &&
-				is_array($cached) &&
-				isset($cached["token"], $cached["lib"]) &&
-				is_string($cached["token"]) &&
-				is_string($cached["lib"]) &&
-				$cached["token"] !== "" &&
-				$cached["lib"] !== ""
-			){
+				if(
+					!$force_refresh ||
+					(
+						is_string($rejected_token) &&
+						!hash_equals($cached["token"], $rejected_token)
+					)
+				){
 
-				$cached["cached"] = true;
-				return $cached;
+					return $this->return_cached_bootstrap($cached);
+				}
+
+				$previous_flight = $cached["_flight"] ?? null;
 			}
 		}
-		
-		$html =
-			$this->get(
-				$proxy,
-				"https://cse.google.com/cse",
-				[
-					"cx" => config::GOOGLE_CX_ENDPOINT
-				],
-				self::req_html
-			);
-		
-		// detect captcha
-		$this->fuckhtml->load($html);
-		
-		$title =
-			$this->fuckhtml
-			->getElementsByTagName(
-				"title"
-			);
-		
-		if(
-			count($title) !== 0 &&
-			$title[0]["innerHTML"] == "302 Moved"
-		){
-			
-			throw new Exception("Google returned a captcha");
-		}
-		
-		// get token
-		preg_match(
-			'/relativeUrl=\'([^\']+)\';/i',
-			$html,
-			$js_uri
-		);
-		
-		if(!isset($js_uri[1])){
-			
-			throw new Exception("Failed to grep search token");
-		}
-		
-		$js_uri =
-			$this->fuckhtml
-			->parseJsString(
-				$js_uri[1]
-			);
-		
-		// get parameters
-		$js =
-			$this->get(
-				$proxy,
-				"https://cse.google.com" . $js_uri,
-				[],
-				self::req_js
-			);
-		
-		preg_match(
-			'/}\)\(({[\S\s]+})\);/',
-			$js,
-			$json
-		);
-		
-		if(!isset($json[1])){
-			
-			throw new Exception("Failed to grep JSON parameters");
-		}
-		
-		$json = json_decode($json[1], true);
-		
-		$params = [
-			"token" => $json["cse_token"],
-			"lib" => $json["cselibVersion"]
-		];
 
-		apcu_store($cache_key, $params, self::TOKEN_TTL);
-		$params["cached"] = false;
-		return $params;
+		$owns_lock = false;
+		$flight = null;
+		if($singleflight_available){
+
+			$this->throw_cached_bootstrap_failure($failure_key);
+			$flight = random_int(1, 2147483647);
+			$owns_lock = apcu_add($lock_key, $flight, self::TOKEN_LOCK_TTL);
+
+			if(!$owns_lock){
+
+				for($attempt = 0; $attempt < self::TOKEN_WAIT_ATTEMPTS; $attempt++){
+
+					$this->throw_cached_bootstrap_failure($failure_key);
+					$cached = $this->get_cached_bootstrap($cache_key);
+					if(
+						$cached !== null &&
+						(
+							!$force_refresh ||
+							(
+								isset($cached["_flight"]) &&
+								$cached["_flight"] !== $previous_flight
+							)
+						)
+					){
+
+						return $this->return_cached_bootstrap($cached);
+					}
+
+					usleep(self::TOKEN_WAIT_USEC);
+				}
+
+				$this->throw_cached_bootstrap_failure($failure_key);
+				throw new Exception("Google is preparing a search session for another request. Please retry in a moment.");
+			}
+
+			// Close the cache-miss/publication race after acquiring the lock. A
+			// forced refresh deliberately invalidates the rejected generation.
+			if(!$force_refresh){
+
+				$cached = $this->get_cached_bootstrap($cache_key);
+				if($cached !== null){
+
+					$this->release_bootstrap_lock($lock_key, $flight);
+					return $this->return_cached_bootstrap($cached);
+				}
+			}else{
+
+				apcu_delete($cache_key);
+			}
+
+			apcu_delete($failure_key);
+		}elseif($cache_available && $force_refresh){
+
+			// APCu can be built without the atomic primitives above. Preserve the
+			// previous refresh behavior instead of making caching a requirement.
+			apcu_delete($cache_key);
+		}
+
+		try{
+		
+			$html =
+				$this->get(
+					$proxy,
+					"https://cse.google.com/cse",
+					[
+						"cx" => config::GOOGLE_CX_ENDPOINT
+					],
+					self::req_html
+				);
+
+			if($this->is_google_anti_abuse_error($html)){
+
+				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+			}
+		
+			// detect captcha
+			$this->fuckhtml->load($html);
+		
+			$title =
+				$this->fuckhtml
+				->getElementsByTagName(
+					"title"
+				);
+		
+			if(
+				count($title) !== 0 &&
+				$title[0]["innerHTML"] == "302 Moved"
+			){
+			
+				throw new Exception("Google returned a captcha");
+			}
+		
+			// get token
+			preg_match(
+				'/relativeUrl=\'([^\']+)\';/i',
+				$html,
+				$js_uri
+			);
+		
+			if(!isset($js_uri[1])){
+			
+				throw new Exception("Failed to grep search token");
+			}
+		
+			$js_uri =
+				$this->fuckhtml
+				->parseJsString(
+					$js_uri[1]
+				);
+		
+			// get parameters
+			$js =
+				$this->get(
+					$proxy,
+					"https://cse.google.com" . $js_uri,
+					[],
+					self::req_js
+				);
+
+			if($this->is_google_anti_abuse_error($js)){
+
+				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+			}
+		
+			preg_match(
+				'/}\)\(({[\S\s]+})\);/',
+				$js,
+				$json
+			);
+		
+			if(!isset($json[1])){
+			
+				throw new Exception("Failed to grep JSON parameters");
+			}
+		
+			$json = json_decode($json[1], true);
+
+			if(
+				!is_array($json) ||
+				!isset($json["cse_token"], $json["cselibVersion"]) ||
+				!is_string($json["cse_token"]) ||
+				!is_string($json["cselibVersion"]) ||
+				$json["cse_token"] === "" ||
+				$json["cselibVersion"] === ""
+			){
+
+				throw new Exception("Google returned malformed bootstrap parameters");
+			}
+		
+			$params = [
+				"token" => $json["cse_token"],
+				"lib" => $json["cselibVersion"]
+			];
+
+			if($cache_available){
+
+				$stored_params = $params;
+				if($owns_lock){
+
+					$stored_params["_flight"] = $flight;
+				}
+				apcu_store($cache_key, $stored_params, self::TOKEN_TTL);
+				if($singleflight_available){
+
+					apcu_delete($failure_key);
+				}
+			}
+
+			$params["cached"] = false;
+			return $params;
+		}catch(Throwable $error){
+
+			if($owns_lock){
+
+				apcu_store(
+					$failure_key,
+					$this->is_google_anti_abuse_error($error->getMessage()) ? "anti_abuse" : "upstream",
+					self::TOKEN_FAILURE_TTL
+				);
+			}
+
+			throw $error;
+		}finally{
+
+			if($owns_lock){
+
+				$this->release_bootstrap_lock($lock_key, $flight);
+			}
+		}
+	}
+
+	private function get_cached_bootstrap($cache_key){
+
+		$cached = apcu_fetch($cache_key, $hit);
+		if(
+			!$hit ||
+			!is_array($cached) ||
+			!isset($cached["token"], $cached["lib"]) ||
+			!is_string($cached["token"]) ||
+			!is_string($cached["lib"]) ||
+			$cached["token"] === "" ||
+			$cached["lib"] === ""
+		){
+
+			return null;
+		}
+
+		return $cached;
+	}
+
+	private function return_cached_bootstrap($cached){
+
+		unset($cached["_flight"]);
+		$cached["cached"] = true;
+		return $cached;
+	}
+
+	private function throw_cached_bootstrap_failure($failure_key){
+
+		$failure = apcu_fetch($failure_key, $hit);
+		if(!$hit){
+
+			return;
+		}
+
+		if($failure === "anti_abuse"){
+
+			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+		}
+
+		throw new Exception("Google could not prepare a search session in another request. Please retry in a moment.");
+	}
+
+	private function release_bootstrap_lock($lock_key, $flight){
+
+		if(apcu_cas($lock_key, $flight, 0)){
+
+			apcu_delete($lock_key);
+		}
 	}
 	
 	private function unshit_thumb($url){

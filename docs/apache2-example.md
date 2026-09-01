@@ -1,4 +1,9 @@
-# Sample Apache2 configuration
+# Legacy upstream Apache2 example configuration
+
+> [!WARNING]
+> This is an upstream 4get example with unrelated domains and is not loaded by
+> the Security Search v0.9.4 image. Use the tested files under `docker/apache/`
+> and the deployment workflow in [RELEASE.md](RELEASE.md).
 This is the apache2 configuration file used on the 4get.ca official instance, in hopes that it's useful to you!
 
 Looking for the apache2 guide? <a href="https://git.lolcat.ca/lolcat/4get/src/branch/master/docs/apache2.md">go here.</a>.

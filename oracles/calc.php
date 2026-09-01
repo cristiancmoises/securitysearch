@@ -18,7 +18,7 @@ class calculator extends oracle {
 		}
 		return true;
 	}
-	// a custom parser and calculator because FUCK YUO, libraries are
+	// A custom parser and calculator keeps this oracle self-contained; libraries are
 	//  gay.
 	public function generate_response($q)
 	{

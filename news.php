@@ -1,7 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
 /*
-	Initialize random shit
+	Initialize request dependencies
 */
 include "data/config.php";
 

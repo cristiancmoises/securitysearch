@@ -1,5 +1,12 @@
 <h1 align=center>Installation of 4get in NGINX</h1>
 
+> [!WARNING]
+> Legacy upstream reference only. The package commands, upstream clone, and
+> service examples below are not a supported Security Search v0.9.4 deployment.
+> Use Nginx Proxy Manager only as the TLS/private-port edge described in
+> [RELEASE.md](RELEASE.md), with the reviewed sample in
+> [`docker/nginx-proxy-manager.conf`](../docker/nginx-proxy-manager.conf).
+
 <div align=right>
 
 > NOTE: As the previous version stated, it is better to follow the <a href="https://git.lolcat.ca/lolcat/4get/src/branch/master/docs/apache2.md">Apache2 guide</a> instead of the Nginx one.

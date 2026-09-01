@@ -102,7 +102,7 @@ class pexels{
 			"Accept-Encoding: gzip, deflate, br, zstd",
 			"Referer: https://www.pexels.com/search/" . rawurlencode($search) . "/",
 			"Content-Type: application/json",
-			"secret-key: H2jk9uKnhRmL6WPwh89zBezWvr", // hardcoded but like, people on github have been using this shit since 23'
+			"secret-key: H2jk9uKnhRmL6WPwh89zBezWvr", // Public client key used by the Pexels web application.
 			"X-Client-Type: react",
 			"X-Next-Forwarded-CF-Connecting-IP: ",
 			"X-Next-Forwarded-CF-IPCountry: ",

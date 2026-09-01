@@ -6,16 +6,33 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current release: v0.9.3
+## Current source version: v0.9.4
 
 - The landing page is search-first: Settings, the Security Search logo, the
   primary search field, a compact privacy/provider hint, and two quiet links to
   [SecurityOps](https://securityops.co/) and
   [SecurityOps Brasil](https://securityops.com.br/).
-- SecOps is the default theme for new visitors. A valid theme already saved in
-  the browser remains selected.
-- Google is the default provider for web and image search.
-- Brave is available from the Scraper picker for web and image search.
+- SecOps is the default theme for new visitors. The home page now consumes the
+  active theme's color tokens instead of masking them with a separate palette;
+  valid saved themes remain selected, and asset version 11 invalidates stale
+  theme CSS.
+- Google remains the default provider for web and image search. A short,
+  per-egress 90-second cache reuses only CSE bootstrap parameters to remove two
+  upstream round trips from nearby searches; queries and results are never
+  cached. Concurrent cold misses share one bounded APCu bootstrap flight. A
+  recognized rejected token gets exactly one fresh bootstrap and retry.
+- Google unusual-traffic/IP blocks are not retried or disguised. A neutral
+  provider-unavailable page offers the same-query retry, Settings, and an
+  explicit **Try Brave** action. Security Search never silently sends the query
+  to Brave.
+- Brave is selectable from the Scraper picker for web and image search. A
+  recognized intermittent proof-of-work page gets at most three direct-Brave
+  attempts; the app never solves it, loops indefinitely, or changes providers.
+- The optional Google API provider remains available only to existing
+  credential holders, but no Google API keys are included in source or
+  production. Google's [current API overview](https://developers.google.com/custom-search/v1/overview)
+  says it is closed to new customers and existing customers must transition by
+  January 1, 2027.
 - Image results load additional pages automatically by default. Settings offers
   an opt-out, and the normal **Next page** link remains the progressive fallback.
 - Landing-page hierarchy, responsive behavior, and accessibility expectations:
@@ -23,8 +40,6 @@ Privacy-first proxy metasearch engine. Hardened fork of
 - Provider behavior and configuration: [docs/PROVIDERS.md](docs/PROVIDERS.md).
 - Packaging, IONOS/Evelin deployment, verification, and rollback:
   [docs/RELEASE.md](docs/RELEASE.md).
-- The release-quality improvement brief is available in
-  [docs/GOD_TIER_SEARCH_ENGINE_PROMPT.md](docs/GOD_TIER_SEARCH_ENGINE_PROMPT.md).
 
 ## Architecture and trust boundary
 
@@ -59,6 +74,11 @@ directly or through the proxy pool named by `FOURGET_PROXY_BRAVE`; never commit
 proxy credentials or Google API keys. See [provider configuration](docs/PROVIDERS.md)
 and the upstream [configuration guide](docs/configure.md).
 
+Provider failures do not trigger a silent fallback. On web and image error
+pages, **Try Brave** is a user-initiated request that preserves the search and
+filters while setting `scraper=brave`. This matters for privacy: Brave receives
+the query only after that explicit choice (or an ordinary Brave selection).
+
 ## Image results and performance
 
 Image search keeps the server-rendered **Next page** link as its baseline. With
@@ -70,17 +90,55 @@ If an automatic request fails, loading stops with a status message and offers
 a **Restart image search** link. The restart preserves the query and filters,
 removes the consumed continuation token, and begins again at page one.
 
+Animated GIF, WebP, and APNG candidates start with the ordinary lazy
+provider-thumbnail poster. A motion hint from either result URL selects the
+full-size original for validation and playback. Every `.gif`, `.webp`, and `.apng` URL is eligible,
+including ordinary WebP filenames; the proxy's multi-frame check restores the
+poster when a WebP is actually static. An explicit provider format filter also
+selects the full-size original when a signed CDN URL has no useful extension.
+Data URLs are excluded. Near the viewport, the motion controller requests that
+source through the same-origin
+`/proxy?...&s=animated` privacy path—no lightbox click or direct provider fetch
+is required. That endpoint caps the response at 20 MB, accepts only supported
+raster MIME types, and validates at least two frames before forwarding the
+bytes unchanged. It also enforces 1,000 frames, 16,384 pixels per axis, 40 MP
+per frame, 250 million decoded pixel-frames, and 8,192 PNG chunks. GIF/WebP uses
+Imagick frame counting; PNG/APNG uses strict PNG chunk parsing and the `acTL` frame count because Alpine Imagick can expose a
+known APNG as one frame. An automatically
+failed candidate returns to its poster and is not retried unless the user
+deliberately requests it with pointer/focus.
+
+Motion is bounded to three active cards on desktop or two on coarse-pointer
+devices, including pointer/focus activation; the oldest card is restored when
+the limit is reached. Off-screen cards return to posters, infinite-scroll cards
+are registered automatically, reduced-motion disables animation, and data-saver
+disables automatic activation. Candidate discovery recognizes ordinary GIF and
+WebP extensions plus explicit APNG/animated-PNG hints. An
+explicit APNG or animated-PNG filename hint is recognized even with a `.png`
+extension, while an extensionless animation or APNG with only an ordinary
+`.png` name may remain a static poster unless the provider filter identifies
+it. Static WebP candidates fail frame validation and return to their posters.
+SVG, video, gifv, inline data
+URLs, and raster formats outside the GIF/WebP/APNG allowlist are not eligible.
+
 The production image enables PHP OPcache, HTTP compression and static caching;
 image thumbnails and favicons use lazy loading and asynchronous decoding. The
 default SecOps landing backdrop is CSS-only instead of downloading its former
-18.9 MB animation. Google CSE bootstrap tokens—not queries or results—are cached
-for five minutes per endpoint and outbound proxy, with a bounded refresh for an
-expired token. Result-page polish is served as versioned, reusable CSS; missing
-font preloads were removed; and release archives are excluded from the Docker
-build context.
-These are delivery optimizations, not benchmark guarantees. Perceived speed
-still depends on the VPS, selected provider, throttling, outbound proxies, and
-network latency.
+18.9 MB animation. Google reuses validated CSE bootstrap parameters for at most
+90 seconds per configured backend, CX, and outbound egress. It does not cache
+queries or result documents. This normally removes the HTML and loader-script
+bootstrap round trips from nearby searches and reduces upstream request volume.
+A recognized cached-token rejection deletes that entry, performs one fresh
+bootstrap, and retries once; unusual-traffic/CAPTCHA responses are never retried
+or treated as token failures. Encrypted next-page state keeps its original
+proxy affinity.
+Result-page polish is served as versioned, reusable CSS; missing font preloads
+were removed; and release archives are excluded from the Docker build context.
+Animated-grid originals are intentionally bounded and viewport-controlled as
+described above; they can still use more bandwidth than static thumbnails.
+The CSS, caching, lazy-loading, and build-context changes are delivery
+optimizations, not benchmark guarantees. Perceived speed still depends on the
+VPS, selected provider, throttling, outbound proxies, and network latency.
 
 ## Factual comparison
 
@@ -92,7 +150,7 @@ checked on 2026-09-01.
 
 | Product | Search/result model | Deployment and control | Published data boundary and relevant UI |
 |---|---|---|---|
-| **Security Search** | Self-hosted 4get fork; selectable upstream scrapers, with Google default and Brave available. It does not maintain an independent web index. | The instance operator controls configuration, logs and outbound proxying. Core search is server-rendered. | Upstreams normally see the instance egress rather than a direct browser request; the operator still processes queries. Images use default-on automatic loading with a Settings opt-out and **Next page** fallback. [Architecture](#architecture-and-trust-boundary), [providers](docs/PROVIDERS.md), [UI](docs/UI.md). |
+| **Security Search** | Self-hosted 4get fork; selectable upstream scrapers, with Google configured by default and Brave available by explicit selection. It does not maintain an independent web index. | The instance operator controls configuration, logs and outbound proxying. Core search is server-rendered; provider failures do not silently resubmit a query elsewhere. | Upstreams normally see the instance egress rather than a direct browser request; the operator still processes queries. Google or Brave may challenge a VPS address. Images use default-on automatic loading with a Settings opt-out and **Next page** fallback. [Architecture](#architecture-and-trust-boundary), [providers](docs/PROVIDERS.md), [UI](docs/UI.md), [Google unusual-traffic guidance](https://support.google.com/websearch/answer/86640?hl=en). |
 | **Upstream 4get** | Multi-provider proxy search engine with web, image, video, news and other scraper categories. | Open-source, instance-operated deployment with per-scraper rotating-proxy support. | Its official README says the interface does not require JavaScript. Privacy and logging ultimately depend on the chosen instance operator. [Official repository and feature list](https://git.lolcat.ca/lolcat/4get). |
 | **Google Search** | Google-operated crawler, index and ranking systems covering web pages, images and other content. | Hosted and controlled by Google; result personalization and activity controls depend on context, account and settings. | Google's policy says collected activity may include search terms and interactions, plus device/request information such as IP address. [How Search works](https://developers.google.com/search/docs/fundamentals/how-search-works), [Privacy Policy](https://policies.google.com/privacy). |
 | **Microsoft Bing** | Microsoft-operated crawler and index for web, image, video and other search experiences. | Hosted and controlled by Microsoft, with Bing and Microsoft Account controls. | Microsoft says Bing collects search terms together with data such as IP address, location, cookie identifiers, time and browser configuration. [How Bing delivers results](https://support.microsoft.com/en-us/bing/how-bing-delivers-search-results), [search-history data](https://support.microsoft.com/en-US/accounts-billing/how-microsoft-stores-and-maintains-your-search-history). |
@@ -100,35 +158,55 @@ checked on 2026-09-01.
 | **Brave Search** | Brave-operated independent crawler and index; optional Google fallback mixing is a separate user choice. | Hosted and controlled by Brave; web and image modes are available. | Brave's notice describes the service as private by default, documents optional aggregate metrics, ad measurement, anonymous local results and temporary IP processing for service integrity. [Privacy notice and index details](https://search.brave.com/help/privacy-policy). |
 | **Startpage** | Hosted intermediary that submits queries to result partners including Google and Bing; it does not maintain its own web index. | Hosted and controlled by Startpage; its optional Anonymous View also proxies destination-page browsing. | Startpage says it does not record ordinary visits, searches or IP addresses, with an anti-abuse exception in its policy; image thumbnails are proxied. [Partner relationship](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Privacy Policy](https://safe.startpage.com/en/privacy-policy/), [image search](https://support.startpage.com/hc/en-us/articles/4521419354132-How-to-search-for-images-on-Startpage). |
 
-This bundle is **complete and ready to deploy**. Same network model as the
-original (host port `5140` → container port `80` on a `bridge` network),
-so your nginx-proxy-manager configuration does not need to change.
+The v0.9.4 source keeps the existing network model (host port `5140` → container
+port `80` on a `bridge` network), so nginx-proxy-manager does not need a routing
+change. Build, provider, release, and production checks still gate publication
+and deployment.
 
 ---
 
 ## Quick deploy
 
 ```bash
-# On your VPS, after uploading the release tarball:
-tar -xzf securitysearch-v0.9.3.tar.gz
-cd securitysearch-v0.9.3
-./deploy.sh --fresh
+# After committing the tested source:
+./release.sh 0.9.4
+(cd dist && sha256sum -c securitysearch-v0.9.4.tar.gz.sha256)
+
+# Follow docs/RELEASE.md to build /root/security-search-v0.9.4, then atomically
+# swap that clean sibling into /root/security-search-update. Do not overlay it.
 ```
 
-That's it. The script:
+The intended Git publication targets and credential-free configured URLs are:
+
+- `origin` — `git@github.com:cristiancmoises/securitysearch.git`
+- `codeberg` — `git@codeberg.org:berkeley/securitysearch.git`
+- `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`
+- `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
+
+Because this release rewrites sanitized history, an ordinary push is neither
+sufficient nor safe: `main` and `v0.9.0` through `v0.9.3` all change, and
+`v0.9.4` is added. Follow the exact per-ref lease, atomic-push, and OID
+verification procedure in [docs/RELEASE.md](docs/RELEASE.md) for every remote.
+A failure on one must be reported even if another succeeds.
+
+For local work or an already isolated source tree, `./deploy.sh --fresh`:
 
 1. Sanity-checks docker / docker-compose are installed.
 2. Backs up the current state to a `.tgz` in the parent directory.
-3. Stops the existing container.
-4. Builds the image (with mirror-failover for Alpine package fetches —
+3. Builds the image while the existing container remains online (with
+   mirror-failover for Alpine package fetches —
    handles the geo-routing flakiness from Brazil/LATAM).
-5. Starts the new container.
+4. Stops the existing container only after the build succeeds.
+5. Starts the new container, with automatic old-image rollback on a failed
+   cutover.
 6. Waits up to 60s for the healthcheck.
-7. Smoke-tests `http://127.0.0.1:5140/`.
+7. Discovers the effective Compose-published endpoint and smoke-tests it.
 8. Prints useful follow-up commands.
 
-Use `./deploy.sh --fresh` for a no-cache rebuild,
-or `./deploy.sh --logs` to follow logs after starting.
+Use `./deploy.sh --fresh` for a no-cache rebuild, or `./deploy.sh --logs` to
+follow logs after starting. Production v0.9.4 uses the clean-sibling build and
+atomic directory cutover in [docs/RELEASE.md](docs/RELEASE.md), so the active
+tree is never updated by overlaying archive contents.
 
 ---
 
@@ -156,25 +234,26 @@ Summary of high-impact changes:
 | **Security** | Container drops all kernel capabilities except those required by httpd, enables `no-new-privileges`, and applies resource limits. |
 | **SEO** | `robots.txt` blocks dynamic search paths and 28 AI/SEO scrapers. `sitemap.php` has dynamic `<lastmod>`. |
 | **SEO** | `template/home.html` now has `<link rel="canonical">`, Twitter Cards, and JSON-LD `WebSite` + `SearchAction` (Google sitelinks search box). |
-| **Perf** | Apache OPcache, compression/static caching, a CSS-only default backdrop, lazy result media, a five-minute non-query Google bootstrap cache, and a release-free Docker build context. |
+| **Perf** | Apache OPcache, compression/static caching, a CSS-only default backdrop, lazy result media, a release-free Docker build context, and a 90-second per-egress Google bootstrap cache that stores no queries or results. |
 | **Backports** | Upstream fixes for Google, Yandex, Yep, Pinterest, Qwant, SoundCloud, fuckhtml.php JSON parser. |
 | **Backports** | New image scrapers: Pexels, Unsplash, Pixabay. |
 | **Reliability** | Dockerfile has multi-mirror failover for Alpine apk fetches. Healthcheck. tini PID 1. |
-| **Providers** | Google is the production default for web/images through the bundled CSE-compatible transport; Brave is enabled and carries current upstream CAPTCHA/pagination handling. |
-| **UX** | A minimalist, responsive landing page prioritizes the logo and Google-default search; SecOps is the first-visit theme, valid saved themes remain intact, and image auto-pagination is default-on with an opt-out. |
+| **Providers** | Google is the configured web/image default through the bundled CSE-compatible transport. Unusual-traffic blocks are not retried; users get an explicit Brave action instead of a silent fallback. Google API remains opt-in with privately supplied keys. |
+| **UX** | A minimalist, responsive landing page prioritizes the logo and search. The token-driven SecOps cascade works across the home/results UI, friendly errors provide clear actions, valid saved themes remain intact, and image auto-pagination is default-on with an opt-out. |
 
 ---
 
 ## What's NOT changed (preserved from your fork)
 
-- All 20 custom themes in `static/themes/`.
+- The remaining bundled custom themes in `static/themes/`.
 - Existing selectable themes and valid browser theme preferences.
-- `template/about.html`, `template/donate.html`.
+- `template/donate.html`.
 - Anubis bot policies in `anubis/`.
 - `.well-known/security.txt` contact info.
 - Fork-specific result and archive behavior in `lib/frontend.php`; result media
   now carries non-blocking browser loading hints.
-- All static assets (banners, audio, theme images).
+- Unrelated static assets, including the existing audio and alternate-theme
+  artwork.
 
 ---
 
@@ -183,7 +262,7 @@ Summary of high-impact changes:
 ```
 security-search/
 ├── deploy.sh                            ← run this on the host
-├── docker-compose.yml                   ← matches your existing 5140:80 setup
+├── docker-compose.yml                   ← loopback/private host port 5140 → 80
 ├── Dockerfile                           ← Alpine 3.21 + PHP 8.4 + OPcache
 ├── .dockerignore                        ← excludes VCS, backups, docs, dist, icon cache
 ├── README.md                            ← this file
@@ -222,7 +301,7 @@ security-search/
 ├── static/home.js                       ← CSP-safe Services keyboard enhancement
 ├── static/images-infinite.js            ← image IntersectionObserver enhancement
 ├── static/{web,image}-results.css       ← cacheable page-specific result polish
-├── static/themes/*.css                  ← all 20 themes; SecOps is the default
+├── static/themes/*.css                  ← bundled themes; SecOps is the default
 ├── anubis/                              ← bot policies preserved
 ├── .well-known/security.txt             ← preserved
 └── robots.txt                           ← rewritten for crawl-budget management
@@ -237,21 +316,42 @@ security-search/
 docker compose ps
 # → Up X seconds (healthy)
 
-# Direct hit (bypasses NPM)
-curl -sI http://127.0.0.1:5140/ | grep -iE 'content-security|strict-transport|x-frame'
+# Discover the actual loopback/private bind and hit it directly (bypasses NPM).
+app_endpoint=$(docker compose port security-search 80 | tail -n 1)
+app_base="http://$app_endpoint"
+curl -sI "$app_base/" | grep -iE 'content-security|strict-transport|x-frame'
 # Expect: Content-Security-Policy: default-src 'none'; script-src 'self'; ...
 
 # Through NPM (production URL)
 curl -sI https://securityops.co/ | head -15
 curl -s https://securityops.co/ | grep -o '<title>[^<]*</title>'
-# Expect: <title>Security Search — Privacy-first proxy search engine | securityops.co</title>
+# Expect: <title>Security Search — Privacy-First Metasearch Engine</title>
+
+# SecOps is selected and cache-busted for a first visit?
+curl -fsS "$app_base/" |
+  grep -q '/static/themes/SecOps.css?v11'
+curl -fsSI "$app_base/static/themes/SecOps.css?v11" |
+  grep -qi '^Content-Type: text/css'
+
+# Search works? Assert result content; HTTP 200 alone also describes an error page.
+release_ua='Mozilla/5.0 (release-smoke-test)'
+google_web=$(curl -fsS -A "$release_ua" \
+  "$app_base/web?s=security+privacy&scraper=google")
+printf '%s' "$google_web" | grep -q 'class="text-result"'
+! printf '%s' "$google_web" | grep -qi 'Search provider unavailable'
+
+google_images=$(curl -fsS -A "$release_ua" \
+  "$app_base/images?s=network+security&scraper=google")
+printf '%s' "$google_images" | grep -q 'class="image-wrapper"'
 
 # Sitemap valid?
-curl -s https://securityops.co/sitemap | head -5
-
-# Search works?
-curl -sI 'https://securityops.co/web?s=test' | head -3
+curl -fsS https://securityops.co/sitemap | head -5
 ```
+
+Repeat result-bearing checks for the API and Brave as described in
+[docs/RELEASE.md](docs/RELEASE.md). A Google unusual-traffic page means the
+instance egress is temporarily blocked; confirm the neutral message and
+explicit **Try Brave** URL, but do not count it as successful Google results.
 
 External validators:
 - https://securityheaders.com/?q=securityops.co (target: A or A+)
@@ -262,16 +362,25 @@ External validators:
 
 ## Rollback
 
-The deploy script creates a tarball before each run.
+Before the v0.9.4 clean-tree cutover, create the exact rollback archive and
+timestamped old directory documented in [docs/RELEASE.md](docs/RELEASE.md). The
+active IONOS tree remains `/root/security-search-update`.
 
 ```bash
-docker compose down
-cd ..
-rm -rf security-search
-tar xzf sec-search-backup-YYYY-MM-DD-HHMM.tgz
-cd security-search
-docker compose up -d
+cd /root
+docker compose -f /root/security-search-update/docker-compose.yml down
+mv /root/security-search-update /root/security-search-update-failed-v0.9.4
+mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
+  /root/security-search-update
+docker image tag security-search:pre-v0.9.4 security-search:latest
+cd /root/security-search-update
+docker compose up -d --no-build
 ```
+
+Use the exact recorded timestamp. If the old directory is unavailable, restore
+the exact predeploy `.tgz` only after confirming the active path does not exist.
+Delete the old directory and rollback image only after local/public health and
+result checks pass; retain the `.tgz` as the release rollback archive.
 
 ---
 
@@ -318,19 +427,40 @@ Most common cause: a PHP fatal error during request handling. Look for
 filesystem errors, add the required tmpfs/writable mount or disable that option
 while investigating the exact path.
 
+### Google reports unusual traffic
+
+Google applies this response to the instance's outbound IP or network. It is
+not repaired by repeatedly refreshing CSE tokens, and repeated retries can make
+an anti-abuse event worse. v0.9.4 recognizes the condition, stops, and offers an
+explicit Brave choice without sending the query automatically.
+
+Verify the server's outbound traffic and rate, wait for the restriction to
+clear, or configure a legitimate operator-controlled egress path. Google lists
+automated services, search scrapers, VPNs, and shared networks among possible
+causes in its [official unusual-traffic guidance](https://support.google.com/websearch/answer/86640?hl=en).
+
+If the error view appears, confirm that it contains **Search provider
+unavailable**, **Retry search**, **Provider settings**, and **Try Brave**, then
+inspect `docker compose logs --tail=100 security-search` for PHP errors. Do not
+describe the error page itself as working Google search.
+
 ### NPM proxy returns 502
 
 The container is up but NPM can't reach it. Verify the host port:
 
 ```bash
-docker compose ps                          # confirm 0.0.0.0:5140->80
-curl -I http://127.0.0.1:5140/             # must return HTTP 200
-ss -tnlp | grep 5140                       # must show docker-proxy
+docker compose ps
+app_endpoint=$(docker compose port security-search 80 | tail -n 1)
+curl -I "http://$app_endpoint/"             # must return HTTP 200
+ss -tnlp | grep 5140                         # must show only loopback/private bind
 ```
 
-Then in NPM, confirm the proxy host points to `<your-vps-ip>:5140` (not
-the public IP, the same IP as `127.0.0.1` from the VPS's perspective —
-typically the docker bridge gateway, e.g. `172.17.0.1`).
+Loopback is the secure default. A containerized NPM cannot reach the host's
+loopback; set `SECURITYSEARCH_BIND_ADDRESS` in a mode-0600 `.env` to the private
+Docker-host bridge address that NPM already uses (for example `172.17.0.1`),
+then point NPM to that private address and port 5140. Never use the public VPS
+address or `0.0.0.0`. Verify reachability from inside the NPM container and
+verify externally that direct port 5140 is closed.
 
 ---
 

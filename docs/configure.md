@@ -2,8 +2,17 @@
 
 Welcome! This guide assumes that you have a working 4get instance. This will help you configure your instance to the best it can be!
 
+> [!IMPORTANT]
+> In the supported Security Search container, `data/config.php` is generated at
+> every startup by `docker/gen_config.php`. Do not edit that generated file:
+> the next restart will overwrite it. Set `FOURGET_*` values in
+> `docker-compose.yml` or a reviewed private Compose environment/override, then
+> recreate the container. Direct `data/config.php` edits below apply only to a
+> bare-metal installation that does not run the container entrypoint. Keep
+> proxy credentials and API keys outside Git.
+
 # Files location
-1. The main configuration file is located at `data/config.php`
+1. The generated/bare-metal configuration file is located at `data/config.php`
 2. The proxies are located in `data/proxies/*.txt`
 3. The captcha imagesets are located in `data/captcha/your_image_set/*.png`
 4. The captcha font is located in `data/fonts/captcha.ttf`
@@ -36,7 +45,7 @@ Now, after compiling, you should have a `libcurl-impersonate-ff.so` sitting some
 sudo systemctl edit php8.4-fpm.service
 ```
 
-^This will open a text editor. Add the following shit in there, in between those 2 comments I pasted for ya just for reference:
+This opens a text editor. Add the following content between the two reference comments:
 
 ```sh
 ### Editing /etc/systemd/system/php8.4-fpm.service.d/override.conf
@@ -49,7 +58,7 @@ Environment="CURL_IMPERSONATE=firefox117"
 ### Edits below this comment will be discarded
 ```
 
-Restart php8.4-fpm. (`sudo service php8.4-fpm restart`). To test things out, try making a search on "Yep", they check for SSL. If you get results (or a timeout, this piece of shit engine is slow as fuck) that means it works!
+Restart php8.4-fpm (`sudo service php8.4-fpm restart`). To test the setup, run a search with the Yep provider, which verifies TLS. A result response confirms the configuration; an upstream timeout should be investigated separately.
 
 # Robots.txt
 Make sure you configure this right to optimize your search engine presence! Head over to `/robots.txt` and change the 4get.ca domain to your own domain.
@@ -68,7 +77,7 @@ If you see spammy entries in your instances list, simply remove the instance fro
 	# format -> <protocol>:<address>:<port>:<username>:<password>
 	# protocol list:
 	# raw_ip, http, https, socks4, socks5, socks4a, socks5_hostname
-	socks5:1.1.1.1:juicy:cloaca00
+	socks5:1.1.1.1:proxy_user:proxy_password
 	http:1.3.3.7::
 	raw_ip::::
 	```

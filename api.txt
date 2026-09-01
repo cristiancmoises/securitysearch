@@ -37,8 +37,7 @@
     under your own terms. Please respect the terms of use listed here so
     that this website may be available to all in the far future.
 
-    P.s fuck whoever botted my site for months on end, choke on my dick
-    lol!!!!
+    Automated abuse may be rate-limited to protect service availability.
 
     Get your instance running here ::
         https://git.lolcat.ca/lolcat/4get
@@ -280,7 +279,7 @@
     
     When the endpoint is something else than "linear", you MUST use
     the specified endpoint. Otherwise, you are free to handle that
-    json+m3u8 crap yourself. If the endpoint is equal to "linear", the
+    json+m3u8 response yourself. If the endpoint is equal to "linear", the
     URL should return a valid HTTP audio stream. To access the endpoint,
     you must add the following prefix in your request, like so:
 	
@@ -299,7 +298,7 @@
     
     If we had to revert to using Google's favicon cache, it will throw
     an error in the X-Error header field. If Google's favicon cache
-    also failed to return an image, or if you're too retarded to specify
+    also failed to return an image, or if the request does not specify
     a valid domain name, a default placeholder image will be returned
     alongside the "404" HTTP error code.
 
@@ -317,22 +316,31 @@
         thumb        236x180
         cover        207x270
         original     <Original resolution>
+		animated     <Validated multi-frame preview for the image grid>
 	
-    You can also ommit the "s" parameter if you wish to view the
+    The internal "animated" mode buffers at most 20 MB, accepts GIF,
+    animated WebP, or APNG only, requires 2–1000 frames, and enforces
+    16,384 pixels/axis, 40 MP/frame, 250 million pixel-frames, 8,192 PNG
+    chunks, 30 admissions/client/minute, and three global validations. It returns HTTP 404
+    when the source is static, unsupported, oversized, or invalid, and HTTP
+    429 when the preview limit is reached. Preview bytes are fetched through
+    the local proxy rather than by a direct browser request to the result host.
+
+    You can also omit the "s" parameter if you wish to view the
     original image. When an error occurs, an "X-Error" header field
     is set.
 
 
 + /audio/linear
     Get a proxied audio file. Does not support "Range" headers, as it's
-    only used to proxy small files (hence why it's called linear DUH)
+    only used to proxy small files (hence the name "linear").
     
     The parameter is "s" for the audio link.
 
 
 + /audio/sc
     Get a proxied audio file for SoundCloud. Does not support downloads
-    trough WGET or CURL, since it returns 30kb~160kb "206 Partial
+    through WGET or CURL, since it returns 30kb~160kb "206 Partial
     Content" parts, due to technical limitations that comes with
     converting m3u8 playlists to seekable audio files. If you use this
     endpoint, you must support these 206 codes and also handle the
@@ -340,16 +348,15 @@
     store information about your request needlessly. This method also
     allows noJS users to access the files.
     
-    The parameter is "s" for the SoundCloud JSON m3u8 abomination. It
+    The parameter is "s" for the SoundCloud JSON m3u8 payload. It
     does not support "normal" SoundCloud URLs at this time.
 
 
 + /audio/spotify
     Get a proxied Spotify audio file. Accepts a track ID for the "s"
-    parameter. Will only allow you to fetch the 30 second preview since
-    I don't feel like fucking with cookies and accounts every fucking
-    living moment of my life. You must handle the initial 302 redirect
-    to the /audio/linear endpoint.
+    parameter. It only fetches the 30-second preview because this API
+    deliberately avoids cookies and user accounts. You must handle the
+    initial 302 redirect to the /audio/linear endpoint.
 
 
 + Appendix

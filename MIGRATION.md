@@ -1,5 +1,38 @@
 # Security Search — Migration Notes
 
+## v0.9.4 — provider reliability and SecOps theme repair
+
+This release is a drop-in update from v0.9.3. No persistent-data migration is
+required. Rebuild the container so PHP OPcache and the immutable static assets
+are replaced together.
+
+- Static asset version `11` invalidates the cached v0.9.3 theme CSS.
+- The SecOps theme now owns the page background and home color tokens; base and
+  inline `!important` rules no longer override it.
+- Google and Google CSE reuse only validated, query-free bootstrap parameters
+  for up to 90 seconds per backend, CX, and outbound egress. Queries and result
+  documents are never cached. Pagination continues to carry its token and proxy
+  in encrypted, one-use `npt` state; a recognized token rejection invalidates
+  the cache, performs one fresh bootstrap, and retries once. Google
+  unusual-traffic/IP throttles are not retried automatically.
+- Search failures use a neutral, responsive error panel with retry, provider
+  settings, and a deliberate Brave option. Queries are never silently sent to
+  a second provider.
+- Google API is now consistently registered for web and image search, but it
+  remains opt-in and requires keys in `data/api_keys/google_api.txt`.
+- The Qwant unexpected-response path no longer emits PHP undefined-key warnings.
+- User-visible CAPTCHA, URL-resolution, search-provider, and About text has
+  been rewritten without profanity.
+
+Before replacing v0.9.3, preserve the current deployment directory and its
+environment/configuration. After deployment, verify actual Google result cards
+and JSON arrays; HTTP 200 alone is insufficient because provider errors are
+rendered as normal pages. See `docs/RELEASE.md` for the current IONOS workflow.
+
+---
+
+## Historical migration baseline
+
 This document explains every change made in this drop-in update so you can
 review before deploying. The work is grouped into four phases. Apply them
 in order; each phase is independently testable.
@@ -72,17 +105,20 @@ Files updated: `index.php`, `web.php`, `images.php`, `videos.php`,
 
 ### 1.4 Hardened `docker-compose.yml`
 
-- **Kept `ports: "5140:80"`** — same as your previous setup. NPM proxy
-  host config doesn't change. (An optional alternative — putting the
-  container on NPM's docker network — is documented in
-  `docker/nginx-proxy-manager.conf` for later.)
-- `cap_drop: [ALL]` then `cap_add` only what httpd needs (CHOWN,
-  DAC_OVERRIDE, SETUID, SETGID, NET_BIND_SERVICE).
+- Host port 5140 now binds to `127.0.0.1` by default instead of every interface.
+  A containerized NPM deployment can set `SECURITYSEARCH_BIND_ADDRESS` in a
+  restricted `.env` to its private Docker-host bridge address. The public VPS
+  IP and `0.0.0.0` are explicitly unsupported because they bypass edge limits.
+- `cap_drop: [ALL]` then `cap_add` only what httpd needs (SETUID, SETGID,
+  NET_BIND_SERVICE).
 - `security_opt: no-new-privileges:true` — the kernel refuses to grant
   any new privileges (prevents most container escapes via setuid binaries).
-- `read_only: true` rootfs with `tmpfs` for `/tmp`, `/var/log/apache2`,
-  `/var/run`, `/var/cache/mod_ssl`. If httpd needs to write somewhere
-  unexpected, this will surface immediately.
+- Application source is root-owned and mode 0644/0755, so Apache workers cannot
+  rewrite PHP or assets. The root filesystem remains writable to the root
+  entrypoint because it generates `data/config.php`; only `/tmp` and the
+  persistent `icons` volume are intended worker-write paths. A fully read-only
+  root remains an optional future hardening step after relocating generated
+  configuration and Apache runtime state.
 - Resource limits (512 MB / 1 CPU). The original 4get README claims
   ~200–400 MB RAM, so 512 MB is comfortable headroom.
 - Uses your existing `bridge` network (same as before).
@@ -201,26 +237,30 @@ later, just add them back to `lib/frontend.php` and `settings.php`.
 remains). Upstream confirmed yep's image and news endpoints are
 unreliable.
 
-### 3.4 NOT backported — preserved your fork
+### 3.4 Historical backport boundary
 
-- `lib/frontend.php` — only the scraper *registry* sections were edited.
-  Your custom `getstyle()` SecOps/SecurityOps theme branching, 4chan
-  archive link generation, and 382 lines of fork-specific code remain
-  untouched.
+This subsection records the older fork baseline at the time that phase was
+applied; it is not a current-tree inventory. v0.9.4 subsequently updates the
+frontend, home/About templates, configuration defaults, and theme collection,
+as described at the top of this document.
 
-- `lib/bot_protection.php` — only the captcha dedup line (1.1) was
-  added; everything else preserved.
+- At that baseline, `lib/frontend.php` changed only its scraper registry;
+  fork-specific theme and archive behavior remained in place.
 
-- All `static/themes/*.css` files — your custom themes left as-is.
+- At that baseline, `lib/bot_protection.php` changed only the captcha dedup
+  line described in section 1.1.
 
-- `template/home.html` — only the `<head>` was rewritten; your
-  in-template `<style>` block, audio element, footer with all
-  SecurityOps subdomains, onion list — all preserved.
+- At that baseline, the then-current `static/themes/*.css` collection was
+  unchanged.
 
-- `template/about.html`, `template/donate.html` — untouched.
+- At that baseline, `template/home.html` changed only its `<head>`; later
+  releases replaced the landing-page layout.
 
-- `data/config.php` — untouched (will be regenerated on container
-  start by `docker/gen_config.php` from your env vars anyway).
+- At that baseline, `template/about.html` and `template/donate.html` were
+  unchanged.
+
+- At that baseline, `data/config.php` was unchanged and remained generated by
+  `docker/gen_config.php` from environment values at container startup.
 
 - Removed scrapers' files (greppr, crowdview, curlie) — left on disk
   in case you want them back.
@@ -247,62 +287,38 @@ Highlights:
 
 ## How to Deploy
 
-The simplest path — run the deploy script:
+For a local tree or an already isolated deployment, the current helper is:
 
 ```bash
-./deploy.sh
+./deploy.sh --fresh
 ```
 
-It backs up, stops, builds, starts, healthchecks, and verifies.
-If anything fails, run `./deploy.sh --rollback`.
+It creates a mode-0600 source backup, builds while the existing container stays
+online, cuts over only after the build succeeds, waits for health, and tests the
+effective Compose-published endpoint. If a post-cutover check fails, it attempts
+to restore the previously tagged image and reports whether that restart
+succeeded. There is no separate `--rollback` option.
 
-If you want to do it manually:
+Production v0.9.4 uses the clean-sibling, checksum-verified artifact workflow in
+[`docs/RELEASE.md`](docs/RELEASE.md). Do not unzip or recursively copy a bundle
+over the active source tree, and do not use an unresolved recursive-delete
+command as rollback. The release guide preserves exact old-tree and image
+identifiers until verification, then applies guarded cleanup.
 
-```bash
-# 1. Backup your live deployment first
-cd ~/security-search && tar czf ../sec-search-backup-$(date +%F).tgz .
+NPM keeps using port 5140, but the listener must be private. Set
+`SECURITYSEARCH_BIND_ADDRESS` to the Docker-host bridge address NPM can reach
+and point NPM to that same private address. Do not publish port 5140 on the
+public VPS interface.
 
-# 2. Drop in the new files
-unzip -o security-search-update.zip
-
-# 3. Rebuild and start
-docker compose down
-docker compose build --no-cache
-docker compose up -d
-
-# 4. Verify
-docker compose logs -f --tail=50
-curl -I http://127.0.0.1:5140/        # via container
-curl -I https://securityops.co/       # via NPM
-
-# 5. Validate SEO (after deploy)
-# - Submit https://securityops.co/sitemap to Google Search Console
-# - Test JSON-LD: https://search.google.com/test/rich-results?url=https%3A%2F%2Fsecurityops.co%2F
-# - Test security headers: https://securityheaders.com/?q=https%3A%2F%2Fsecurityops.co
-# - Test TLS: https://www.ssllabs.com/ssltest/analyze.html?d=securityops.co
-```
-
-NPM config does NOT change — the container exposes `5140:80` exactly
-like your previous setup, so NPM keeps pointing to `<vps-ip>:5140`.
-
-The optional `docker/nginx-proxy-manager.conf` is for **later** —
-adds edge caching and rate limiting to NPM. Not required for the
-deploy to work.
+The checked-in `docker/nginx-proxy-manager.conf` documents optional edge caching
+and rate limiting. Validate the live NPM configuration independently; the file
+alone does not prove that NPM loaded those directives.
 
 ## Rollback
 
-If anything misbehaves:
-
-```bash
-docker compose down
-cd .. && rm -rf security-search/
-tar xzf sec-search-backup-YYYY-MM-DD.tgz -C security-search/
-cd security-search/
-docker compose up -d
-```
-
-The old image is still in your local docker registry until you
-`docker image prune`.
+Use the exact timestamped paths and preserved image ID recorded during cutover,
+following the guarded rollback procedure in [`docs/RELEASE.md`](docs/RELEASE.md).
+Never guess a path or recursively delete an unresolved target.
 
 ## What's NOT Done (Out of Scope For This Pass)
 

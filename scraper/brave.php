@@ -1,6 +1,8 @@
 <?php
 
 class brave{
+
+	private const CHALLENGE_ATTEMPTS = 3;
 	
 	public function __construct(){
 		
@@ -209,6 +211,34 @@ class brave{
 		curl_close($curlproc);
 		return $data;
 	}
+
+	private function get_search_page($proxy, $url, $get = [], $nsfw, $country){
+
+		$last_page = "";
+		for($attempt = 0; $attempt < self::CHALLENGE_ATTEMPTS; $attempt++){
+
+			$last_page = $this->get($proxy, $url, $get, $nsfw, $country);
+			if(!$this->is_pow_challenge_page($last_page)){
+
+				return $last_page;
+			}
+		}
+
+		// Return the final challenge page so the existing parser produces the
+		// normal, user-facing provider error. This is a bounded same-provider
+		// retry; queries are never submitted to a different engine silently.
+		return $last_page;
+	}
+
+	private function is_pow_challenge_page($html){
+
+		return
+			is_string($html) &&
+			preg_match(
+				'#(?:["\']?challengeSet["\']?\s*:\s*\{|["\']?page["\']?\s*:\s*["\']/captcha["\']|["\']?title["\']?\s*:\s*["\'][^"\']*PoW\s+Captcha[^"\']*["\'])#i',
+				$html
+			) === 1;
+	}
 	
 	private function get_js(){
 		
@@ -351,7 +381,7 @@ class brave{
 		//$html = file_get_contents("scraper/brave.html");
 		try{
 			$html =
-				$this->get(
+				$this->get_search_page(
 					$proxy,
 					"https://search.brave.com/search",
 					$q,
@@ -1103,7 +1133,7 @@ class brave{
 			
 			try{
 				$html =
-					$this->get(
+					$this->get_search_page(
 						$proxy,
 						"https://search.brave.com/news",
 						[
@@ -1143,7 +1173,7 @@ class brave{
 			fclose($handle);*/
 			try{
 				$html =
-					$this->get(
+					$this->get_search_page(
 						$proxy,
 						"https://search.brave.com/news",
 						[
@@ -1246,7 +1276,7 @@ class brave{
 		
 		try{
 			$html =
-				$this->get(
+				$this->get_search_page(
 					$this->backend->get_ip(), // no nextpage right now, pass proxy directly
 					"https://search.brave.com/images",
 					[
@@ -1320,7 +1350,7 @@ class brave{
 			
 			try{
 				$html =
-					$this->get(
+					$this->get_search_page(
 						$proxy,
 						"https://search.brave.com/videos",
 						[
@@ -1358,7 +1388,7 @@ class brave{
 			
 			try{
 				$html =
-					$this->get(
+					$this->get_search_page(
 						$proxy,
 						"https://search.brave.com/videos",
 						[

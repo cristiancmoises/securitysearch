@@ -1,4 +1,12 @@
-#### Overview
+#### Legacy upstream Docker/Tor reference
+
+> [!WARNING]
+> This guide retains upstream `luuul/4get`/Tor examples and open listener
+> assumptions for historical reference. It is not a Security Search v0.9.4
+> production recipe. Do not publish its SOCKS or application ports. Start from
+> the hardened repository [`docker-compose.yml`](../docker-compose.yml) and the
+> current private-port workflow in [RELEASE.md](RELEASE.md); treat Tor integration
+> as a separately threat-modelled customization.
 
 This guide will walk you through using 4get in docker with tor running in
 another container. This guide covers how to make outgoing and incoming traffic

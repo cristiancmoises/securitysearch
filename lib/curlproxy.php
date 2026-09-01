@@ -31,105 +31,248 @@ class proxy{
 	}
 	
 	public function getabsoluteurl($path, $relative){
-		
-		if($this->validateurl($path)){
-			
+
+		$path = trim((string)$path);
+		if($path === ""){
+
+			throw new Exception("Broken redirect");
+		}
+
+		try{
+
+			$absolute = parse_url($path);
+			$base = parse_url($relative);
+		}catch(Throwable $error){
+
+			throw new Exception("Broken redirect");
+		}
+
+		if(is_array($absolute) && isset($absolute["scheme"])){
+
 			return $path;
 		}
-		
-		if(substr($path, 0, 2) == "//"){
-			
-			return "https:" . $path;
+		if(!is_array($base) || !isset($base["scheme"], $base["host"])){
+
+			throw new Exception("Broken redirect");
 		}
-		
-		$url = null;
-		
-		$relative = parse_url($relative);
-		$url = $relative["scheme"] . "://";
-		
-		if(
-			isset($relative["user"]) &&
-			isset($relative["pass"])
-		){
-			
-			$url .= $relative["user"] . ":" . $relative["pass"] . "@";
+
+		if(substr($path, 0, 2) === "//"){
+
+			return strtolower($base["scheme"]) . ":" . $path;
 		}
-		
-		$url .= $relative["host"];
-		
-		if(isset($relative["path"])){
-			
-			$relative["path"] = explode(
-				"/",
-				$relative["path"]
-			);
-			
-			unset($relative["path"][count($relative["path"]) - 1]);
-			$relative["path"] = implode("/", $relative["path"]);
-			
-			$url .= $relative["path"];
+
+		$authority = strtolower($base["scheme"]) . "://";
+		if(isset($base["user"])){
+
+			$authority .= $base["user"];
+			if(isset($base["pass"])){
+
+				$authority .= ":" . $base["pass"];
+			}
+			$authority .= "@";
 		}
-		
-		if(
-			strlen($path) !== 0 &&
-			$path[0] !== "/"
-		){
-			
-			$url .= "/";
+		$authority .= $base["host"];
+		if(isset($base["port"])){
+
+			$authority .= ":" . $base["port"];
 		}
-		
-		$url .= $path;
-		
-		return $url;
+
+		$fragment = strpos($path, "#");
+		if($fragment !== false){
+
+			$path = substr($path, 0, $fragment);
+		}
+		if($path === ""){
+
+			$url = $authority . ($base["path"] ?? "/");
+			return isset($base["query"]) ? $url . "?" . $base["query"] : $url;
+		}
+		if($path[0] === "?"){
+
+			return $authority . ($base["path"] ?? "/") . $path;
+		}
+
+		$query = "";
+		$query_offset = strpos($path, "?");
+		if($query_offset !== false){
+
+			$query = substr($path, $query_offset);
+			$path = substr($path, 0, $query_offset);
+		}
+
+		if(isset($path[0]) && $path[0] === "/"){
+
+			$resolved_path = $path;
+		}else{
+
+			$base_path = $base["path"] ?? "/";
+			$slash = strrpos($base_path, "/");
+			$resolved_path = ($slash === false ? "/" : substr($base_path, 0, $slash + 1)) . $path;
+		}
+
+		return $authority . $this->removedotsegments($resolved_path) . $query;
 	}
-	
+
+	private function removedotsegments($path){
+
+		$segments = explode("/", $path);
+		$output = [];
+		foreach($segments as $segment){
+
+			if($segment === "."){
+
+				continue;
+			}
+			if($segment === ".."){
+
+				if(count($output) > 1){
+
+					array_pop($output);
+				}
+				continue;
+			}
+			$output[] = $segment;
+		}
+
+		$result = implode("/", $output);
+		if(
+			(substr($path, -2) === "/." || substr($path, -3) === "/..") &&
+			substr($result, -1) !== "/"
+		){
+
+			$result .= "/";
+		}
+
+		return $result === "" ? "/" : $result;
+	}
+
+	private function resolvepublictarget($url){
+
+		try{
+
+			$url_parts = parse_url($url);
+		}catch(Throwable $error){
+
+			return false;
+		}
+
+		if(
+			!is_array($url_parts) ||
+			!isset($url_parts["scheme"], $url_parts["host"]) ||
+			!in_array(strtolower($url_parts["scheme"]), ["http", "https"], true)
+		){
+
+			return false;
+		}
+
+		$scheme = strtolower($url_parts["scheme"]);
+		$host = trim($url_parts["host"], "[]");
+		if(
+			$host === "" ||
+			preg_match('/[\\x00-\\x20\\x7f\\/\\?#@]/', $host) === 1
+		){
+
+			return false;
+		}
+
+		$port = $url_parts["port"] ?? ($scheme === "https" ? 443 : 80);
+		if(!is_int($port) || $port < 1 || $port > 65535){
+
+			return false;
+		}
+
+		$literal = filter_var($host, FILTER_VALIDATE_IP);
+		if($literal !== false){
+
+			$addresses = [$literal];
+		}else{
+
+			$lookup_host = rtrim($host, ".");
+			if(
+				$lookup_host === "" ||
+				filter_var($lookup_host, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) === false
+			){
+
+				return false;
+			}
+
+			$addresses = [];
+			$records = @dns_get_record($lookup_host, DNS_A | DNS_AAAA);
+			if(is_array($records)){
+
+				foreach($records as $record){
+
+					if(isset($record["ip"])){
+
+						$addresses[] = $record["ip"];
+					}elseif(isset($record["ipv6"])){
+
+						$addresses[] = $record["ipv6"];
+					}
+				}
+			}
+
+			if($addresses === []){
+
+				$fallback = @gethostbynamel($lookup_host . ".");
+				if(is_array($fallback)){
+
+					$addresses = $fallback;
+				}
+			}
+		}
+
+		$addresses = array_values(array_unique($addresses));
+		if($addresses === [] || count($addresses) > 32){
+
+			return false;
+		}
+		foreach($addresses as $address){
+
+			if(
+				filter_var(
+					$address,
+					FILTER_VALIDATE_IP,
+					FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+				) === false
+			){
+
+				return false;
+			}
+		}
+
+		usort($addresses, function($left, $right){
+
+			return (int)(filter_var($left, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false) <=>
+				(int)(filter_var($right, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false);
+		});
+
+		return [
+			"host" => $host,
+			"port" => $port,
+			"address" => $addresses[0],
+			"literal" => $literal !== false
+		];
+	}
+
 	public function validateurl($url){
-		
-		$url_parts = parse_url($url);
-		
-		// check if required parts are there
-		if(
-			!isset($url_parts["scheme"]) ||
-			!(
-				$url_parts["scheme"] == "http" ||
-				$url_parts["scheme"] == "https"
-			) ||
-			!isset($url_parts["host"])
-		){
-			return false;
-		}
-		
-		$ip = 
-			str_replace(
-				["[", "]"], // handle ipv6
-				"",
-				$url_parts["host"]
-			);
-		
-		// if its not an IP
-		if(!filter_var($ip, FILTER_VALIDATE_IP)){
-			
-			// resolve domain's IP
-			$ip = gethostbyname($url_parts["host"] . ".");
-		}
-		
-		// check if its localhost
-		if(
-			filter_var(
-				$ip,
-				FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
-			) === false
-		){
-			
-			return false;
-		}
-		
-		return true;
+
+		return $this->resolvepublictarget($url) !== false;
 	}
 	
-	public function get($url, $reqtype = self::req_web, $acceptallcodes = false, $referer = null, $redirectcount = 0){
+	public function get($url, $reqtype = self::req_web, $acceptallcodes = false, $referer = null, $redirectcount = 0, $max_bytes = 100000000, $request_budget = null){
+
+		$max_bytes = is_int($max_bytes) && $max_bytes > 0 ? $max_bytes : 100000000;
+		if($request_budget === null){
+
+			$request_budget = (object)[
+				"deadline" => hrtime(true) + 30000000000,
+				"remaining_bytes" => $max_bytes,
+				"remaining_wire_bytes" => $max_bytes
+			];
+		}
 		
-		if($redirectcount === 5){
+		if($redirectcount >= 5){
 			
 			throw new Exception("Too many redirects");
 		}
@@ -140,9 +283,25 @@ class proxy{
 		}
 		
 		// sanitize URL
-		if($this->validateurl($url) === false){
+		$target = $this->resolvepublictarget($url);
+		if($target === false){
 			
 			throw new Exception("Invalid URL");
+		}
+		$remaining_milliseconds = (int)ceil(($request_budget->deadline - hrtime(true)) / 1000000);
+		if($remaining_milliseconds < 1){
+
+			throw new Exception("Remote request exceeded the configured time limit");
+		}
+		$hop_max_bytes = $request_budget->remaining_bytes;
+		if(!isset($request_budget->remaining_wire_bytes)){
+
+			$request_budget->remaining_wire_bytes = $max_bytes;
+		}
+		$hop_max_wire_bytes = $request_budget->remaining_wire_bytes;
+		if($hop_max_bytes < 1 || $hop_max_wire_bytes < 1){
+
+			throw new Exception("Remote payload exceeds the configured byte limit");
 		}
 		
 		$this->clientcache();
@@ -151,7 +310,24 @@ class proxy{
 		
 		curl_setopt($curl, CURLOPT_URL, $url);
 		curl_setopt($curl, CURLOPT_ENCODING, ""); // default encoding
-		curl_setopt($curl, CURLOPT_HEADER, 1);
+		curl_setopt($curl, CURLOPT_HEADER, false);
+		curl_setopt($curl, CURLOPT_PROXY, "");
+		curl_setopt($curl, CURLOPT_NOPROXY, "*");
+		if(defined("CURLOPT_PROTOCOLS") && defined("CURLPROTO_HTTP") && defined("CURLPROTO_HTTPS")){
+
+			curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+		}
+		if(!$target["literal"]){
+
+			$pinned_address = filter_var($target["address"], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false
+				? "[" . $target["address"] . "]"
+				: $target["address"];
+			curl_setopt(
+				$curl,
+				CURLOPT_RESOLVE,
+				[$target["host"] . ":" . $target["port"] . ":" . $pinned_address]
+			);
+		}
 		
 		switch($reqtype){
 			case self::req_web:
@@ -202,66 +378,138 @@ class proxy{
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 30);
-		curl_setopt($curl, CURLOPT_TIMEOUT, 30);
+		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, $remaining_milliseconds);
+		curl_setopt($curl, CURLOPT_TIMEOUT_MS, $remaining_milliseconds);
 		
 		// limit size of payloads
+		$response_body = "";
+		$response_headers = [];
+		$header_bytes = 0;
+		$payload_too_large = false;
+		$headers_too_large = false;
+		curl_setopt(
+			$curl,
+			CURLOPT_HEADERFUNCTION,
+			function($curl, $line) use (&$response_headers, &$header_bytes, &$headers_too_large){
+
+				$line_length = strlen($line);
+				$header_bytes += $line_length;
+				if($header_bytes > 1048576){
+
+					$headers_too_large = true;
+					return 0;
+				}
+
+				$line = rtrim($line, "\r\n");
+				if(preg_match('#^HTTP/[0-9.]+\s+[0-9]{3}(?:\s|$)#i', $line)){
+
+					// Keep the final response block if a proxy or 100 Continue response
+					// produced an earlier set of headers.
+					$response_headers = [$line];
+				}elseif($response_headers !== []){
+
+					$response_headers[] = $line;
+				}
+
+				return $line_length;
+			}
+		);
+		curl_setopt(
+			$curl,
+			CURLOPT_WRITEFUNCTION,
+			function($curl, $chunk) use (&$response_body, &$payload_too_large, $request_budget){
+
+				$chunk_length = strlen($chunk);
+				if($chunk_length > $request_budget->remaining_bytes){
+
+					$payload_too_large = true;
+					return 0;
+				}
+
+				$response_body .= $chunk;
+				$request_budget->remaining_bytes -= $chunk_length;
+				return $chunk_length;
+			}
+		);
 		curl_setopt($curl, CURLOPT_BUFFERSIZE, 65536);
 		curl_setopt($curl, CURLOPT_NOPROGRESS, false);
 		curl_setopt(
 			$curl,
 			CURLOPT_PROGRESSFUNCTION,
-			function($downloadsize, $downloaded, $uploadsize, $uploaded
-		){
+			function($curl, $download_total, $downloaded_now, $upload_total, $uploaded_now) use ($hop_max_wire_bytes, &$payload_too_large){
 			
-			// if $downloaded exceeds 100MB, fuck off
-			return ($downloaded > 100000000) ? 1 : 0;
+			// Bound buffered downloads; animated grid previews use a lower cap.
+			if($download_total > $hop_max_wire_bytes || $downloaded_now > $hop_max_wire_bytes){
+
+				$payload_too_large = true;
+				return 1;
+			}
+
+			return 0;
 		});
 		
-		$body = curl_exec($curl);
-		
-		if(curl_errno($curl)){
-			
-			throw new Exception(curl_error($curl));
-		}
-		
+		curl_exec($curl);
+		$curl_errno = curl_errno($curl);
+		$curl_error = curl_error($curl);
+		$wire_bytes = defined("CURLINFO_SIZE_DOWNLOAD_T")
+			? curl_getinfo($curl, CURLINFO_SIZE_DOWNLOAD_T)
+			: curl_getinfo($curl, CURLINFO_SIZE_DOWNLOAD);
 		curl_close($curl);
+
+		if($curl_errno){
+
+			if($payload_too_large){
+
+				throw new Exception("Remote payload exceeds the configured byte limit");
+			}
+			if($headers_too_large){
+
+				throw new Exception("Remote response headers exceed the configured byte limit");
+			}
+
+			throw new Exception($curl_error);
+		}
+		$wire_bytes = max(0, (int)$wire_bytes);
+		if($wire_bytes > $request_budget->remaining_wire_bytes){
+
+			throw new Exception("Remote payload exceeds the configured byte limit");
+		}
+		$request_budget->remaining_wire_bytes -= $wire_bytes;
 		
 		$headers = [];
 		$http = null;
-		
-		while(true){
-			
-			$header = explode("\n", $body, 2);
-			$body = $header[1];
-			
-			if($http === null){
-				
-				// http/1.1 200 ok
-				$header = explode("/", $header[0], 2);
-				$header = explode(" ", $header[1], 3);
-				
-				$http = [
-					"version" => (float)$header[0],
-					"code" => (int)$header[1]
-				];
-				
-				continue;
-			}
-			
-			if(trim($header[0]) == ""){
-				
-				// reached end of headers
+		if(
+			isset($response_headers[0]) &&
+			preg_match('#^HTTP/([0-9.]+)\s+([0-9]{3})(?:\s|$)#i', $response_headers[0], $status)
+		){
+
+			$http = [
+				"version" => (float)$status[1],
+				"code" => (int)$status[2]
+			];
+		}
+
+		if($http === null){
+
+			throw new Exception("Remote server returned a malformed HTTP response");
+		}
+
+		foreach(array_slice($response_headers, 1) as $header){
+
+			if($header === ""){
+
 				break;
 			}
-			
-			$header = explode(":", $header[0], 2);
+
+			$header = explode(":", $header, 2);
 			
 			// malformed headers
 			if(count($header) !== 2){ continue; }
 			
 			$headers[strtolower(trim($header[0]))] = trim($header[1]);
 		}
+
+		$body = $response_body;
 		
 		// check http code
 		if(
@@ -277,7 +525,15 @@ class proxy{
 			
 			$redirectcount++;
 			
-			return $this->get($this->getabsoluteurl($headers["location"], $url), $reqtype, $acceptallcodes, $referer, $redirectcount);
+			return $this->get(
+				$this->getabsoluteurl($headers["location"], $url),
+				$reqtype,
+				$acceptallcodes,
+				$referer,
+				$redirectcount,
+				$max_bytes,
+				$request_budget
+			);
 		}else{
 			if(
 				$acceptallcodes === false &&
@@ -350,198 +606,210 @@ class proxy{
 		$this->stream($url, $referer, "audio");
 	}
 	
-	private function stream($url, $referer, $format){
-		
-		$this->clientcache();
-		
-		$this->url = $url;
-		$this->format = $format;
-		
-		// sanitize URL
-		if($this->validateurl($url) === false){
-			
+	private function stream($url, $referer, $format, $redirectcount = 0, $deadline = null){
+
+		if($deadline === null){
+
+			$this->clientcache();
+			$deadline = hrtime(true) + 30000000000;
+		}
+		if($redirectcount >= 5){
+
+			throw new Exception("Too many redirects");
+		}
+
+		$target = $this->resolvepublictarget($url);
+		if($target === false){
+
 			throw new Exception("Invalid URL");
 		}
-		
-		$curl = curl_init();
-		
-		// set headers
+		$remaining_milliseconds = (int)ceil(($deadline - hrtime(true)) / 1000000);
+		if($remaining_milliseconds < 1){
+
+			throw new Exception("Remote request exceeded the configured time limit");
+		}
+
 		if($referer === null){
+
 			$referer = explode("/", $url, 4);
 			array_pop($referer);
-			
 			$referer = implode("/", $referer);
 		}
-		
-		switch($format){
-			
-			case "image":
-				curl_setopt(
-					$curl,
-					CURLOPT_HTTPHEADER,
-					[
-						"User-Agent: " . config::USER_AGENT,
-						"Accept: image/avif,image/webp,*/*",
-						"Accept-Language: en-US,en;q=0.5",
-						"Accept-Encoding: gzip, deflate, br",
-						"DNT: 1",
-						"Connection: keep-alive",
-						"Referer: {$referer}"
-					]
-				);
-				break;
-			
-			case "audio":
-				curl_setopt(
-					$curl,
-					CURLOPT_HTTPHEADER,
-					[
-						"User-Agent: " . config::USER_AGENT,
-						"Accept: audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5",
-						"Accept-Language: en-US,en;q=0.5",
-						"Accept-Encoding: gzip, deflate, br",
-						"DNT: 1",
-						"Connection: keep-alive",
-						"Referer: {$referer}"
-					]
-				);
-				break;
-		}
-		
-		// follow redirects
-		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, true);
-		curl_setopt($curl, CURLOPT_MAXREDIRS, 5);
-		curl_setopt($curl, CURLOPT_AUTOREFERER, 5);
-		
-		// set url
+
+		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, $url);
-		curl_setopt($curl, CURLOPT_ENCODING, ""); // default encoding
-		
-		// timeout + disable ssl
-		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
-		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT, 10);
-		curl_setopt($curl, CURLOPT_TIMEOUT, 30);
-		
+		curl_setopt($curl, CURLOPT_ENCODING, "");
+		curl_setopt($curl, CURLOPT_PROXY, "");
+		curl_setopt($curl, CURLOPT_NOPROXY, "*");
+		curl_setopt($curl, CURLOPT_FOLLOWLOCATION, false);
+		if(defined("CURLOPT_PROTOCOLS") && defined("CURLPROTO_HTTP") && defined("CURLPROTO_HTTPS")){
+
+			curl_setopt($curl, CURLOPT_PROTOCOLS, CURLPROTO_HTTP | CURLPROTO_HTTPS);
+		}
+		if(!$target["literal"]){
+
+			$pinned_address = filter_var($target["address"], FILTER_VALIDATE_IP, FILTER_FLAG_IPV6) !== false
+				? "[" . $target["address"] . "]"
+				: $target["address"];
+			curl_setopt(
+				$curl,
+				CURLOPT_RESOLVE,
+				[$target["host"] . ":" . $target["port"] . ":" . $pinned_address]
+			);
+		}
+
+		$accept = $format === "audio"
+			? "audio/webm,audio/ogg,audio/wav,audio/*;q=0.9,application/ogg;q=0.7,video/*;q=0.6,*/*;q=0.5"
+			: "image/avif,image/webp,*/*";
 		curl_setopt(
 			$curl,
-			CURLOPT_WRITEFUNCTION,
-			function($c, $data){
-				
-				if(curl_getinfo($c, CURLINFO_HTTP_CODE) !== 200){
-					
-					throw new Exception("Serber returned a non-200 code");
-				}
-				
-				echo $data;
-				return strlen($data);
-			}
+			CURLOPT_HTTPHEADER,
+			[
+				"User-Agent: " . config::USER_AGENT,
+				"Accept: " . $accept,
+				"Accept-Language: en-US,en;q=0.5",
+				"Accept-Encoding: gzip, deflate, br",
+				"DNT: 1",
+				"Connection: keep-alive",
+				"Referer: {$referer}"
+			]
 		);
-		
-		$this->empty_header = false;
-		$this->cont = false;
-		$this->headers_tmp = [];
-		$this->headers = [];
+		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
+		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
+		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, $remaining_milliseconds);
+		curl_setopt($curl, CURLOPT_TIMEOUT_MS, $remaining_milliseconds);
+
+		$status = null;
+		$headers = [];
+		$header_bytes = 0;
+		$headers_ready = false;
+		$callback_error = null;
 		curl_setopt(
 			$curl,
 			CURLOPT_HEADERFUNCTION,
-			function($c, $header){
-				
-				$head = trim($header);
-				$len = strlen($head);
-				
-				if($len === 0){
-					
-					$this->empty_header = true;
-					$this->headers_tmp = [];
-				}else{
-					
-					$this->empty_header = false;
-					$this->headers_tmp[] = $head;
+			function($curl, $line) use (
+				&$status,
+				&$headers,
+				&$header_bytes,
+				&$headers_ready,
+				&$callback_error,
+				$format,
+				$url
+			){
+
+				$line_length = strlen($line);
+				$header_bytes += $line_length;
+				if($header_bytes > 1048576){
+
+					$callback_error = "Remote response headers exceed the configured byte limit";
+					return 0;
 				}
-				
-				foreach($this->headers_tmp as $h){
-					
-					// parse headers
-					$h = explode(":", $h, 2);
-					
-					if(count($h) !== 2){
-						
-						if(curl_getinfo($c, CURLINFO_HTTP_CODE) !== 200){
-							
-							// not HTTP 200, probably a redirect
-							$this->cont = false;
-						}else{
-							
-							$this->cont = true;
-						}
-						
-						// is HTTP 200, just ignore that line
-						continue;
+
+				$header = rtrim($line, "\r\n");
+				if(preg_match('#^HTTP/[0-9.]+\s+([0-9]{3})(?:\s|$)#i', $header, $match)){
+
+					$status = (int)$match[1];
+					$headers = [];
+					$headers_ready = false;
+					return $line_length;
+				}
+				if($header !== ""){
+
+					$pair = explode(":", $header, 2);
+					if(count($pair) === 2){
+
+						$headers[strtolower(trim($pair[0]))] = trim($pair[1]);
 					}
-					
-					$this->headers[strtolower(trim($h[0]))] = trim($h[1]);
+					return $line_length;
 				}
-				
+
+				if($status !== 200){
+
+					return $line_length;
+				}
+				if(!isset($headers["content-type"])){
+
+					$callback_error = "Resource is not an {$format} (no Content-Type)";
+					return 0;
+				}
+
+				$content_type = strtolower($headers["content-type"]);
+				$octet_stream = stripos($content_type, "octet-stream") !== false;
+				if(stripos($content_type, $format . "/") === false && !$octet_stream){
+
+					$callback_error = "Resource reported invalid Content-Type";
+					return 0;
+				}
+
+				$filetype = $octet_stream ? "jpeg" : explode("/", explode(";", $content_type, 2)[0], 2)[1];
+				header("Content-Type: {$format}/{$filetype}");
+				$encoded = isset($headers["content-encoding"]) &&
+					strtolower(trim($headers["content-encoding"])) !== "identity";
 				if(
-					$this->cont &&
-					$this->empty_header
+					!$encoded &&
+					isset($headers["content-length"]) &&
+					preg_match('/\A[0-9]+\z/D', $headers["content-length"])
 				){
-					
-					// get content type
-					if(isset($this->headers["content-type"])){
-						
-						$octet_check = stripos($this->headers["content-type"], "octet-stream");
-						
-						if(
-							stripos($this->headers["content-type"], $this->format) === false &&
-							$octet_check === false
-						){
-							
-							throw new Exception("Resource reported invalid Content-Type");
-						}
-						
-					}else{
-						
-						throw new Exception("Resource is not an {$this->format} (no Content-Type)");
-					}
-					
-					$filetype = explode("/", $this->headers["content-type"]);
-					
-					if(!isset($filetype[1])){
-						
-						throw new Exception("Malformed Content-Type header");
-					}
-					
-					if($octet_check !== false){
-						
-						$filetype[1] = "jpeg";
-					}
-					
-					header("Content-Type: {$this->format}/{$filetype[1]}");
-					
-					// give payload size
-					if(isset($this->headers["content-length"])){
-						
-						header("Content-Length: {$this->headers["content-length"]}");
-					}
-					
-					// give filename
-					$this->getfilenameheader($this->headers, $this->url, $filetype[1]);
+
+					header("Content-Length: " . $headers["content-length"]);
 				}
-				
-				return strlen($header);
+				$this->getfilenameheader($headers, $url, $filetype);
+				$headers_ready = true;
+				return $line_length;
 			}
 		);
-		
+		curl_setopt(
+			$curl,
+			CURLOPT_WRITEFUNCTION,
+			function($curl, $data) use (&$status, &$headers_ready, &$callback_error){
+
+				$length = strlen($data);
+				if($status >= 300 && $status <= 309){
+
+					return $length;
+				}
+				if($status !== 200 || !$headers_ready){
+
+					$callback_error = "Remote server returned a non-200 response";
+					return 0;
+				}
+
+				echo $data;
+				return $length;
+			}
+		);
+
 		curl_exec($curl);
-		
-		if(curl_errno($curl)){
-			
-			throw new Exception(curl_error($curl));
-		}
-		
+		$curl_errno = curl_errno($curl);
+		$curl_error = curl_error($curl);
 		curl_close($curl);
+
+		if($callback_error !== null){
+
+			throw new Exception($callback_error);
+		}
+		if($curl_errno){
+
+			throw new Exception($curl_error);
+		}
+		if($status >= 300 && $status <= 309){
+
+			if(!isset($headers["location"])){
+
+				throw new Exception("Broken redirect");
+			}
+			return $this->stream(
+				$this->getabsoluteurl($headers["location"], $url),
+				$referer,
+				$format,
+				$redirectcount + 1,
+				$deadline
+			);
+		}
+		if($status !== 200){
+
+			throw new Exception("Remote server returned a non-200 response");
+		}
 	}
 	
 	public function getfilenameheader($headers, $url, $filetype = "jpg"){
@@ -638,7 +906,7 @@ class proxy{
 		){
 			
 			// format could not be found, but imagemagick can
-			// sometimes detect it? shit's fucked
+			// Some servers omit a usable file extension, so infer it when possible.
 			$format = false;
 		}
 		

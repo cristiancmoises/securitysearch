@@ -25,13 +25,8 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="sitemap" type="application/xml" href="/sitemap.xml">
 
-<!-- hreflang: 4get serves locale via the `lang` param / settings, not distinct paths.
-     The en/x-default tags are always valid. The pt-BR tag is valid ONLY if
-     https://securityops.co/?lang=pt-BR returns the localized page with a reciprocal
-     hreflang back to en. Remove the pt-BR line if you do not expose per-locale URLs. -->
 <link rel="alternate" hreflang="x-default" href="https://securityops.co/">
 <link rel="alternate" hreflang="en" href="https://securityops.co/">
-<link rel="alternate" hreflang="pt-BR" href="https://securityops.co/?lang=pt-BR">
 
 <meta property="og:site_name" content="Security Search">
 <meta property="og:title" content="Security Search — Privacy-first proxy search engine">
@@ -43,7 +38,6 @@
 <meta property="og:image:height" content="86">
 <meta property="og:image:alt" content="Security Search logo">
 <meta property="og:locale" content="en_US">
-<meta property="og:locale:alternate" content="pt_BR">
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Security Search — Privacy-first proxy search">
@@ -125,19 +119,19 @@
    TOKENS
    ============================================================ */
 body.home{
-    --fg:    #f8fafc;
-    --fg-2:  #d7dde2;
-    --fg-3:  #aebbc4;
-    --fg-4:  #8d9aa4;
+    --fg:    var(--ebdbb2, #f8fafc);
+    --fg-2:  var(--bdae93, #d7dde2);
+    --fg-3:  var(--a89984, #aebbc4);
+    --fg-4:  var(--928374, #8d9aa4);
 
     --net:   var(--8ec07c, #29d9ed);
     --tor:   #b794ff;
-    --warn:  #ffb454;
+    --warn:  var(--yellow, #ffb454);
 
-    --glass-1: rgba(2,10,14,0.90);
-    --glass-2: rgba(2,10,14,0.96);
-    --glass-edge:   rgba(208,250,255,0.22);
-    --glass-edge-2: rgba(208,250,255,0.34);
+    --glass-1: var(--282828, #071116);
+    --glass-2: var(--1d2021, #02070a);
+    --glass-edge:   var(--504945, #17323b);
+    --glass-edge-2: var(--504945, #17323b);
     --glass-blur:   blur(18px) saturate(160%);
     --glass-shadow: 0 4px 30px rgba(0,0,0,0.18);
 
@@ -146,7 +140,7 @@ body.home{
     --fs-md:  clamp(.84rem, .76rem + .35vw, .94rem);
     --fs-lg:  clamp(1rem,   .88rem + .5vw, 1.15rem);
 
-    background-color: #02070a;
+    background-color: var(--1d2021, #02070a);
     color: var(--fg);
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-weight: 400;
@@ -156,7 +150,6 @@ body.home{
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
 }
-body.home::before{ opacity: .58; }
 
 body.home a{ color: inherit; text-decoration: none; }
 body.home a:focus-visible{
@@ -221,8 +214,10 @@ body.home a:focus-visible{
 }
 .btn-icon:hover{
     color: var(--net);
-    background: rgba(41,217,237,.08);
-    border-color: rgba(41,217,237,.3);
+    background: var(--glass-1);
+    background: color-mix(in srgb, var(--net) 8%, transparent);
+    border-color: var(--net);
+    border-color: color-mix(in srgb, var(--net) 30%, transparent);
 }
 .btn-icon svg{ width: 16px; height: 16px; transition: transform .4s cubic-bezier(.4,.2,.2,1); }
 .btn-icon:hover svg{ transform: rotate(60deg); }
@@ -268,7 +263,8 @@ body.home a:focus-visible{
     transition: border-color .2s, box-shadow .2s, transform .2s;
 }
 .home .searchbox:focus-within{
-    border-color: rgba(41,217,237,.48);
+    border-color: var(--net);
+    border-color: color-mix(in srgb, var(--net) 48%, transparent);
     box-shadow: 0 8px 40px rgba(0,0,0,.25);
     transform: translateY(-1px);
 }
@@ -311,7 +307,11 @@ body.home a:focus-visible{
     gap: .5rem;
     align-self: stretch;
 }
-.home .searchbox button:hover{ background: rgba(255,255,255,.06); color: var(--net); }
+.home .searchbox button:hover{
+    background: var(--glass-1);
+    background: color-mix(in srgb, var(--fg) 6%, transparent);
+    color: var(--net);
+}
 .home .searchbox svg{ width: 13px; height: 13px; fill: currentColor; }
 
 .sub-hint{
@@ -401,14 +401,16 @@ body.home a:focus-visible{
     color: var(--fg-4);
     margin: 0 0 .35rem;
     padding-bottom: .25rem;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid var(--glass-edge);
+    border-bottom-color: color-mix(in srgb, var(--fg) 5%, transparent);
 }
 .svc-item{
     display: flex;
     flex-direction: column;
     gap: .1rem;
     padding: .35rem 0;
-    border-bottom: 1px dashed rgba(255,255,255,0.04);
+    border-bottom: 1px dashed var(--glass-edge);
+    border-bottom-color: color-mix(in srgb, var(--fg) 4%, transparent);
 }
 .svc-item:last-child{ border-bottom: none; }
 .svc-item-name{
@@ -442,7 +444,8 @@ body.home a:focus-visible{
 .services-foot{
     margin-top: .9rem;
     padding-top: .7rem;
-    border-top: 1px solid rgba(255,255,255,0.05);
+    border-top: 1px solid var(--glass-edge);
+    border-top-color: color-mix(in srgb, var(--fg) 5%, transparent);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -453,7 +456,8 @@ body.home a:focus-visible{
 }
 .services-foot code{
     color: var(--net);
-    background: rgba(41,217,237,.08);
+    background: var(--glass-2);
+    background: color-mix(in srgb, var(--net) 8%, transparent);
     padding: .05rem .3rem;
     border-radius: 3px;
 }
@@ -467,7 +471,8 @@ body.home a:focus-visible{
     justify-content: center;
     gap: 1rem;
     padding: .65rem .9rem;
-    background: rgba(2,10,14,.76);
+    background: var(--glass-2);
+    background: color-mix(in srgb, var(--glass-2) 76%, transparent);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-edge);
@@ -489,7 +494,8 @@ body.home a:focus-visible{
     font: inherit;
     font-size: var(--fs-xs);
     color: var(--fg-2);
-    background: rgba(255,255,255,0.04);
+    background: var(--glass-1);
+    background: color-mix(in srgb, var(--fg) 4%, transparent);
     border: 1px solid var(--glass-edge);
     border-radius: 999px;
     cursor: pointer;
@@ -500,8 +506,10 @@ body.home a:focus-visible{
 }
 .svc-toggle:hover{
     color: var(--net);
-    background: rgba(41,217,237,.06);
-    border-color: rgba(41,217,237,.3);
+    background: var(--glass-1);
+    background: color-mix(in srgb, var(--net) 6%, transparent);
+    border-color: var(--net);
+    border-color: color-mix(in srgb, var(--net) 30%, transparent);
 }
 .svc-toggle:focus-visible{
     outline: 1px solid var(--net);
@@ -540,7 +548,7 @@ body.home a:focus-visible{
 @supports not (backdrop-filter: blur(1px)){
     .btn-icon, .foot-strip, .svc-toggle, .services-panel,
     .home .searchbox{
-        background: rgba(14,14,18,0.9);
+        background: var(--glass-1);
     }
 }
 
@@ -553,8 +561,8 @@ body.home a:focus-visible{
     .foot-strip{ animation-delay: .16s; }
 }
 @keyframes rise{
-    from{ opacity: 0; transform: translateY(6px); }
-    to  { opacity: 1; transform: translateY(0); }
+    from{ transform: translateY(6px); }
+    to  { transform: translateY(0); }
 }
 
 /* Respect reduced-motion across every animation/transition (WCAG 2.3.3). */
@@ -577,26 +585,6 @@ body.home a:focus-visible{
 @media (max-width: 480px){
     .home .searchbox button .label{ display: none; }
     .foot-ext{ justify-content: center; }
-}
-
-/* The SecOps backdrop is decorative; content controls stay unmistakable. */
-body.home::after{ opacity: .08; }
-body.home .btn-icon,
-body.home .searchbox,
-body.home .foot-strip,
-body.home .services-panel{
-    background: rgba(2, 10, 14, .95) !important;
-}
-body.home .searchbox input,
-body.home .searchbox button{
-    color: #f8fafc !important;
-}
-body.home .sub-hint,
-body.home .searchbox input::placeholder{
-    color: #bdc9d0 !important;
-}
-body.home .logo img{
-    filter: brightness(1.65) contrast(1.2) drop-shadow(0 6px 20px rgba(0,0,0,.5));
 }
 
 /* ============================================================

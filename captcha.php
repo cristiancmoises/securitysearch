@@ -12,7 +12,7 @@ if(
 	
 	http_response_code(401);
 	header("Content-Type: text/plain");
-	echo "Fuck my feathered cloaca";
+	echo "Invalid or expired CAPTCHA request";
 	die();
 }
 
