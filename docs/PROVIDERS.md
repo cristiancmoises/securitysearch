@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.8 keeps **Google** as the configured default for web and
+Security Search v0.9.10 keeps **Google** as the configured default for web and
 image searches. Users can select another provider for one request with the
 **Scraper** filter or save a preference in **Settings**. Brave is selectable for
 both web and image search; availability still depends on Brave accepting the

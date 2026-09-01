@@ -57,15 +57,6 @@ class backend{
 	
 	// this function is also called directly on nextpage
 	public function assign_proxy(&$curlproc, string $ip){
-		$source_scraper = $this->scraper === "google_cse" ? "GOOGLE" : strtoupper($this->scraper);
-		$source_constant = "config::SOURCE_IP_" . $source_scraper;
-		if(defined($source_constant)){
-			$source_ip = constant($source_constant);
-			if(is_string($source_ip) && $source_ip !== "" && filter_var($source_ip, FILTER_VALIDATE_IP)){
-				curl_setopt($curlproc, CURLOPT_INTERFACE, $source_ip);
-			}
-		}
-		
 		// parse proxy line
 		[
 			$type,
@@ -78,8 +69,8 @@ class backend{
 		switch($type){
 			
 			case "raw_ip":
+				$this->assign_source_interface($curlproc);
 				return;
-				break;
 			
 			case "http":
 			case "https":
@@ -114,6 +105,54 @@ class backend{
 			
 			curl_setopt($curlproc, CURLOPT_PROXYUSERPWD, $username . ":" . $password);
 		}
+	}
+
+	private function assign_source_interface(&$curlproc){
+
+		$google_scrapers = ["google", "google_cse", "google_api"];
+		$source_scraper = in_array($this->scraper, $google_scrapers, true) ? "GOOGLE" : strtoupper($this->scraper);
+		$source_constant = "config::SOURCE_IP_" . $source_scraper;
+		if(!defined($source_constant)){
+
+			return;
+		}
+
+		$source_ip = constant($source_constant);
+		if($source_ip === false || $source_ip === null || $source_ip === ""){
+
+			return;
+		}
+
+		if(!is_string($source_ip) || filter_var($source_ip, FILTER_VALIDATE_IP) === false){
+
+			throw new Exception("The configured provider source IP is invalid.");
+		}
+
+		$interfaces = net_get_interfaces();
+		$source_packed = inet_pton(preg_replace('/%.+$/', '', $source_ip));
+		$assigned = false;
+		if(is_array($interfaces)){
+
+			foreach($interfaces as $interface){
+
+				foreach(($interface["unicast"] ?? []) as $address){
+
+					$local_ip = preg_replace('/%.+$/', '', (string)($address["address"] ?? ""));
+					if($local_ip !== "" && inet_pton($local_ip) === $source_packed){
+
+						$assigned = true;
+						break 2;
+					}
+				}
+			}
+		}
+
+		if(!$assigned){
+
+			throw new Exception("The configured provider source IP is not assigned to this container. Remove FOURGET_SOURCE_IP_* or configure container networking for that address.");
+		}
+
+		curl_setopt($curlproc, CURLOPT_INTERFACE, $source_ip);
 	}
 	
 	// API key rotation

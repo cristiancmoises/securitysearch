@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . "/provider_availability.php";
+
 class frontend{
 	
 	public function load($template, $replacements = []){
@@ -1095,6 +1097,14 @@ class frontend{
 					]
 				];
 				break;
+		}
+
+		if(
+			isset($filters["scraper"]["option"]["google_api"]) &&
+			!securitysearch_google_api_available()
+		){
+
+			unset($filters["scraper"]["option"]["google_api"]);
 		}
 		
 		// get scraper name from user input, or default out to preferred scraper

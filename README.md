@@ -6,7 +6,12 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.8
+## Current source version: v0.9.10
+
+- v0.9.10 fixes container/source-IP binding, validates unreadable proxy pools,
+  persists all provider proxy variables in Compose, supports a bounded
+  direct/Tor Brave pool, and hides Google API until a usable private key is
+  mounted. Search results remain server-rendered and usable without JavaScript.
 
 - v0.9.8 makes the Google/Brave egress controls usable from the supported
   Compose file: host-defined private pool names are passed through without

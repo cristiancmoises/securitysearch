@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+include_once __DIR__ . "/lib/provider_availability.php";
 
 include "data/config.php";
 
@@ -405,6 +406,30 @@ $settings = [
 		]
 	]
 ];
+
+if(!securitysearch_google_api_available()){
+
+	foreach($settings as &$setting_group){
+
+		foreach($setting_group["settings"] as &$setting){
+
+			if(!in_array(($setting["parameter"] ?? null), ["scraper_web", "scraper_images"], true)){
+
+				continue;
+			}
+
+			$setting["options"] = array_values(array_filter(
+				$setting["options"],
+				function($option){
+
+					return ($option["value"] ?? null) !== "google_api";
+				}
+			));
+		}
+		unset($setting);
+	}
+	unset($setting_group);
+}
 
 /*
 	Set theme collection

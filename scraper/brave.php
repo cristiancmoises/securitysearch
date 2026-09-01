@@ -223,11 +223,11 @@ class brave{
 				return $last_page;
 			}
 
-			// Retrying the same datacenter address only repeats the challenge and
-			// increases latency. Direct egress fails fast; a configured pool rotates
-			// to a different address for the remaining bounded attempts.
+			// Retrying the same address only repeats the challenge and increases
+			// latency. Unconfigured direct egress fails fast; a configured pool
+			// (including a reviewed raw/Tor pool) rotates for bounded attempts.
 			if(
-				$proxy === "raw_ip::::" ||
+				config::PROXY_BRAVE === false ||
 				$attempt + 1 >= self::CHALLENGE_ATTEMPTS
 			){
 
