@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.7 keeps **Google** as the configured default for web and
+Security Search v0.9.8 keeps **Google** as the configured default for web and
 image searches. Users can select another provider for one request with the
 **Scraper** filter or save a preference in **Settings**. Brave is selectable for
 both web and image search; availability still depends on Brave accepting the
@@ -119,12 +119,41 @@ private proxy pool. For a container deployment, keep the reviewed
 read-only `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount.
 Do not commit secrets or include a private pool in a release archive.
 
+### VPS egress/IP recovery
+
+When Google rate-limits a datacenter address, change the address seen by the
+upstream with a legitimate proxy/VPN egress pool; an application restart cannot
+change the VPS public IP by itself. The Compose service now passes through
+`FOURGET_PROXY_GOOGLE` and `FOURGET_PROXY_BRAVE` when those host variables are
+defined:
+
+```bash
+export FOURGET_PROXY_GOOGLE=google-egress
+install -m 600 /path/to/google-egress.txt /etc/securitysearch/google-egress.txt
+./scripts/check-egress.sh /etc/securitysearch/google-egress.txt
+```
+
+The pool file uses the existing `protocol:host:port:user:password` format and
+must be mounted read-only at `data/proxies` (or supplied through a private
+Compose override). The checker performs only public-IP and Google `robots.txt`
+probes; it never sends a search query or prints proxy credentials. After it
+reports `google_http=200`, recreate the service so the generated config picks up
+the pool:
+
+```bash
+docker compose up -d --force-recreate
+```
+
+Use an egress provider you control or are authorized to use. Do not copy a
+random public proxy list or route queries through another 4get instance: that
+leaks searches to an unrelated operator and is not a reliable rate-limit fix.
+
 ### Optional Google API provider
 
 `google_api` remains an opt-in provider for operators who already have Google
 Custom Search JSON API credentials. It reads keys from
 `data/api_keys/google_api.txt`, which is excluded from source releases. The
-tracked production configuration contains zero Google API keys, and the v0.9.7
+tracked production configuration contains zero Google API keys, and the v0.9.8
 packaging rules exclude that directory. Selecting `google_api` without privately
 provisioning a key produces a configuration error. It is not an automatic
 fallback for `google`.

@@ -7,7 +7,12 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.7
+## Versão atual do código-fonte: v0.9.8
+
+- A v0.9.8 torna utilizável a configuração de saída do Google/Brave no Compose
+  suportado: nomes de pools privados definidos no host são repassados sem
+  colocar credenciais no Git. `scripts/check-egress.sh` verifica o IP público e
+  o acesso ao Google sem enviar consultas de busca.
 
 - A v0.9.7 recupera grades de imagens quando miniaturas do provedor ficam
   indisponíveis, inicia a descoberta de movimento antes que páginas grandes de
@@ -163,6 +168,20 @@ Configurações importantes:
 Para um pool privado, descomente o volume opcional somente leitura
 `./data/proxies:/var/www/html/4get/data/proxies:ro` no Compose. Mantenha o
 arquivo não rastreado com credenciais protegido no host; nunca o publique.
+
+Se o endereço de saída do VPS estiver limitado pelo Google, defina
+`FOURGET_PROXY_GOOGLE` (ou `FOURGET_PROXY_BRAVE`) com o nome do pool privado no
+ambiente do host e valide-o antes de recriar o serviço:
+
+```bash
+./scripts/check-egress.sh /caminho/privado/google-egress.txt
+docker compose up -d --force-recreate
+```
+
+O verificador faz somente sondas do IP público e do `robots.txt` do Google, sem
+enviar consultas de busca ou exibir credenciais. Use apenas um proxy/VPN
+legítimo e controlado; encaminhar consultas por outra instância 4get ou por
+listas públicas aleatórias não é privado nem confiável.
 
 Leia [docs/PROVIDERS.md](docs/PROVIDERS.md) para precedência e limitações dos
 provedores e [docs/configure.md](docs/configure.md) para a configuração geral.

@@ -6,7 +6,12 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.7
+## Current source version: v0.9.8
+
+- v0.9.8 makes the Google/Brave egress controls usable from the supported
+  Compose file: host-defined private pool names are passed through without
+  placing credentials in Git. `scripts/check-egress.sh` verifies each pool's
+  public IP and Google reachability without issuing a search query.
 
 - v0.9.7 makes image grids recover from unavailable provider thumbnails, starts
   motion discovery before large result pages can block it, and automatically
@@ -107,6 +112,13 @@ and the upstream [configuration guide](docs/configure.md).
 For a private pool, uncomment the optional read-only
 `./data/proxies:/var/www/html/4get/data/proxies:ro` Compose mount and keep the
 untracked credential file restricted on the host.
+
+If the VPS egress address is rate-limited, set `FOURGET_PROXY_GOOGLE` (or
+`FOURGET_PROXY_BRAVE`) to the private pool name in the host environment and
+validate its address with `./scripts/check-egress.sh /path/to/pool.txt` before
+recreating the service. The checker makes only public-IP and Google robots
+probes. A legitimate proxy/VPN pool changes the upstream egress; using another
+4get instance or a random public proxy is neither private nor reliable.
 
 For NSFW-capable provider filters, an explicit `nsfw` request parameter takes
 precedence over the saved `nsfw` cookie, which takes precedence over

@@ -29,6 +29,11 @@ services:
       - FOURGET_BOT_PROTECTION=0
       - FOURGET_MAX_SEARCHES=10000
       - FOURGET_INSTANCES=https://securityops.co
+      # Optional private egress pools. Set only the pool name in the host
+      # environment or .env; keep the matching credential file outside Git.
+      # Compose passes these entries through only when they are defined.
+      - FOURGET_PROXY_GOOGLE
+      - FOURGET_PROXY_BRAVE
       # Tells PHP that the front-facing protocol is HTTPS even though
       # NPM hits us over HTTP.  Only meaningful behind a TLS terminator.
       - HTTPS=on
