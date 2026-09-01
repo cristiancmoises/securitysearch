@@ -47,7 +47,7 @@ em [securityops.co](https://securityops.co/).
 
 - A página inicial prioriza o logotipo e a busca, com apenas Configurações, uma
   indicação curta de privacidade/provedor e dois links discretos para
-  [SecurityTops](https://securitytops.co/) e
+  [Chat](https://chat.securityops.co/) e
   [SecurityOps Brasil](https://securityops.com.br/).
 - SecOps é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
@@ -273,7 +273,7 @@ A hierarquia da página inicial é intencionalmente curta:
 2. o logotipo Security Search;
 3. o campo e a ação principal de busca;
 4. uma indicação compacta: Google padrão, Brave disponível;
-5. links de texto discretos para `securitytops.co` e `securityops.com.br`.
+5. links de texto discretos para `chat.securityops.co` e `securityops.com.br`.
 
 Não há grade promocional de botões ou cartões competindo com a busca. O fluxo
 principal funciona sem JavaScript, possui foco visível por teclado, alvos

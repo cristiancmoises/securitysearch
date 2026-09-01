@@ -44,7 +44,7 @@ Privacy-first proxy metasearch engine. Hardened fork of
 
 - The landing page is search-first: Settings, the Security Search logo, the
   primary search field, a compact privacy/provider hint, and two quiet links to
-  [SecurityTops](https://securitytops.co/) and
+  [Chat](https://chat.securityops.co/) and
   [SecurityOps Brasil](https://securityops.com.br/).
 - SecOps is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;

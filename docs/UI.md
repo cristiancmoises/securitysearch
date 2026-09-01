@@ -12,7 +12,7 @@ The first page presents:
 2. The Security Search logo.
 3. The primary search field and submit action.
 4. One compact hint: Google is the default and Brave is available.
-5. Quiet text links to [securitytops.co](https://securitytops.co/) and
+5. Quiet text links to [Chat](https://chat.securityops.co/) and
    [securityops.com.br](https://securityops.com.br/).
 
 The portal links are not large buttons or promotional cards. Additional
