@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.2 defaults to **Google** for web and image searches.
+Security Search v0.9.3 defaults to **Google** for web and image searches.
 The provider can be changed per request with the **Scraper** picker, or saved
 from **Settings** as a browser preference. Brave is always available in both
 web and image search.
@@ -55,6 +55,24 @@ API clients can select providers with `scraper`:
 When no `scraper` is supplied, the API uses the same Google defaults as the
 browser UI. Requests with a `scraper` parameter always take precedence over a
 saved cookie/default.
+
+## Image pagination
+
+Image results always include a server-rendered **Next page** link when the
+selected provider returns a continuation token. Automatic loading is a
+progressive enhancement and is enabled by default:
+
+- With no `image_infinite` cookie, or with `image_infinite=yes`, supported
+  browsers fetch and append the next page as the link approaches the viewport.
+- Settings exposes **Load more image results automatically while scrolling**;
+  selecting **No** saves `image_infinite=no` and does not load the enhancement.
+- Browsers without `IntersectionObserver` or `fetch` use the normal link.
+- When an automatic request fails or returns no usable image items, automatic
+  retries stop. The consumed continuation URL is replaced with a first-page
+  restart that preserves the query and filters.
+
+This preserves page-by-page navigation without JavaScript and avoids making an
+upstream provider failure look like an application failure.
 
 ## Operations
 

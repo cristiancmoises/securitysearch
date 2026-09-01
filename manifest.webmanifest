@@ -1,0 +1,10 @@
+{
+  "name": "Security Search",
+  "short_name": "Security Search",
+  "description": "Privacy-first proxy metasearch engine",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#02070a",
+  "theme_color": "#02070a"
+}

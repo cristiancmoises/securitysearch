@@ -4,6 +4,13 @@ class proxy{
 	
 	public const req_web = 0;
 	public const req_image = 1;
+	private $cache;
+	private $url;
+	private $format;
+	private $empty_header;
+	private $cont;
+	private $headers_tmp;
+	private $headers;
 	
 	public function __construct($cache = true){
 		
@@ -199,7 +206,7 @@ class proxy{
 		curl_setopt($curl, CURLOPT_TIMEOUT, 30);
 		
 		// limit size of payloads
-		curl_setopt($curl, CURLOPT_BUFFERSIZE, 1024);
+		curl_setopt($curl, CURLOPT_BUFFERSIZE, 65536);
 		curl_setopt($curl, CURLOPT_NOPROGRESS, false);
 		curl_setopt(
 			$curl,

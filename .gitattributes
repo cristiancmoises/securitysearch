@@ -2,3 +2,4 @@
 securitysearch.zip export-ignore
 *.bak export-ignore
 *.bak.* export-ignore
+data/api_keys/ export-ignore

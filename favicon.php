@@ -11,6 +11,8 @@ include "data/config.php";
 new favicon($_GET["s"]);
 
 class favicon{
+	private $proxy;
+	private $filename;
 	
 	public function __construct($url){
 		

@@ -4,8 +4,13 @@ class google_cse{
 	
 	public const req_html = 0;
 	public const req_js = 1;
+	private const TOKEN_TTL = 300;
+	private $backend;
+	private $fuckhtml;
+	private $backend_name;
 	
 	public function __construct($backend_name = "google_cse"){
+		$this->backend_name = $backend_name;
 		
 		include "lib/backend.php";
 		$this->backend = new backend($backend_name);
@@ -483,6 +488,71 @@ class google_cse{
 		curl_close($curlproc);
 		return $data;
 	}
+
+	private function decode_response($payload){
+
+		if(
+			!preg_match(
+				'/google\.search\.cse\.[A-Za-z0-9]+\(([\S\s]*)\);/i',
+				$payload,
+				$match
+			)
+		){
+
+			throw new Exception("Failed to grep JSON");
+		}
+
+		$json = json_decode($match[1], true);
+		if(!is_array($json)){
+
+			throw new Exception("Google returned malformed JSON");
+		}
+
+		return $json;
+	}
+
+	private function request_cse($proxy, &$req_params, $refresh_on_failure){
+
+		$payload =
+			$this->get(
+				$proxy,
+				"https://cse.google.com/cse/element/v1",
+				$req_params,
+				self::req_js
+			);
+
+		$json = $this->decode_response($payload);
+		$error_text = isset($json["error"]) ? json_encode($json["error"]) : "";
+
+		if(
+			!$refresh_on_failure ||
+			$error_text === "" ||
+			!preg_match(
+				'/cse_tok|token|expired|unauthorized access to internal api|"reason":"forbidden"/i',
+				$error_text
+			)
+		){
+
+			return $json;
+		}
+
+		// Google also reports rejected historical CSE tokens as a 403
+		// "forbidden" internal-API error without naming the token. Refresh once;
+		// never cache query responses or loop on provider errors.
+		$params = $this->generate_token($proxy, true);
+		$req_params["cse_tok"] = $params["token"];
+		$req_params["cselibv"] = $params["lib"];
+
+		return
+			$this->decode_response(
+				$this->get(
+					$proxy,
+					"https://cse.google.com/cse/element/v1",
+					$req_params,
+					self::req_js
+				)
+			);
+	}
 	
 	public function web($get){
 		
@@ -493,6 +563,7 @@ class google_cse{
 		// https://cse.google.com/cse/element/v1?rsz=filtered_cse&num=10&hl=en&source=gcsc&start=10&cselibv=8fa85d58e016b414&cx=d4e68b99b876541f0&q=asmr&safe=active&cse_tok=AB-tC_6RPUTmB4XK0lE9e1AFFC5r%3A1729563832926&lr=&cr=&gl=&filter=0&sort=&as_oq=&as_sitesearch=&exp=cc%2Capo&callback=google.search.cse.api3595&rurl=https%3A%2F%2Fcse.google.com%2Fcse%3Fcx%3Dd4e68b99b876541f0%23gsc.tab%3D0%26gsc.q%3Dtest%26gsc.sort%3D
 		
 		if($get["npt"]){
+			$refresh_token = true;
 			
 			[$req_params, $proxy] =
 				$this->backend->get(
@@ -506,18 +577,11 @@ class google_cse{
 					true
 				);
 			
-			$json =
-				$this->get(
-					$proxy,
-					"https://cse.google.com/cse/element/v1",
-					$req_params,
-					self::req_js
-				);
-			
 		}else{
 			
 			$proxy = $this->backend->get_ip();
 			$params = $this->generate_token($proxy);
+			$refresh_token = $params["cached"];
 			
 			//$json = file_get_contents("scraper/google_cse.txt");
 			$req_params = [
@@ -550,32 +614,17 @@ class google_cse{
 				$req_params["nfpr"] = "1";
 			}
 			
-			$json =
-				$this->get(
-					$proxy,
-					"https://cse.google.com/cse/element/v1",
-					$req_params,
-					self::req_js
-				);
-			
+		}
+
+		$json = $this->request_cse($proxy, $req_params, $refresh_token);
+
+		if(!$get["npt"]){
+
 			unset($req_params["gs_l"]);
 			$req_params["start"] = 0;
 		}
 		
 		$req_params["start"] += 20;
-		
-		if(
-			!preg_match(
-				'/google\.search\.cse\.[A-Za-z0-9]+\(([\S\s]*)\);/i',
-				$json,
-				$json
-			)
-		){
-			
-			throw new Exception("Failed to grep JSON");
-		}
-		
-		$json = json_decode($json[1], true);
 		
 		if(isset($json["error"])){
 			
@@ -778,6 +827,7 @@ class google_cse{
 	public function image($get){
 		
 		if($get["npt"]){
+			$refresh_token = true;
 			
 			[$req_params, $proxy] =
 				$this->backend->get(
@@ -791,18 +841,11 @@ class google_cse{
 					true
 				);
 			
-			$json =
-				$this->get(
-					$proxy,
-					"https://cse.google.com/cse/element/v1",
-					$req_params,
-					self::req_js
-				);
-			
 		}else{
 			
 			$proxy = $this->backend->get_ip();
 			$params = $this->generate_token($proxy);
+			$refresh_token = $params["cached"];
 			
 			//$json = file_get_contents("scraper/google_cse.txt");
 			$req_params = [
@@ -863,31 +906,16 @@ class google_cse{
 				}
 			}
 			
-			$json =
-				$this->get(
-					$proxy,
-					"https://cse.google.com/cse/element/v1",
-					$req_params,
-					self::req_js
-				);
-			
+		}
+
+		$json = $this->request_cse($proxy, $req_params, $refresh_token);
+
+		if(!$get["npt"]){
+
 			$req_params["start"] = 0;
 		}
 		
 		$req_params["start"] += 20;
-		
-		if(
-			!preg_match(
-				'/google\.search\.cse\.[A-Za-z0-9]+\(([\S\s]*)\);/i',
-				$json,
-				$json
-			)
-		){
-			
-			throw new Exception("Failed to grep JSON");
-		}
-		
-		$json = json_decode($json[1], true);
 		
 		if(isset($json["error"])){
 			
@@ -952,7 +980,35 @@ class google_cse{
 		return $out;
 	}
 	
-	private function generate_token($proxy){
+	private function generate_token($proxy, $force_refresh = false){
+
+		$cache_key =
+			"g.cse.token." .
+			hash(
+				"sha256",
+				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . $proxy
+			);
+
+		if($force_refresh){
+
+			apcu_delete($cache_key);
+		}else{
+
+			$cached = apcu_fetch($cache_key, $hit);
+			if(
+				$hit &&
+				is_array($cached) &&
+				isset($cached["token"], $cached["lib"]) &&
+				is_string($cached["token"]) &&
+				is_string($cached["lib"]) &&
+				$cached["token"] !== "" &&
+				$cached["lib"] !== ""
+			){
+
+				$cached["cached"] = true;
+				return $cached;
+			}
+		}
 		
 		$html =
 			$this->get(
@@ -1021,10 +1077,14 @@ class google_cse{
 		
 		$json = json_decode($json[1], true);
 		
-		return [
+		$params = [
 			"token" => $json["cse_token"],
 			"lib" => $json["cselibVersion"]
 		];
+
+		apcu_store($cache_key, $params, self::TOKEN_TTL);
+		$params["cached"] = false;
+		return $params;
 	}
 	
 	private function unshit_thumb($url){

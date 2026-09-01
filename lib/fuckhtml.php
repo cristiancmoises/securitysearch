@@ -1,5 +1,7 @@
 <?php
 class fuckhtml{
+	private $html = "";
+	private $strlen = 0;
 	
 	public function __construct($html = null, $isfile = false){
 		

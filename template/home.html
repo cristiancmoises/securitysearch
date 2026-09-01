@@ -5,10 +5,10 @@
 <title>Security Search — Privacy-First Metasearch Engine</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Privacy-first metasearch engine. No tracking, no ads, no JavaScript required. Anonymous results from Google, DuckDuckGo, Brave, Yandex, Startpage & more.">
+<meta name="description" content="Privacy-first proxy metasearch engine. No tracking, no ads, and no JavaScript required for core search. Google is the default; Brave remains available.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="referrer" content="no-referrer">
-<meta name="theme-color" content="#0a0a0c">
+<meta name="theme-color" content="#02070a">
 <meta name="color-scheme" content="dark">
 <meta name="author" content="Cristian Cezar Moisés / SecurityOps">
 <meta name="keywords" content="privacy search, metasearch, anonymous search, proxy search, no-tracking search, secure search, SearxNG alternative, 4get instance, securityops">
@@ -35,29 +35,27 @@
 
 <meta property="og:site_name" content="Security Search">
 <meta property="og:title" content="Security Search — Privacy-first proxy search engine">
-<meta property="og:description" content="Anonymous metasearch with no tracking, no ads, no JavaScript required.">
+<meta property="og:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript required for core search.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://securityops.co/">
 <meta property="og:image" content="https://securityops.co/banner/securitysearch.webp">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
+<meta property="og:image:width" content="400">
+<meta property="og:image:height" content="86">
 <meta property="og:image:alt" content="Security Search logo">
 <meta property="og:locale" content="en_US">
 <meta property="og:locale:alternate" content="pt_BR">
 
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Security Search — Privacy-first proxy search">
-<meta name="twitter:description" content="Anonymous metasearch with no tracking, no ads, no JavaScript required.">
+<meta name="twitter:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript required for core search.">
 <meta name="twitter:image" content="https://securityops.co/banner/securitysearch.webp">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
 
-<!-- Self-hosted font + LCP image preloads (no third-party requests). -->
+<!-- LCP image preload (no third-party requests). -->
 <link rel="preload" as="image" href="/banner/securitysearch.webp" fetchpriority="high">
-<link rel="preload" as="font" type="font/woff2" href="/static/fonts/jetbrains-mono-400.woff2" crossorigin>
-<link rel="preload" as="font" type="font/woff2" href="/static/fonts/jetbrains-mono-600.woff2" crossorigin>
 
 <link rel="stylesheet" href="/static/style.css?v{%version%}">
 {%style%}
@@ -74,8 +72,8 @@
       "logo": {
         "@type": "ImageObject",
         "url": "https://securityops.co/banner/securitysearch.webp",
-        "width": 1200,
-        "height": 630
+        "width": 400,
+        "height": 86
       },
       "sameAs": [
         "https://git.securityops.co/cristiancmoises",
@@ -124,40 +122,6 @@
 
 <style>
 /* ============================================================
-   FONTS — self-hosted JetBrains Mono (privacy: no third party)
-   Weights actually used in the CSS: 400 / 500 / 600 / 700.
-   Drop these woff2 files into /static/fonts/.
-   ============================================================ */
-@font-face{
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("/static/fonts/jetbrains-mono-400.woff2") format("woff2");
-}
-@font-face{
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url("/static/fonts/jetbrains-mono-500.woff2") format("woff2");
-}
-@font-face{
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 600;
-    font-display: swap;
-    src: url("/static/fonts/jetbrains-mono-600.woff2") format("woff2");
-}
-@font-face{
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 700;
-    font-display: swap;
-    src: url("/static/fonts/jetbrains-mono-700.woff2") format("woff2");
-}
-
-/* ============================================================
    TOKENS
    ============================================================ */
 body.home{
@@ -166,14 +130,14 @@ body.home{
     --fg-3:  #aebbc4;
     --fg-4:  #8d9aa4;
 
-    --net:   #5ce28a;
+    --net:   var(--8ec07c, #29d9ed);
     --tor:   #b794ff;
     --warn:  #ffb454;
 
-    --glass-1: rgba(2,8,5,0.90);
-    --glass-2: rgba(2,8,5,0.96);
-    --glass-edge:   rgba(215,255,231,0.24);
-    --glass-edge-2: rgba(215,255,231,0.36);
+    --glass-1: rgba(2,10,14,0.90);
+    --glass-2: rgba(2,10,14,0.96);
+    --glass-edge:   rgba(208,250,255,0.22);
+    --glass-edge-2: rgba(208,250,255,0.34);
     --glass-blur:   blur(18px) saturate(160%);
     --glass-shadow: 0 4px 30px rgba(0,0,0,0.18);
 
@@ -182,7 +146,7 @@ body.home{
     --fs-md:  clamp(.84rem, .76rem + .35vw, .94rem);
     --fs-lg:  clamp(1rem,   .88rem + .5vw, 1.15rem);
 
-    background-color: #020704;
+    background-color: #02070a;
     color: var(--fg);
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-weight: 400;
@@ -192,7 +156,7 @@ body.home{
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
 }
-body.home::before{ opacity: .42; }
+body.home::before{ opacity: .58; }
 
 body.home a{ color: inherit; text-decoration: none; }
 body.home a:focus-visible{
@@ -237,37 +201,14 @@ body.home a:focus-visible{
     display: flex;
     justify-content: flex-end;
     align-items: center;
-    gap: .55rem;
+    min-height: 44px;
 }
-.status-pill{
-    display: inline-flex;
-    align-items: center;
-    gap: .45rem;
-    padding: .35rem .65rem;
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    background: var(--glass-1);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    border-top-color: var(--glass-edge-2);
-    border-radius: 999px;
-}
-.status-pill::before{
-    content: "";
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--net);
-    animation: pulse 2.4s ease-in-out infinite;
-}
-@keyframes pulse{ 0%,100%{opacity:1} 50%{opacity:.35} }
 
 .btn-icon{
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 36px; height: 36px;
+    width: 44px; height: 44px;
     color: var(--fg-2);
     background: var(--glass-1);
     -webkit-backdrop-filter: var(--glass-blur);
@@ -280,8 +221,8 @@ body.home a:focus-visible{
 }
 .btn-icon:hover{
     color: var(--net);
-    background: rgba(92,226,138,.08);
-    border-color: rgba(92,226,138,.3);
+    background: rgba(41,217,237,.08);
+    border-color: rgba(41,217,237,.3);
 }
 .btn-icon svg{ width: 16px; height: 16px; transition: transform .4s cubic-bezier(.4,.2,.2,1); }
 .btn-icon:hover svg{ transform: rotate(60deg); }
@@ -296,19 +237,8 @@ body.home a:focus-visible{
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: clamp(1.4rem, 3vw, 2.4rem);
-    padding: clamp(1.5rem, 4vw, 3rem) 0;
-}
-.hero::before{
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: -.8rem clamp(-.8rem, -2vw, -1.6rem);
-    background: linear-gradient(135deg, rgba(4,7,8,.82), rgba(10,12,14,.66));
-    border: 1px solid rgba(255,255,255,.06);
-    border-radius: 20px;
-    -webkit-backdrop-filter: blur(3px);
-    backdrop-filter: blur(3px);
+    gap: clamp(1.15rem, 2.5vw, 1.9rem);
+    padding: clamp(1rem, 4vw, 3rem) 0;
 }
 .home .logo, .home .logo a, .home .logo img{
     background: transparent !important;
@@ -318,7 +248,7 @@ body.home a:focus-visible{
     margin: 0;
 }
 .home .logo img{
-    max-width: min(420px, 75vw);
+    max-width: min(500px, 82vw);
     height: auto;
     filter: drop-shadow(0 6px 20px rgba(0,0,0,.35));
 }
@@ -338,7 +268,7 @@ body.home a:focus-visible{
     transition: border-color .2s, box-shadow .2s, transform .2s;
 }
 .home .searchbox:focus-within{
-    border-color: rgba(92,226,138,.45);
+    border-color: rgba(41,217,237,.48);
     box-shadow: 0 8px 40px rgba(0,0,0,.25);
     transform: translateY(-1px);
 }
@@ -399,140 +329,34 @@ body.home a:focus-visible{
 }
 
 /* ============================================================
-   PRIMARY PORTALS + FEATURED — clear routes to the SecurityOps
-   network before the secondary project shortcuts
+   QUIET PORTAL LINKS — visible without competing with search
    ============================================================ */
-.portal-links{
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: .65rem;
-    width: min(100%, 780px);
-}
-.portal-link{
-    display: grid;
-    gap: .16rem;
-    min-height: 96px;
-    padding: .9rem 1rem;
-    background: linear-gradient(135deg, rgba(92,226,138,.13), var(--glass-1));
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid rgba(92,226,138,.38);
-    border-top-color: rgba(92,226,138,.58);
-    border-radius: 14px;
-    color: var(--fg);
-    transition: transform .2s ease, border-color .2s, background .2s, box-shadow .2s;
-}
-.portal-link:hover{
-    transform: translateY(-2px);
-    background: linear-gradient(135deg, rgba(92,226,138,.20), var(--glass-2));
-    border-color: var(--net);
-    box-shadow: 0 10px 28px rgba(0,0,0,.28);
-}
-.portal-link:focus-visible{
-    outline: 2px solid var(--net);
-    outline-offset: 3px;
-}
-.portal-label{
-    color: var(--fg-3);
-    font-size: .58rem;
-    font-weight: 600;
-    letter-spacing: .16em;
-    text-transform: uppercase;
-}
-.portal-domain{
-    color: var(--fg);
-    font-size: clamp(.95rem, .86rem + .42vw, 1.12rem);
-    font-weight: 700;
-    line-height: 1.25;
-}
-.portal-copy{
-    color: var(--fg-2);
-    font-size: var(--fs-xs);
-    line-height: 1.35;
-}
-.featured{
+.quick-links{
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: .55rem;
-    width: 100%;
-    max-width: 780px;
-}
-.feat{
-    display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    justify-content: center;
-    gap: .18rem;
-    flex: 1 1 130px;
-    max-width: 170px;
-    padding: .7rem .9rem;
-    background: var(--glass-1);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    border-top-color: var(--glass-edge-2);
-    border-radius: 12px;
-    color: var(--fg);
-    text-decoration: none;
-    position: relative;
-    transition: transform .2s ease, border-color .2s, background .2s, box-shadow .2s;
-}
-.feat:hover{
-    transform: translateY(-2px);
-    border-color: rgba(92,226,138,.4);
-    background: rgba(92,226,138,.05);
-    box-shadow: 0 8px 24px rgba(0,0,0,.22);
-}
-.feat:focus-visible{
-    outline: 1px solid var(--net);
-    outline-offset: 2px;
-}
-.feat-name{
-    font-size: var(--fs-sm);
-    font-weight: 600;
-    color: var(--fg);
-    letter-spacing: -.005em;
-    line-height: 1.2;
-}
-.feat-tag{
-    font-size: .56rem;
+    gap: .1rem .55rem;
+    margin-top: -.75rem;
+    font-size: var(--fs-xs);
     color: var(--fg-3);
-    letter-spacing: .18em;
-    text-transform: uppercase;
-    line-height: 1.4;
 }
-.feat-new{
-    border-color: rgba(92,226,138,.4);
-    border-top-color: rgba(92,226,138,.55);
-    background: linear-gradient(135deg, rgba(92,226,138,.10), var(--glass-1));
+.quick-links a{
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 .15rem;
+    color: var(--fg-3);
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: .25em;
+    transition: color .15s, text-decoration-color .15s;
 }
-.feat-new::before{
-    content: "NEW";
-    position: absolute;
-    top: -8px;
-    right: 12px;
-    padding: .14rem .45rem;
-    background: var(--net);
-    color: #0a0a0c;
-    font-size: .52rem;
-    font-weight: 700;
-    letter-spacing: .18em;
-    border-radius: 999px;
-    box-shadow: 0 0 12px rgba(92,226,138,.55);
+.quick-links a:hover{
+    color: var(--net);
+    text-decoration-color: currentColor;
 }
-@media (max-width: 720px){
-    .portal-links{ grid-template-columns: 1fr; }
-    .portal-link{ min-height: 76px; }
-    .feat{ flex: 1 1 calc(50% - .3rem); max-width: none; padding: .6rem .7rem; }
-}
-@media (max-width: 480px){
-    .feat{ flex: 1 1 calc(50% - .3rem); }
-    .feat-tag{ font-size: .52rem; letter-spacing: .12em; }
-}
-@media (prefers-reduced-motion: reduce){
-    .feat:hover{ transform: none; }
-}
+.quick-links .divider{ color: var(--fg-4); opacity: .65; }
 
 /* ============================================================
    SERVICES DRAWER — pure CSS, driven by sibling checkbox
@@ -629,7 +453,7 @@ body.home a:focus-visible{
 }
 .services-foot code{
     color: var(--net);
-    background: rgba(92,226,138,.08);
+    background: rgba(41,217,237,.08);
     padding: .05rem .3rem;
     border-radius: 3px;
 }
@@ -640,30 +464,27 @@ body.home a:focus-visible{
 .foot-strip{
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 1rem;
     padding: .65rem .9rem;
-    background: var(--glass-1);
+    background: rgba(2,10,14,.76);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
     border: 1px solid var(--glass-edge);
     border-top-color: var(--glass-edge-2);
-    border-radius: 999px;
+    border-radius: 12px;
     box-shadow: var(--glass-shadow);
     font-size: var(--fs-xs);
     color: var(--fg-3);
     flex-wrap: wrap;
-}
-.foot-strip .motto{
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    color: var(--fg-3);
 }
 
 .svc-toggle{
     display: inline-flex;
     align-items: center;
     gap: .5rem;
+    min-height: 44px;
+    box-sizing: border-box;
     padding: .45rem .85rem;
     font: inherit;
     font-size: var(--fs-xs);
@@ -679,8 +500,8 @@ body.home a:focus-visible{
 }
 .svc-toggle:hover{
     color: var(--net);
-    background: rgba(92,226,138,.06);
-    border-color: rgba(92,226,138,.3);
+    background: rgba(41,217,237,.06);
+    border-color: rgba(41,217,237,.3);
 }
 .svc-toggle:focus-visible{
     outline: 1px solid var(--net);
@@ -705,59 +526,20 @@ body.home a:focus-visible{
     flex-wrap: wrap;
 }
 .foot-ext a{
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
     color: var(--fg-3);
     transition: color .15s;
 }
 .foot-ext a:hover{ color: var(--fg); }
 
 /* ============================================================
-   SOUNDTRACK — opt-in, no autoplay, no JS required
-   ============================================================ */
-.soundtrack{
-    position: relative;
-    display: inline-flex;
-}
-.soundtrack summary{
-    list-style: none;
-    cursor: pointer;
-    user-select: none;
-    display: inline-flex;
-    align-items: center;
-    gap: .4rem;
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    transition: color .15s;
-}
-.soundtrack summary::-webkit-details-marker{ display: none; }
-.soundtrack summary::marker{ content: ""; }
-.soundtrack summary:hover,
-.soundtrack[open] summary{ color: var(--net); }
-.soundtrack summary:focus-visible{
-    outline: 1px solid var(--net);
-    outline-offset: 2px;
-    border-radius: 4px;
-}
-.soundtrack audio{
-    position: absolute;
-    bottom: calc(100% + .6rem);
-    right: 0;
-    width: min(260px, 70vw);
-    background: var(--glass-2);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    border-radius: 999px;
-    box-shadow: var(--glass-shadow);
-}
-
-/* ============================================================
    FALLBACKS & MOTION
    ============================================================ */
 @supports not (backdrop-filter: blur(1px)){
-    .status-pill, .btn-icon, .foot-strip, .svc-toggle, .services-panel,
-    .home .searchbox, .feat{
+    .btn-icon, .foot-strip, .svc-toggle, .services-panel,
+    .home .searchbox{
         background: rgba(14,14,18,0.9);
     }
 }
@@ -791,34 +573,24 @@ body.home a:focus-visible{
 @media (max-width: 720px){
     .services-grid{ grid-template-columns: 1fr; }
     .foot-strip{ justify-content: center; }
-    .foot-strip .motto{ display: none; }
 }
 @media (max-width: 480px){
-    .status-pill{ display: none; }
     .home .searchbox button .label{ display: none; }
-    .foot-ext{ width: 100%; justify-content: center; }
+    .foot-ext{ justify-content: center; }
 }
 
-/* The Matrix theme is decorative; content controls must remain unmistakable. */
+/* The SecOps backdrop is decorative; content controls stay unmistakable. */
 body.home::after{ opacity: .08; }
-body.home .portal-link,
-body.home .feat,
-body.home .status-pill,
 body.home .btn-icon,
 body.home .searchbox,
 body.home .foot-strip,
 body.home .services-panel{
-    background: rgba(1, 8, 4, .95) !important;
+    background: rgba(2, 10, 14, .95) !important;
 }
-body.home .portal-domain,
-body.home .feat-name,
 body.home .searchbox input,
 body.home .searchbox button{
     color: #f8fafc !important;
 }
-body.home .portal-label,
-body.home .portal-copy,
-body.home .feat-tag,
 body.home .sub-hint,
 body.home .searchbox input::placeholder{
     color: #bdc9d0 !important;
@@ -834,7 +606,7 @@ body.home .logo img{
     body.home{ background: #fff !important; color: #000 !important; }
     .corner, .foot-strip, audio{ display: none; }
     .services{ max-height: none !important; opacity: 1 !important; overflow: visible !important; }
-    .services-panel, .home .searchbox, .feat{
+    .services-panel, .home .searchbox{
         background: #fff !important;
         backdrop-filter: none !important;
         border: 1px solid #ccc !important;
@@ -856,7 +628,6 @@ body.home .logo img{
 
     <!-- TOP CORNER -->
     <div class="corner">
-        <span class="status-pill" aria-hidden="true">⏃⌰⍙⏃⊬⌇ ⏁⍀⎍⌇⏁ ⏃⌰⟟⟒⋏ ⏁⟒☊⊑⋏⍜⌰⍜☌⊬</span>
         <a href="/settings" class="btn-icon" aria-label="Settings" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"/>
@@ -868,54 +639,13 @@ body.home .logo img{
     <!-- HERO -->
     <main class="hero">
 
-        <!-- FEATURED — highlight tiles ----------------------- -->
-        <nav class="portal-links" aria-label="SecurityOps portals">
-            <a class="portal-link" href="https://securityops.co/">
-                <span class="portal-label">Official network</span>
-                <span class="portal-domain">securityops.co</span>
-                <span class="portal-copy">Privacy tools, projects &amp; infrastructure</span>
-            </a>
-            <a class="portal-link" href="https://securityops.com.br/">
-                <span class="portal-label">Brasil</span>
-                <span class="portal-domain">securityops.com.br</span>
-                <span class="portal-copy">Portal brasileiro, cursos &amp; serviços</span>
-            </a>
-        </nav>
-
-        <nav class="featured" aria-label="Featured projects">
-            <a class="feat" href="https://yt.securityops.co">
-                <span class="feat-name">SecTube</span>
-                <span class="feat-tag">YouTube alternative</span>
-            </a>
-            <a class="feat" href="https://img.securityops.co">
-                <span class="feat-name">Binternet</span>
-                <span class="feat-tag">Pinterest alternative</span>
-            </a>
-            <a class="feat" href="https://libre.securityops.co">
-                <span class="feat-name">RedLib</span>
-                <span class="feat-tag">Reddit alternative</span>
-            </a>
-            <a class="feat" href="https://evelin.securityops.co">
-                <span class="feat-name">Evelin</span>
-                <span class="feat-tag">Post-quantum transport</span>
-            </a>
-            <a class="feat" href="https://zupt.securityops.co">
-                <span class="feat-name">Zupt</span>
-                <span class="feat-tag">Post-quantum backups</span>
-            </a>
-            <a class="feat feat-new" href="https://btp.securityops.co">
-                <span class="feat-name">BTP</span>
-                <span class="feat-tag">Post-quantum HTTPS</span>
-            </a>
-        </nav>
-
         <h1 class="logo">
-            <a href="/"><img src="/banner/securitysearch.webp" alt="Security Search" width="1200" height="630" fetchpriority="high" decoding="async"></a>
+            <a href="/"><img src="/banner/securitysearch.webp" alt="Security Search" width="400" height="86" fetchpriority="high" decoding="async"></a>
         </h1>
 
         <div class="search-wrap">
             <form method="GET" action="web" class="searchbox" autocomplete="off" role="search">
-                <input type="text" name="s" placeholder="Search the open web — anonymously…" required aria-label="Search query">
+                <input type="text" name="s" placeholder="Search the web privately…" required aria-label="Search query">
                 <button type="submit" aria-label="Run search">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2z"/>
@@ -923,8 +653,14 @@ body.home .logo img{
                     <span class="label">Search</span>
                 </button>
             </form>
-            <p class="sub-hint">No tracking · No ads · No JavaScript required</p>
+            <p class="sub-hint">Google by default · No tracking · Brave available</p>
         </div>
+
+        <nav class="quick-links" aria-label="SecurityOps portals">
+            <a href="https://securityops.co/">securityops.co</a>
+            <span class="divider" aria-hidden="true">·</span>
+            <a href="https://securityops.com.br/">securityops.com.br</a>
+        </nav>
     </main>
 
     <!-- FOOTER -->
@@ -1124,8 +860,6 @@ body.home .logo img{
 
         <!-- STRIP -->
         <div class="foot-strip">
-            <span class="motto"> · In Code We Trust · </span>
-
             <!-- Clicking this label flips the hidden checkbox above. -->
             <label for="services-toggle" class="svc-toggle" aria-controls="services" aria-expanded="false">
                 <span>Services</span>
@@ -1137,47 +871,14 @@ body.home .logo img{
             <nav class="foot-ext" aria-label="External">
                 <a href="https://wiki.securityops.co">Wiki</a>
                 <a href="https://git.securityops.co/cristiancmoises">Git</a>
-                <a href="https://securityops.com.br/">Portal BR</a>
-                <a href="/settings">Settings</a>
-                <details class="soundtrack">
-                    <summary aria-label="Play soundtrack">♪ Soundtrack</summary>
-                    <audio controls preload="none" aria-label="Security Search soundtrack">
-                        <source src="/static/misc/vendetta.mp3" type="audio/mpeg">
-                    </audio>
-                </details>
             </nav>
         </div>
     </footer>
 
 </div><!-- /center -->
 
-<!-- Progressive enhancement: keyboard support + ARIA state for the Services
-     drawer. With JavaScript disabled, the <label> still toggles the checkbox
-     on mouse click and the page is fully functional. -->
-<script>
-(function () {
-  var cb = document.getElementById('services-toggle');
-  var tg = document.querySelector('.svc-toggle');
-  if (!cb || !tg) return;
-
-  // In JS mode the <label> becomes the single keyboard control.
-  cb.setAttribute('tabindex', '-1');
-  cb.setAttribute('aria-hidden', 'true');
-  tg.setAttribute('role', 'button');
-  tg.setAttribute('tabindex', '0');
-
-  function sync() { tg.setAttribute('aria-expanded', cb.checked ? 'true' : 'false'); }
-  sync();
-
-  cb.addEventListener('change', sync);
-  tg.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
-      e.preventDefault();
-      cb.checked = !cb.checked;
-      sync();
-    }
-  });
-})();
-</script>
+<!-- Progressive enhancement for keyboard/ARIA state; the label still toggles
+     the Services drawer with JavaScript disabled. -->
+<script src="/static/home.js?v{%version%}" defer></script>
 </body>
 </html>

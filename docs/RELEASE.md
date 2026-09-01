@@ -5,15 +5,15 @@
 From a clean, committed working tree:
 
 ```bash
-./release.sh 0.9.2
-git tag -a v0.9.2 -m "Security Search v0.9.2"
+./release.sh 0.9.3
+git tag -a v0.9.3 -m "Security Search v0.9.3"
 ```
 
 This produces:
 
 ```text
-dist/securitysearch-v0.9.2.tar.gz
-dist/securitysearch-v0.9.2.tar.gz.sha256
+dist/securitysearch-v0.9.3.tar.gz
+dist/securitysearch-v0.9.3.tar.gz.sha256
 ```
 
 The archive is created with `git archive`, so it contains only committed source
@@ -26,15 +26,15 @@ Use the configured Evelin profile rather than copying credentials into scripts:
 ```bash
 # Local: upload the verified release.
 ev --config ~/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.2.tar.gz \
-  remote:/tmp/securitysearch-v0.9.2.tar.gz
+  dist/securitysearch-v0.9.3.tar.gz \
+  remote:/tmp/securitysearch-v0.9.3.tar.gz
 
 # Open the approved remote shell, then run the following on the VPS.
 ev --config ~/.evelin/client.toml shell
-sha256sum /tmp/securitysearch-v0.9.2.tar.gz
+sha256sum /tmp/securitysearch-v0.9.3.tar.gz
 mkdir -p /opt/securitysearch/releases
-tar -xzf /tmp/securitysearch-v0.9.2.tar.gz -C /opt/securitysearch/releases
-cd /opt/securitysearch/releases/securitysearch-v0.9.2
+tar -xzf /tmp/securitysearch-v0.9.3.tar.gz -C /opt/securitysearch/releases
+cd /opt/securitysearch/releases/securitysearch-v0.9.3
 ./deploy.sh --fresh
 ```
 
@@ -53,6 +53,9 @@ curl -fsS 'http://127.0.0.1:5140/images?s=security&scraper=google' >/dev/null
 curl -fsS 'http://127.0.0.1:5140/web?s=privacy&scraper=brave' >/dev/null
 curl -fsS 'http://127.0.0.1:5140/images?s=security&scraper=brave' >/dev/null
 ```
+
+Complete the landing-page, responsive, keyboard, and theme-preference checks in
+[UI.md](UI.md) before promoting the release.
 
 If any check fails, use the backup tarball printed by `deploy.sh` to restore the
 previous release, then investigate `docker compose logs --tail=100

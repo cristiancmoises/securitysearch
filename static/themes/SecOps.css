@@ -1,164 +1,147 @@
-/* ─────────────────────────────────────────────
-   TRON AUDIO (VENDETTA.MP3)
-───────────────────────────────────────────── */
-audio#secops-audio {
-    display: none;
-}
-
-body.loaded #secops-audio {
-    display: block;
-}
-
-/* ─────────────────────────────────────────────
-   GLOBAL BACKGROUND
-───────────────────────────────────────────── */
-
-body{
-    background:#000000;
-    color:#00eaff;
-}
-
-/* ─────────────────────────────────────────────
-   FULL-SCREEN STATIC TRON GIF OVERLAY
-───────────────────────────────────────────── */
-
-.home::before{
-    content:"";
-    position:fixed;
-    inset:0;
-    width:100%;
-    height:100%;
-
-    background-image:url("/static/misc/secops.gif");
-    background-repeat:no-repeat;
-    background-position:center center;
-    background-size:cover; /* FULL SCREEN */
-
-    pointer-events:none;
-    z-index:-1;
-    opacity:.70;
-
-    /* ABSOLUTELY STATIC */
-    animation:none;
-}
-
-/* ─────────────────────────────────────────────
-   MAIN CONTAINER
-───────────────────────────────────────────── */
-
-.home{
-    background:#000000;
-}
-
-/* ─────────────────────────────────────────────
-   CLEANUP
-───────────────────────────────────────────── */
-
-.web .answer::after{
-    display:none;
-}
-
-/* ─────────────────────────────────────────────
-   TRON COLOR VARIABLES (CYAN)
-───────────────────────────────────────────── */
+/* Security Search default theme: restrained cyan-on-black SecOps. */
 
 :root{
-    /* background shades */
-    --1d2021: #000000;
-    --282828: #020b0f;
-    --3c3836: #04161c;
-    --504945: #06242c;
-
-    /* font colors */
-    --928374: #009fb0;
-    --a89984: #00c6d6;
-    --bdae93: #00eaff;
-    --8ec07c: #33f2ff;
-    --ebdbb2: #bffaff;
-
-    /* code highlighter */
-    --comment: #006b78;
-    --default: #00eaff;
-    --keyword: #00bfff;
-    --string: #66faff;
-
-    /* semantic colors */
-    --green: #00eaff;
-    --yellow: #66faff;
-    --red: #ff4466;
+    --1d2021: #02070a;
+    --282828: #071116;
+    --3c3836: #0b1b22;
+    --504945: #17323b;
+    --928374: #7a9ca5;
+    --a89984: #a9cbd2;
+    --bdae93: #d8f8fc;
+    --8ec07c: #29d9ed;
+    --ebdbb2: #f2fdff;
+    --comment: #6e929a;
+    --default: #d8f8fc;
+    --keyword: #29d9ed;
+    --string: #87eef7;
+    --green: #29d9ed;
+    --yellow: #ffd166;
+    --red: #ff647c;
 }
 
-/* ─────────────────────────────────────────────
-   TABLES & PANELS
-───────────────────────────────────────────── */
+html{ color-scheme: dark; }
+
+body{
+    background:
+        radial-gradient(circle at 50% -20%, rgba(41,217,237,.08), transparent 38rem),
+        var(--1d2021);
+    color: var(--bdae93);
+    font-family: "JetBrains Mono", "Iosevka Aile", ui-monospace, SFMono-Regular,
+        Menlo, Consolas, monospace;
+    line-height: 1.55;
+}
+
+body.home{ background: #02070a; }
+
+body.home::before{
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 28%, rgba(41,217,237,.12), transparent 34rem),
+        linear-gradient(rgba(41,217,237,.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(41,217,237,.045) 1px, transparent 1px);
+    background-size: auto, 48px 48px, 48px 48px;
+    opacity: .58;
+    -webkit-mask-image: linear-gradient(to bottom, #000, transparent 92%);
+    mask-image: linear-gradient(to bottom, #000, transparent 92%);
+    animation: none;
+}
+
+::selection{
+    background: rgba(41,217,237,.28);
+    color: #fff;
+}
+
+a{
+    color: var(--8ec07c);
+    text-decoration-color: rgba(41,217,237,.32);
+    text-underline-offset: .2em;
+}
+
+a:hover{ color: var(--ebdbb2); }
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible{
+    outline: 2px solid var(--8ec07c);
+    outline-offset: 3px;
+}
+
+input,
+select,
+button{ color: var(--bdae93); }
+
+.navigation,
+.filters,
+.tabs{ scrollbar-color: var(--504945) transparent; }
+
+.navigation a,
+.tabs a,
+.filter select{ min-height: 40px; }
+
+.text-result,
+.web .answer,
+.infobox,
+.image-wrapper,
+.video-result,
+.music-result{
+    border-color: rgba(41,217,237,.14);
+}
+
+.text-result:hover,
+.image-wrapper:hover,
+.video-result:hover,
+.music-result:hover{
+    border-color: rgba(41,217,237,.34);
+}
 
 .web .wiki-head table,
 .about table,
 .web .info-table,
 .instances table{
-    background:#000000cc;
-    color:#00eaff;
-    border:1px solid #004c55;
+    background: rgba(2,7,10,.94);
+    color: var(--bdae93);
+    border: 1px solid var(--504945);
 }
 
-/* alternating rows */
 .web .wiki-head tr:nth-child(odd),
 .about table tr:nth-child(odd),
 .web .info-table tr:nth-child(even),
 .nextpage,
 .spoiler-button,
 .instances tbody tr:nth-child(even){
-    background:#02161dcc;
-    color:#00eaff;
+    background: rgba(7,17,22,.94);
+    color: var(--bdae93);
 }
 
-/* hover effect */
-.instances tbody tr:hover{
-    background:#04303acc;
+.instances tbody tr:hover{ background: rgba(11,27,34,.98); }
+.wiki-head .description{ overflow: initial !important; }
+.wiki-head .photo{ position: relative; }
+.web .answer::after{ display: none; }
+
+pre,
+code{
+    background: #02070a;
+    color: var(--bdae93);
+    border: 1px solid var(--504945);
 }
 
-/* ─────────────────────────────────────────────
-   WIKI FIXES (UNCHANGED)
-───────────────────────────────────────────── */
-
-.wiki-head .description{
-    overflow:initial !important;
+@media (max-width: 640px){
+    .navigation a,
+    .tabs a,
+    .filter select{ min-height: 44px; }
 }
 
-.wiki-head .photo{
-    position:relative;
-}
-
-.wiki-head .photo::after{
-    content:"";
-    position:absolute;
-    width:100px;
-    height:100px;
-    background-image:url("/static/misc/secops.gif");
-    background-size:contain;
-    top:-61px;
-    left:-31px;
-    transform:rotate(310deg);
-}
-
-/* ─────────────────────────────────────────────
-   LINKS & INTERACTION
-───────────────────────────────────────────── */
-
-a{
-    color:#33f2ff;
-}
-
-a:hover{
-    color:#bffaff;
-}
-
-/* ─────────────────────────────────────────────
-   CODE BLOCKS
-───────────────────────────────────────────── */
-
-pre, code{
-    background:#000000;
-    color:#00eaff;
-    border:1px solid #004c55;
+@media (prefers-reduced-motion: reduce){
+    *, *::before, *::after{
+        scroll-behavior: auto !important;
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+    }
 }

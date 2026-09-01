@@ -19,7 +19,7 @@ services:
       - FOURGET_PROTO=http
       - FOURGET_SERVER_NAME=Security Search
       - FOURGET_SERVER_SHORT_DESCRIPTION=Privacy-first proxy search engine
-      - FOURGET_DEFAULT_THEME=SecurityOps
+      - FOURGET_DEFAULT_THEME=SecOps
 
       # Provider defaults. Google is backed by the bundled CSE-compatible
       # implementation; Brave remains available in every provider picker.

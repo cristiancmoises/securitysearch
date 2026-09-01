@@ -1,5 +1,6 @@
 <?php
 class backend{
+	private $scraper;
 	
 	public function __construct($scraper){
 		

@@ -73,6 +73,15 @@ class frontend{
 	}
 	
 	public function loadheader(array $get, array $filters, string $page){
+		$page_styles = [
+			"web" => "web-results.css",
+			"images" => "image-results.css"
+		];
+		$page_style = "";
+		if(isset($page_styles[$page])){
+
+			$page_style = '<link rel="stylesheet" href="/static/' . $page_styles[$page] . '?v' . config::VERSION . '">';
+		}
 		
 		echo
 			$this->load("header.html", [
@@ -81,7 +90,8 @@ class frontend{
 				"index" => "no",
 				"search" => htmlspecialchars($get["s"]),
 				"tabs" => $this->generatehtmltabs($page, $get["s"]),
-				"filters" => $this->generatehtmlfilters($filters, $get)
+				"filters" => $this->generatehtmlfilters($filters, $get),
+				"page_style" => $page_style
 			]);
 		
 		$headers_raw = getallheaders();
@@ -230,7 +240,7 @@ class frontend{
 				
 				$payload .=
 					'">' .
-						'<img class="thumb" src="' . $this->htmlimage($site["thumb"]["url"], $size) . '" alt="thumb">';
+						'<img class="thumb" src="' . $this->htmlimage($site["thumb"]["url"], $size) . '" alt="thumb" loading="lazy" decoding="async" fetchpriority="low">';
 				
 				if($duration !== null){
 					
@@ -453,7 +463,7 @@ class frontend{
 			$payload =
 				'<div class="url">' .
 					'<button class="favicon" tabindex="-1">' .
-						'<img src="/favicon?s=404" alt="xx">' .
+						'<img src="/favicon?s=404" alt="xx" loading="lazy" decoding="async" fetchpriority="low">' .
 					'</button>';
 		}else{
 			
@@ -482,7 +492,7 @@ class frontend{
 			$payload =
 				'<div class="url">' .
 					'<button class="favicon" tabindex="-1">' .
-						'<img src="/favicon?s=' . htmlspecialchars($host["scheme"] . "://" . $host["host"]) . '" alt="' . htmlspecialchars($esc) . '">' .
+						'<img src="/favicon?s=' . htmlspecialchars($host["scheme"] . "://" . $host["host"]) . '" alt="' . htmlspecialchars($esc) . '" loading="lazy" decoding="async" fetchpriority="low">' .
 						//'<img src="/404.php" alt="' . htmlspecialchars($esc) . '">' .
 					'</button>' .
 					'<div class="favicon-dropdown">';
@@ -842,7 +852,7 @@ class frontend{
 						
 						$payload .=
 							'<a href="https://' . $archives[$i] . $trail . '" class="list" target="_BLANK">' .
-								'<img src="/favicon?s=https://' . $archives[$i] . '" alt="' . $archives[$i][0] . $archives[$i][1] . '">' .
+								'<img src="/favicon?s=https://' . $archives[$i] . '" alt="' . $archives[$i][0] . $archives[$i][1] . '" loading="lazy" decoding="async" fetchpriority="low">' .
 								$archives[$i] .
 							'</a>';
 					}
@@ -850,12 +860,12 @@ class frontend{
 			}
 			
 			$payload .=
-					'<a href="https://web.archive.org/web/' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://archive.org" alt="ar">Archive.org</a>' .
-					'<a href="https://archive.ph/newest/' . htmlspecialchars($link) . '" class="list" target="_BLANK"><img src="/favicon?s=https://archive.is" alt="ar">Archive.is</a>' .
-					'<a href="https://ghostarchive.org/search?term=' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://ghostarchive.org" alt="gh">Ghostarchive</a>' .
-					'<a href="https://arquivo.pt/wayback/' . htmlspecialchars($link) . '" class="list" target="_BLANK"><img src="/favicon?s=https://arquivo.pt" alt="ar">Arquivo.pt</a>' .
-					'<a href="https://www.bing.com/search?q=url%3A' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://bing.com" alt="bi">Bing cache</a>' .
-					'<a href="https://megalodon.jp/?url=' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://megalodon.jp" alt="me">Megalodon</a>' .
+					'<a href="https://web.archive.org/web/' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://archive.org" alt="ar" loading="lazy" decoding="async" fetchpriority="low">Archive.org</a>' .
+					'<a href="https://archive.ph/newest/' . htmlspecialchars($link) . '" class="list" target="_BLANK"><img src="/favicon?s=https://archive.is" alt="ar" loading="lazy" decoding="async" fetchpriority="low">Archive.is</a>' .
+					'<a href="https://ghostarchive.org/search?term=' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://ghostarchive.org" alt="gh" loading="lazy" decoding="async" fetchpriority="low">Ghostarchive</a>' .
+					'<a href="https://arquivo.pt/wayback/' . htmlspecialchars($link) . '" class="list" target="_BLANK"><img src="/favicon?s=https://arquivo.pt" alt="ar" loading="lazy" decoding="async" fetchpriority="low">Arquivo.pt</a>' .
+					'<a href="https://www.bing.com/search?q=url%3A' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://bing.com" alt="bi" loading="lazy" decoding="async" fetchpriority="low">Bing cache</a>' .
+					'<a href="https://megalodon.jp/?url=' . $urlencode . '" class="list" target="_BLANK"><img src="/favicon?s=https://megalodon.jp" alt="me" loading="lazy" decoding="async" fetchpriority="low">Megalodon</a>' .
 				'</div>';
 		}
 		

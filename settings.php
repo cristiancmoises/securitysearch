@@ -46,6 +46,20 @@ $settings = [
 						"text" => "Yes"
 					]
 				]
+			],
+			[
+				"description" => "Load more image results automatically while scrolling",
+				"parameter" => "image_infinite",
+				"options" => [
+					[
+						"value" => "yes",
+						"text" => "Yes (default)"
+					],
+					[
+						"value" => "no",
+						"text" => "No"
+					]
+				]
 			]
 		]
 	],
@@ -406,13 +420,16 @@ $settings = [
 $themes = glob("static/themes/*");
 
 $settings[0]["settings"][1]["options"][] = [
-	"value" => "SecOps",
-	"text" => "SecOps"
+	"value" => config::DEFAULT_THEME,
+	"text" => config::DEFAULT_THEME . " (default)"
 ];
 
 foreach($themes as $theme){
 	
 	$theme = explode(".", basename($theme))[0];
+	if($theme === config::DEFAULT_THEME){
+		continue;
+	}
 	
 	$settings[0]["settings"][1]["options"][] = [
 		"value" => $theme,

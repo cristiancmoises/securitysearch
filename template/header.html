@@ -6,6 +6,7 @@
 		<link title="​{%server_name%}" href="/opensearch{%ac%}" rel="search" type="application/opensearchdescription+xml">
 		<link rel="stylesheet" href="/static/style.css?v{%version%}">
 		{%style%}
+		{%page_style%}
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<meta name="robots" content="{%index%}index,{%index%}follow">
 		<link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -23,7 +24,7 @@
 			<div class="searchbox">
 				<input type="submit" value="Search" tabindex="-1">
 				<div class="wrapper">
-					<input type="text" value="{%search%}" maxlength="500" name="s" placeholder="Search with Google by default…" required autofocus enterkeyhint="search" aria-label="Search query">
+					<input type="text" value="{%search%}" maxlength="500" name="s" placeholder="Search with Google by default…" required enterkeyhint="search" aria-label="Search query">
 				</div>
 				<div class="autocomplete"></div>
 			</div>
