@@ -4,7 +4,7 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current release: v0.9.1
+## Current release: v0.9.2
 
 - Google is the default provider for web and image search.
 - Brave is available from the Scraper picker for web and image search.
@@ -26,8 +26,8 @@ so your nginx-proxy-manager configuration does not need to change.
 
 ```bash
 # On your VPS, after uploading the release tarball:
-tar -xzf securitysearch-v0.9.1.tar.gz
-cd securitysearch-v0.9.1
+tar -xzf securitysearch-v0.9.2.tar.gz
+cd securitysearch-v0.9.2
 ./deploy.sh --fresh
 ```
 

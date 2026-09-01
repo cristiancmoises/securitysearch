@@ -161,19 +161,19 @@
    TOKENS
    ============================================================ */
 body.home{
-    --fg:    #f1f1f5;
-    --fg-2:  #c8c8d0;
-    --fg-3:  #8c8c98;
-    --fg-4:  #7c7c86; /* raised from #5a5a66 -> WCAG AA (~4.9:1 on #0a0a0c) */
+    --fg:    #f8fafc;
+    --fg-2:  #d7dde2;
+    --fg-3:  #aebbc4;
+    --fg-4:  #8d9aa4;
 
     --net:   #5ce28a;
     --tor:   #b794ff;
     --warn:  #ffb454;
 
-    --glass-1: rgba(10,12,14,0.72);
-    --glass-2: rgba(10,12,14,0.84);
-    --glass-edge:   rgba(255,255,255,0.14);
-    --glass-edge-2: rgba(255,255,255,0.22);
+    --glass-1: rgba(2,8,5,0.90);
+    --glass-2: rgba(2,8,5,0.96);
+    --glass-edge:   rgba(215,255,231,0.24);
+    --glass-edge-2: rgba(215,255,231,0.36);
     --glass-blur:   blur(18px) saturate(160%);
     --glass-shadow: 0 4px 30px rgba(0,0,0,0.18);
 
@@ -182,7 +182,7 @@ body.home{
     --fs-md:  clamp(.84rem, .76rem + .35vw, .94rem);
     --fs-lg:  clamp(1rem,   .88rem + .5vw, 1.15rem);
 
-    background-color: #0a0a0c;
+    background-color: #020704;
     color: var(--fg);
     font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-weight: 400;
@@ -192,6 +192,7 @@ body.home{
     -moz-osx-font-smoothing: grayscale;
     min-height: 100vh;
 }
+body.home::before{ opacity: .42; }
 
 body.home a{ color: inherit; text-decoration: none; }
 body.home a:focus-visible{
@@ -221,7 +222,9 @@ body.home a:focus-visible{
     min-height: 100vh;
     display: grid;
     grid-template-rows: auto 1fr auto;
-    max-width: 1200px;
+    width: min(100%, 920px);
+    max-width: 920px;
+    box-sizing: border-box;
     margin: 0 auto;
     padding: clamp(.7rem, 1.5vw, 1.2rem) clamp(.8rem, 2vw, 1.6rem);
     gap: clamp(1rem, 2vw, 1.6rem);
@@ -396,8 +399,57 @@ body.home a:focus-visible{
 }
 
 /* ============================================================
-   FEATURED — highlight tiles above the logo
+   PRIMARY PORTALS + FEATURED — clear routes to the SecurityOps
+   network before the secondary project shortcuts
    ============================================================ */
+.portal-links{
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .65rem;
+    width: min(100%, 780px);
+}
+.portal-link{
+    display: grid;
+    gap: .16rem;
+    min-height: 96px;
+    padding: .9rem 1rem;
+    background: linear-gradient(135deg, rgba(92,226,138,.13), var(--glass-1));
+    -webkit-backdrop-filter: var(--glass-blur);
+    backdrop-filter: var(--glass-blur);
+    border: 1px solid rgba(92,226,138,.38);
+    border-top-color: rgba(92,226,138,.58);
+    border-radius: 14px;
+    color: var(--fg);
+    transition: transform .2s ease, border-color .2s, background .2s, box-shadow .2s;
+}
+.portal-link:hover{
+    transform: translateY(-2px);
+    background: linear-gradient(135deg, rgba(92,226,138,.20), var(--glass-2));
+    border-color: var(--net);
+    box-shadow: 0 10px 28px rgba(0,0,0,.28);
+}
+.portal-link:focus-visible{
+    outline: 2px solid var(--net);
+    outline-offset: 3px;
+}
+.portal-label{
+    color: var(--fg-3);
+    font-size: .58rem;
+    font-weight: 600;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+}
+.portal-domain{
+    color: var(--fg);
+    font-size: clamp(.95rem, .86rem + .42vw, 1.12rem);
+    font-weight: 700;
+    line-height: 1.25;
+}
+.portal-copy{
+    color: var(--fg-2);
+    font-size: var(--fs-xs);
+    line-height: 1.35;
+}
 .featured{
     display: flex;
     flex-wrap: wrap;
@@ -470,6 +522,8 @@ body.home a:focus-visible{
     box-shadow: 0 0 12px rgba(92,226,138,.55);
 }
 @media (max-width: 720px){
+    .portal-links{ grid-template-columns: 1fr; }
+    .portal-link{ min-height: 76px; }
     .feat{ flex: 1 1 calc(50% - .3rem); max-width: none; padding: .6rem .7rem; }
 }
 @media (max-width: 480px){
@@ -745,6 +799,34 @@ body.home a:focus-visible{
     .foot-ext{ width: 100%; justify-content: center; }
 }
 
+/* The Matrix theme is decorative; content controls must remain unmistakable. */
+body.home::after{ opacity: .08; }
+body.home .portal-link,
+body.home .feat,
+body.home .status-pill,
+body.home .btn-icon,
+body.home .searchbox,
+body.home .foot-strip,
+body.home .services-panel{
+    background: rgba(1, 8, 4, .95) !important;
+}
+body.home .portal-domain,
+body.home .feat-name,
+body.home .searchbox input,
+body.home .searchbox button{
+    color: #f8fafc !important;
+}
+body.home .portal-label,
+body.home .portal-copy,
+body.home .feat-tag,
+body.home .sub-hint,
+body.home .searchbox input::placeholder{
+    color: #bdc9d0 !important;
+}
+body.home .logo img{
+    filter: brightness(1.65) contrast(1.2) drop-shadow(0 6px 20px rgba(0,0,0,.5));
+}
+
 /* ============================================================
    PRINT
    ============================================================ */
@@ -787,6 +869,19 @@ body.home a:focus-visible{
     <main class="hero">
 
         <!-- FEATURED — highlight tiles ----------------------- -->
+        <nav class="portal-links" aria-label="SecurityOps portals">
+            <a class="portal-link" href="https://securityops.co/">
+                <span class="portal-label">Official network</span>
+                <span class="portal-domain">securityops.co</span>
+                <span class="portal-copy">Privacy tools, projects &amp; infrastructure</span>
+            </a>
+            <a class="portal-link" href="https://securityops.com.br/">
+                <span class="portal-label">Brasil</span>
+                <span class="portal-domain">securityops.com.br</span>
+                <span class="portal-copy">Portal brasileiro, cursos &amp; serviços</span>
+            </a>
+        </nav>
+
         <nav class="featured" aria-label="Featured projects">
             <a class="feat" href="https://yt.securityops.co">
                 <span class="feat-name">SecTube</span>
@@ -812,14 +907,6 @@ body.home a:focus-visible{
                 <span class="feat-name">BTP</span>
                 <span class="feat-tag">Post-quantum HTTPS</span>
             </a>
-            <a class="feat feat-new" href="https://gpt.securityops.co">
-                <span class="feat-name">SecurityOps IA</span>
-                <span class="feat-tag">Private AI workspace</span>
-            </a>
-            <a class="feat feat-new" href="https://securityops.com.br/">
-                <span class="feat-name">SecurityOps BR</span>
-                <span class="feat-tag">Portal &amp; courses</span>
-            </a>
         </nav>
 
         <h1 class="logo">
@@ -828,7 +915,7 @@ body.home a:focus-visible{
 
         <div class="search-wrap">
             <form method="GET" action="web" class="searchbox" autocomplete="off" role="search">
-                <input type="text" name="s" placeholder="Search the open web — anonymously…" required autofocus aria-label="Search query">
+                <input type="text" name="s" placeholder="Search the open web — anonymously…" required aria-label="Search query">
                 <button type="submit" aria-label="Run search">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2z"/>

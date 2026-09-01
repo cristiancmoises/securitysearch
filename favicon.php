@@ -38,12 +38,13 @@ class favicon{
 		/*
 			Check if we have the favicon stored locally
 		*/
-		if(file_exists("icons/" . $filename . ".png")){
-				
-			$handle = fopen("icons/" . $filename . ".png", "r");
-			echo fread($handle, filesize("icons/" . $filename . ".png"));
-			fclose($handle);
-			return;
+		$icon_path = "icons/" . $filename . ".png";
+		if(is_file($icon_path)){
+			$icon = file_get_contents($icon_path);
+			if($icon !== false && $icon !== ""){
+				echo $icon;
+				return;
+			}
 		}
 		
 		/*
