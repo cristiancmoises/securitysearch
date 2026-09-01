@@ -1,11 +1,17 @@
 # Quick-Apply Patches
 
+## v0.9.5 packaging correction
+
+Current installations should use the complete tagged v0.9.5 source archive.
+Its release helper preserves the required empty `icons/` runtime-cache
+directory even though Git cannot track empty directories and generated icons
+remain excluded. v0.9.5 does not change the v0.9.4 application behavior.
+
 ## v0.9.4 patch set
 
-For current installations, use the tagged v0.9.4 source archive rather than
-copying individual files. The list below is only a narrow Google/theme/error
-subset for code review; it is **not** a complete or safe v0.9.3-to-v0.9.4
-upgrade. The full release also changes animation validation, proxy/SSRF
+The v0.9.4 list below remains a historical, narrow Google/theme/error subset
+for code review; it is **not** a complete or safe v0.9.3-to-v0.9.4 upgrade.
+That full release also changes animation validation, proxy/SSRF
 handling, Apache/NPM hardening, container permissions, infinite scrolling,
 performance, packaging, and documentation:
 

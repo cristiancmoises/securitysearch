@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > This page describes the upstream bare-metal layout, not the supported Security
-> Search v0.9.4 container deployment. Apply it only as a separately reviewed
+> Search v0.9.5 container deployment. Apply it only as a separately reviewed
 > customization after the private-port and rollback controls in
 > [RELEASE.md](RELEASE.md) are in place.
 This guide assumes that there is already a configured webserver sitting on port 80 waiting for localhost connections. The <a href="https://git.lolcat.ca/lolcat/4get/src/branch/master/docs/apache2.md">apache2 guide</a> guides you through this.

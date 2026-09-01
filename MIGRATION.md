@@ -1,5 +1,12 @@
 # Security Search — Migration Notes
 
+## v0.9.5 — release packaging correction
+
+v0.9.5 is a drop-in update from v0.9.4 with no persistent-data migration. The
+release helper now adds the required empty `icons/` runtime-cache directory to
+the source archive; generated icon files remain excluded. Application, search,
+theme, animation, and provider behavior is unchanged from v0.9.4.
+
 ## v0.9.4 — provider reliability and SecOps theme repair
 
 This release is a drop-in update from v0.9.3. No persistent-data migration is
@@ -299,7 +306,7 @@ effective Compose-published endpoint. If a post-cutover check fails, it attempts
 to restore the previously tagged image and reports whether that restart
 succeeded. There is no separate `--rollback` option.
 
-Production v0.9.4 uses the clean-sibling, checksum-verified artifact workflow in
+Production v0.9.5 uses the clean-sibling, checksum-verified artifact workflow in
 [`docs/RELEASE.md`](docs/RELEASE.md). Do not unzip or recursively copy a bundle
 over the active source tree, and do not use an unresolved recursive-delete
 command as rollback. The release guide preserves exact old-tree and image

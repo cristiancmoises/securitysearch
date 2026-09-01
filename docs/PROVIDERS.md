@@ -1,6 +1,6 @@
 # Search providers
 
-Security Search v0.9.4 keeps **Google** as the configured default for web and
+Security Search v0.9.5 keeps **Google** as the configured default for web and
 image searches. Users can select another provider for one request with the
 **Scraper** filter or save a preference in **Settings**. Brave is selectable for
 both web and image search; availability still depends on Brave accepting the
@@ -82,7 +82,7 @@ Do not commit secrets.
 `google_api` remains an opt-in provider for operators who already have Google
 Custom Search JSON API credentials. It reads keys from
 `data/api_keys/google_api.txt`, which is excluded from source releases. The
-tracked production configuration contains zero Google API keys, and the v0.9.4
+tracked production configuration contains zero Google API keys, and the v0.9.5
 packaging rules exclude that directory. Selecting `google_api` without privately
 provisioning a key produces a configuration error. It is not an automatic
 fallback for `google`.

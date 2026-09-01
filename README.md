@@ -6,7 +6,12 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.4
+## Current source version: v0.9.5
+
+- v0.9.5 is a packaging correction: release archives now retain the required
+  empty `icons/` runtime-cache directory while continuing to exclude generated
+  icon files. Search, provider, animation, theme, and UI behavior remains the
+  tested v0.9.4 implementation.
 
 - The landing page is search-first: Settings, the Security Search logo, the
   primary search field, a compact privacy/provider hint, and two quiet links to
@@ -158,7 +163,7 @@ checked on 2026-09-01.
 | **Brave Search** | Brave-operated independent crawler and index; optional Google fallback mixing is a separate user choice. | Hosted and controlled by Brave; web and image modes are available. | Brave's notice describes the service as private by default, documents optional aggregate metrics, ad measurement, anonymous local results and temporary IP processing for service integrity. [Privacy notice and index details](https://search.brave.com/help/privacy-policy). |
 | **Startpage** | Hosted intermediary that submits queries to result partners including Google and Bing; it does not maintain its own web index. | Hosted and controlled by Startpage; its optional Anonymous View also proxies destination-page browsing. | Startpage says it does not record ordinary visits, searches or IP addresses, with an anti-abuse exception in its policy; image thumbnails are proxied. [Partner relationship](https://support.startpage.com/hc/en-us/articles/4522435533844-What-is-the-relationship-between-Startpage-and-your-search-partners-like-Google-and-Microsoft-Bing), [Privacy Policy](https://safe.startpage.com/en/privacy-policy/), [image search](https://support.startpage.com/hc/en-us/articles/4521419354132-How-to-search-for-images-on-Startpage). |
 
-The v0.9.4 source keeps the existing network model (host port `5140` → container
+The v0.9.5 source keeps the existing network model (host port `5140` → container
 port `80` on a `bridge` network), so nginx-proxy-manager does not need a routing
 change. Build, provider, release, and production checks still gate publication
 and deployment.
@@ -169,10 +174,10 @@ and deployment.
 
 ```bash
 # After committing the tested source:
-./release.sh 0.9.4
-(cd dist && sha256sum -c securitysearch-v0.9.4.tar.gz.sha256)
+./release.sh 0.9.5
+(cd dist && sha256sum -c securitysearch-v0.9.5.tar.gz.sha256)
 
-# Follow docs/RELEASE.md to build /root/security-search-v0.9.4, then atomically
+# Follow docs/RELEASE.md to build /root/security-search-v0.9.5, then atomically
 # swap that clean sibling into /root/security-search-update. Do not overlay it.
 ```
 
@@ -183,11 +188,11 @@ The intended Git publication targets and credential-free configured URLs are:
 - `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`
 - `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
 
-Because this release rewrites sanitized history, an ordinary push is neither
-sufficient nor safe: `main` and `v0.9.0` through `v0.9.3` all change, and
-`v0.9.4` is added. Follow the exact per-ref lease, atomic-push, and OID
-verification procedure in [docs/RELEASE.md](docs/RELEASE.md) for every remote.
-A failure on one must be reported even if another succeeds.
+The v0.9.4 publication rewrote sanitized history. v0.9.5 must preserve that
+history and publish the exact inventory `main` plus tags `v0.9.0` through
+`v0.9.5`. Follow the per-ref lease, atomic-push, immutable-tag, and OID
+verification procedure in [docs/RELEASE.md](docs/RELEASE.md) for every remote;
+a failure on one must be reported even if another succeeds.
 
 For local work or an already isolated source tree, `./deploy.sh --fresh`:
 
@@ -204,7 +209,7 @@ For local work or an already isolated source tree, `./deploy.sh --fresh`:
 8. Prints useful follow-up commands.
 
 Use `./deploy.sh --fresh` for a no-cache rebuild, or `./deploy.sh --logs` to
-follow logs after starting. Production v0.9.4 uses the clean-sibling build and
+follow logs after starting. Production v0.9.5 uses the clean-sibling build and
 atomic directory cutover in [docs/RELEASE.md](docs/RELEASE.md), so the active
 tree is never updated by overlaying archive contents.
 
@@ -362,17 +367,17 @@ External validators:
 
 ## Rollback
 
-Before the v0.9.4 clean-tree cutover, create the exact rollback archive and
+Before the v0.9.5 clean-tree cutover, create the exact rollback archive and
 timestamped old directory documented in [docs/RELEASE.md](docs/RELEASE.md). The
 active IONOS tree remains `/root/security-search-update`.
 
 ```bash
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
-mv /root/security-search-update /root/security-search-update-failed-v0.9.4
+mv /root/security-search-update /root/security-search-update-failed-v0.9.5
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.4 security-search:latest
+docker image tag security-search:pre-v0.9.5 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 ```
@@ -431,8 +436,8 @@ while investigating the exact path.
 
 Google applies this response to the instance's outbound IP or network. It is
 not repaired by repeatedly refreshing CSE tokens, and repeated retries can make
-an anti-abuse event worse. v0.9.4 recognizes the condition, stops, and offers an
-explicit Brave choice without sending the query automatically.
+an anti-abuse event worse. v0.9.4 and later recognize the condition, stop, and
+offer an explicit Brave choice without sending the query automatically.
 
 Verify the server's outbound traffic and rate, wait for the restriction to
 clear, or configure a legitimate operator-controlled egress path. Google lists

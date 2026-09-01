@@ -38,12 +38,51 @@ archive_dir="dist"
 archive_name="securitysearch-v${version}.tar.gz"
 mkdir -p "$archive_dir"
 archive="$archive_dir/$archive_name"
+archive_prefix="securitysearch-v${version}"
+
+tar_tmp=$(mktemp "${TMPDIR:-/tmp}/securitysearch-release.XXXXXX")
+staging_tmp=$(mktemp -d "${TMPDIR:-/tmp}/securitysearch-release-dir.XXXXXX")
+gzip_tmp=$(mktemp "$archive_dir/.${archive_name}.XXXXXX")
+cleanup() {
+    rm -f -- "$tar_tmp" "$gzip_tmp"
+    rm -rf -- "$staging_tmp"
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
 
 git archive \
-    --format=tar.gz \
-    --prefix="securitysearch-v${version}/" \
-    --output="$archive" \
+    --format=tar \
+    --prefix="${archive_prefix}/" \
+    --output="$tar_tmp" \
     HEAD
+
+# Git cannot track an empty directory. The application expects icons/ to exist,
+# while its generated icon cache remains intentionally excluded from releases.
+# Add the empty directory with commit-derived metadata so repeated builds of the
+# same revision remain byte-for-byte reproducible.
+if ! tar -tf "$tar_tmp" | grep -Fxq "${archive_prefix}/icons/"; then
+    commit_epoch=$(git show -s --format=%ct HEAD)
+    mkdir -p "$staging_tmp/$archive_prefix/icons"
+    touch -d "@$commit_epoch" \
+        "$staging_tmp/$archive_prefix" \
+        "$staging_tmp/$archive_prefix/icons"
+    tar --append \
+        --file="$tar_tmp" \
+        --owner=0 \
+        --group=0 \
+        --numeric-owner \
+        --mode='u=rwx,go=rx' \
+        --mtime="@$commit_epoch" \
+        -C "$staging_tmp" \
+        "${archive_prefix}/icons"
+fi
+
+gzip -n -9 < "$tar_tmp" > "$gzip_tmp"
+tar -tzf "$gzip_tmp" | grep -Fxq "${archive_prefix}/icons/" || {
+    echo "ERROR: release archive is missing the required icons/ directory." >&2
+    exit 1
+}
+mv -f -- "$gzip_tmp" "$archive"
 
 (cd "$archive_dir" && sha256sum "$archive_name") > "${archive}.sha256"
 echo "Created $archive"

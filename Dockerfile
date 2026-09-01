@@ -113,8 +113,7 @@ RUN printf '%s\n' \
 RUN chown -R root:root /var/www/html/4get && \
     find /var/www/html/4get -type d -exec chmod 755 {} \; && \
     find /var/www/html/4get -type f -exec chmod 644 {} \; && \
-    chown apache:apache /var/www/html/4get/icons && \
-    chmod 775 /var/www/html/4get/icons && \
+    install -d -o apache -g apache -m 775 /var/www/html/4get/icons && \
     chmod +x /var/www/html/4get/docker/docker-entrypoint.sh
 
 EXPOSE 80

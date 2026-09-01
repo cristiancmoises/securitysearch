@@ -1,6 +1,6 @@
 # Search-first interface
 
-Security Search v0.9.4 keeps the logo and search field as the landing page's
+Security Search v0.9.5 keeps the logo and search field as the landing page's
 primary visual anchors. Navigation and SecurityOps links remain available
 without competing with the search task.
 

@@ -1,47 +1,50 @@
 # Release and deployment
 
-These instructions prepare and deploy v0.9.4. They do not imply that the tag,
+These instructions prepare and deploy v0.9.5. They do not imply that the tag,
 remote commit, hosted release, or IONOS deployment already exists.
 
 ## Build the source artifact
 
-Commit the tested change first. Because v0.9.4 also sanitizes history, do not
-run the helper or create the tag until the history gate later in this section
-passes. Then, from a clean working tree:
+Commit the tested change first. The sanitized history published with v0.9.4
+must remain clean across every advertised ref, so run the history gate later in
+this section before the helper or tag command. Then, from a clean working tree:
 
 ```bash
 git diff --check
 git status --short
-./release.sh 0.9.4
-(cd dist && sha256sum -c securitysearch-v0.9.4.tar.gz.sha256)
-git tag -a v0.9.4 -m "Security Search v0.9.4"
+./release.sh 0.9.5
+(cd dist && sha256sum -c securitysearch-v0.9.5.tar.gz.sha256)
+git tag -a v0.9.5 -m "Security Search v0.9.5"
 ```
 
-The release helper uses `git archive`, so the artifact contains committed
-source only and respects `.gitattributes`:
+The release helper uses `git archive`, respects `.gitattributes`, and adds only
+the required empty `icons/` runtime-cache directory that Git cannot track:
 
 ```text
-dist/securitysearch-v0.9.4.tar.gz
-dist/securitysearch-v0.9.4.tar.gz.sha256
+dist/securitysearch-v0.9.5.tar.gz
+dist/securitysearch-v0.9.5.tar.gz.sha256
 ```
 
 Inspect the archive before publishing:
 
 ```bash
-tar -tzf dist/securitysearch-v0.9.4.tar.gz | head
-if tar -tzf dist/securitysearch-v0.9.4.tar.gz |
-   grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.4/dist/|prompt.*\.md|securitysearch\.zip|Kuruminha\.css|mimi\.jpg)'; then
+tar -tzf dist/securitysearch-v0.9.5.tar.gz | head
+tar -tzf dist/securitysearch-v0.9.5.tar.gz |
+  grep -Fxq 'securitysearch-v0.9.5/icons/'
+if tar -tzf dist/securitysearch-v0.9.5.tar.gz |
+   grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.5/dist/|prompt.*\.md|securitysearch\.zip|Kuruminha\.css|mimi\.jpg)'; then
   echo "unexpected release content"
   exit 1
 fi
 ```
 
-The second command should print nothing. The package must contain no API keys,
-proxy credentials, cookies, or Evelin/SSH material.
+The required-directory check must succeed, and the forbidden-content check
+must print nothing. The package must contain no API keys, proxy credentials,
+cookies, or Evelin/SSH material.
 
-This release also requires a rewritten, sanitized history. Before tagging or
-pushing, prove that none of the removed paths remains reachable from any local
-branch, remote-tracking ref, or tag:
+The v0.9.4 release rewrote and sanitized history. Before packaging or pushing
+v0.9.5, prove that none of the removed paths has become reachable again from
+any local branch, remote-tracking ref, or tag:
 
 ```bash
 for removed_path in \
@@ -57,10 +60,9 @@ do
 done
 ```
 
-An ordinary deletion commit does not satisfy this check. Rewrite affected
-branches and historical tags first, coordinate a publication freeze, and
-require existing clones to re-clone after the force-update so stale refs cannot
-reintroduce removed objects.
+An ordinary deletion commit does not satisfy this check. If a stale clone has
+reintroduced removed objects, stop and repeat the coordinated history-cleaning
+procedure before publication; do not silently force-push from that clone.
 
 ## Publish to Git remotes
 
@@ -78,16 +80,16 @@ not embed credentials:
 - `securityops` → `https://git.securityops.co/cristiancmoises/securitysearch.git`
 - `securityops_br` → `https://git.securityops.com.br/cristiancmoises/securitysearch.git`
 
-History rewriting makes `main` and the older release tags non-fast-forward.
-Capture the exact current remote object IDs immediately before each push and
-use an explicit lease for every rewritten ref. A lease mismatch means someone
+The remote inventory must contain only `main` and release tags v0.9.0 through
+v0.9.5. Capture the exact current remote object IDs immediately before each
+push and use an explicit lease for every ref. A lease mismatch means someone
 updated that remote; stop and investigate instead of overwriting their work.
-The following Bash block publishes the rewritten branch and all release tags
+The following Bash block publishes the branch and complete tag inventory
 atomically while also asserting that a previously absent ref is still absent:
 
 ```bash
 set -euo pipefail
-release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4)
+release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5)
 expected_refs=(refs/heads/main)
 for tag in "${release_tags[@]}"; do
   expected_refs+=("refs/tags/${tag}")
@@ -122,10 +124,10 @@ for remote in origin codeberg securityops securityops_br; do
     remote_tag=$(
       awk -v ref="refs/tags/${tag}" '$2 == ref {print $1}' <<<"$remote_listing"
     )
-    if [[ "$tag" == "v0.9.4" && -n "$remote_tag" ]]; then
-      local_v094=$(git rev-parse refs/tags/v0.9.4)
-      test "$remote_tag" = "$local_v094" || {
-        echo "$remote already has a conflicting immutable v0.9.4 tag" >&2
+    if [[ -n "$remote_tag" ]]; then
+      local_tag=$(git rev-parse "refs/tags/${tag}")
+      test "$remote_tag" = "$local_tag" || {
+        echo "$remote already has a conflicting immutable ${tag} tag" >&2
         exit 1
       }
     fi
@@ -144,7 +146,7 @@ remote-only branches or tags: inspect each one and either include it in the
 sanitized rewrite or delete that exact ref deliberately. Leaving an advertised
 ref untouched can leave removed objects reachable.
 
-Verify every rewritten object independently; one successful push is not
+Verify every advertised object independently; one successful push is not
 evidence for any other remote or ref:
 
 ```bash
@@ -156,6 +158,7 @@ release_refs=(
   refs/tags/v0.9.2
   refs/tags/v0.9.3
   refs/tags/v0.9.4
+  refs/tags/v0.9.5
 )
 for remote in origin codeberg securityops securityops_br; do
   remote_listing=$(git ls-remote --heads --tags "$remote")
@@ -318,11 +321,11 @@ Use the approved Evelin profile and upload both files:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.4.tar.gz \
-  remote:/tmp/securitysearch-v0.9.4.tar.gz
+  dist/securitysearch-v0.9.5.tar.gz \
+  remote:/tmp/securitysearch-v0.9.5.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.4.tar.gz.sha256 \
-  remote:/tmp/securitysearch-v0.9.4.tar.gz.sha256
+  dist/securitysearch-v0.9.5.tar.gz.sha256 \
+  remote:/tmp/securitysearch-v0.9.5.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -331,12 +334,12 @@ exact rollback archive before changing the active tree:
 
 ```bash
 cd /tmp
-sha256sum -c securitysearch-v0.9.4.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.4-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.5-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.4
+release_tree=/root/security-search-v0.9.5
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -347,7 +350,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf /tmp/securitysearch-v0.9.4.tar.gz \
+tar -xzf /tmp/securitysearch-v0.9.5.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -369,9 +372,9 @@ the current image under a rollback tag first:
 ```bash
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.4
+docker image tag "$previous_image_id" security-search:pre-v0.9.5
 
-cd /root/security-search-v0.9.4
+cd /root/security-search-v0.9.5
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -387,7 +390,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.4 /root/security-search-update
+mv /root/security-search-v0.9.5 /root/security-search-update
 
 cd /root/security-search-update
 docker compose up -d --no-build
@@ -444,10 +447,10 @@ timestamped old directory, and retag the preserved image:
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
 mv /root/security-search-update \
-  /root/security-search-update-failed-v0.9.4
+  /root/security-search-update-failed-v0.9.5
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.4 security-search:latest
+docker image tag security-search:pre-v0.9.5 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -460,7 +463,7 @@ cutover. If that old directory is unavailable, extract the exact predeploy
 
 After health, result-bearing local checks, both public domains, NPM limits, and
 logs pass, remove the timestamped old directory and the
-`security-search:pre-v0.9.4` image tag:
+`security-search:pre-v0.9.5` image tag:
 
 ```bash
 test -n "${old_tree:-}"
@@ -471,7 +474,7 @@ esac
 test -d "$old_tree"
 test -s "$rollback_archive"
 rm -rf -- "$old_tree"
-docker image rm security-search:pre-v0.9.4
+docker image rm security-search:pre-v0.9.5
 test -s "$rollback_archive"
 ```
 

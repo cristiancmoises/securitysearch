@@ -2,7 +2,7 @@
 
 > [!WARNING]
 > The commands, public port mappings, and `luuul/4get` images below are retained
-> only as upstream reference; they are not the supported Security Search v0.9.4
+> only as upstream reference; they are not the supported Security Search v0.9.5
 > deployment. Do not use them for production. Use the repository
 > [`docker-compose.yml`](../docker-compose.yml) and the private-port,
 > checksum-verified workflow in [RELEASE.md](RELEASE.md) and

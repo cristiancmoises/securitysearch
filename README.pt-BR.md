@@ -7,7 +7,12 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.4
+## Versão atual do código-fonte: v0.9.5
+
+- A v0.9.5 corrige o empacotamento: os arquivos de versão agora preservam o
+  diretório vazio obrigatório `icons/`, usado como cache em tempo de execução,
+  mas continuam excluindo os ícones gerados. Busca, provedores, animações, tema
+  e interface mantêm a implementação testada da v0.9.4.
 
 - A página inicial prioriza o logotipo e a busca, com apenas Configurações, uma
   indicação curta de privacidade/provedor e dois links discretos:
@@ -66,9 +71,9 @@ Requisitos recomendados:
 Mantenha o arquivo e o checksum no mesmo diretório:
 
 ```bash
-sha256sum -c securitysearch-v0.9.4.tar.gz.sha256
-tar -xzf securitysearch-v0.9.4.tar.gz
-cd securitysearch-v0.9.4
+sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
+tar -xzf securitysearch-v0.9.5.tar.gz
+cd securitysearch-v0.9.5
 docker compose up -d --build
 docker compose ps
 curl -fsSI http://127.0.0.1:5140/
@@ -307,17 +312,17 @@ Com todas as mudanças rastreadas já commitadas e a árvore de trabalho limpa:
 
 ```bash
 git diff --check
-./release.sh 0.9.4
-(cd dist && sha256sum -c securitysearch-v0.9.4.tar.gz.sha256)
-git tag -a v0.9.4 -m "Security Search v0.9.4"
+./release.sh 0.9.5
+(cd dist && sha256sum -c securitysearch-v0.9.5.tar.gz.sha256)
+git tag -a v0.9.5 -m "Security Search v0.9.5"
 ```
 
-O script usa `git archive`, inclui apenas conteúdo commitado permitido por
-`.gitattributes` e gera:
+O script usa `git archive`, respeita `.gitattributes` e acrescenta somente o
+diretório vazio obrigatório `icons/`, que o Git não consegue rastrear:
 
 ```text
-dist/securitysearch-v0.9.4.tar.gz
-dist/securitysearch-v0.9.4.tar.gz.sha256
+dist/securitysearch-v0.9.5.tar.gz
+dist/securitysearch-v0.9.5.tar.gz.sha256
 ```
 
 Antes de publicar, faça lint de todos os arquivos PHP na imagem, compile sem
@@ -335,10 +340,11 @@ configuradas sem credenciais embutidas são:
 - `securityops` — `https://git.securityops.co/cristiancmoises/securitysearch.git`;
 - `securityops_br` — `https://git.securityops.com.br/cristiancmoises/securitysearch.git`.
 
-Como esta versão reescreve o histórico sanitizado, um push comum não é
-suficiente nem seguro: `main` e as tags `v0.9.0` a `v0.9.3` mudam, e `v0.9.4`
-é adicionada. Siga exatamente o procedimento com lease por ref, push atômico e
-verificação de OID em [docs/RELEASE.md](docs/RELEASE.md) para cada remoto.
+A publicação v0.9.4 reescreveu o histórico sanitizado. A v0.9.5 deve preservar
+esse histórico e publicar o inventário exato `main` mais as tags `v0.9.0` a
+`v0.9.5`. Siga exatamente o procedimento com lease por ref, push atômico,
+imutabilidade de tags e verificação de OID em
+[docs/RELEASE.md](docs/RELEASE.md) para cada remoto.
 
 Valide os quatro separadamente. Se credencial, permissão ou rede falhar em um,
 registre esse bloqueio mesmo que o outro funcione; não afirme que o Git remoto
@@ -351,11 +357,11 @@ para scripts:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.4.tar.gz \
-  remote:/tmp/securitysearch-v0.9.4.tar.gz
+  dist/securitysearch-v0.9.5.tar.gz \
+  remote:/tmp/securitysearch-v0.9.5.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.4.tar.gz.sha256 \
-  remote:/tmp/securitysearch-v0.9.4.tar.gz.sha256
+  dist/securitysearch-v0.9.5.tar.gz.sha256 \
+  remote:/tmp/securitysearch-v0.9.5.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -364,12 +370,12 @@ exata antes de alterá-la:
 
 ```bash
 cd /tmp
-sha256sum -c securitysearch-v0.9.4.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.5.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.4-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.5-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.4
+release_tree=/root/security-search-v0.9.5
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -380,7 +386,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf securitysearch-v0.9.4.tar.gz \
+tar -xzf securitysearch-v0.9.5.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -388,9 +394,9 @@ test -f "$release_tree/Dockerfile"
 
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.4
+docker image tag "$previous_image_id" security-search:pre-v0.9.5
 
-cd /root/security-search-v0.9.4
+cd /root/security-search-v0.9.5
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -400,7 +406,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.4 /root/security-search-update
+mv /root/security-search-v0.9.5 /root/security-search-update
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -441,10 +447,10 @@ preservados usando o timestamp exato registrado no corte:
 ```bash
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
-mv /root/security-search-update /root/security-search-update-failed-v0.9.4
+mv /root/security-search-update /root/security-search-update-failed-v0.9.5
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.4 security-search:latest
+docker image tag security-search:pre-v0.9.5 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 ```
