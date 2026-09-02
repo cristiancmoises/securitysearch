@@ -12,8 +12,9 @@ em [securityops.co](https://securityops.co/).
 - A v0.9.10 corrige o bind de IP dentro do container, diferencia pools de proxy
   ilegíveis, preserva todas as variáveis de proxy no Compose, permite pool
   direto/Tor limitado para Brave e oculta Google API até existir uma chave
-  privada utilizável. Os resultados continuam renderizados no servidor e
-  funcionam sem JavaScript.
+  privada utilizável. A busca de imagens ganha controles server-side
+  **Grade/Feed amplo** e **Prévia rápida/Original**. Os resultados continuam
+  renderizados no servidor e funcionam sem JavaScript.
 
 - A v0.9.8 torna utilizável a configuração de saída do Google/Brave no Compose
   suportado: nomes de pools privados definidos no host são repassados sem

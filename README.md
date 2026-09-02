@@ -11,7 +11,8 @@ Privacy-first proxy metasearch engine. Hardened fork of
 - v0.9.10 fixes container/source-IP binding, validates unreadable proxy pools,
   persists all provider proxy variables in Compose, supports a bounded
   direct/Tor Brave pool, and hides Google API until a usable private key is
-  mounted. Search results remain server-rendered and usable without JavaScript.
+  mounted. Image search adds server-rendered **Grid/Large feed** and **Fast
+  preview/Original** controls. Search results remain usable without JavaScript.
 
 - v0.9.8 makes the Google/Brave egress controls usable from the supported
   Compose file: host-defined private pool names are passed through without

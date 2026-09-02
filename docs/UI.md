@@ -93,6 +93,13 @@ headings and guidance must remain professional and free of profanity.
 
 ## Image-result flow
 
+Image results expose two server-rendered controls: **Grid/Large feed** changes
+the responsive layout, while **Fast preview/Original** chooses the proxied
+thumbnail or best original source used directly in each card. `feed + original`
+provides a Tumblr-like reading flow and lets browser-supported GIF/WebP/APNG
+animate without a click even when JavaScript is disabled. Originals remain
+lazy-loaded and retain the poster/source fallback chain.
+
 Automatic loading is enabled by default but remains progressive enhancement.
 Settings can save `image_infinite=no`. The server-rendered **Next page** link
 must continue to work when JavaScript is disabled, the preference is off, or

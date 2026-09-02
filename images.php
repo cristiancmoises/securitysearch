@@ -10,6 +10,8 @@ $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("images");
 $get = $frontend->parsegetfilters($_GET, $filters);
+$image_view = ($get["view"] ?? "grid") === "feed" ? "feed" : "grid";
+$image_quality = ($get["quality"] ?? "preview") === "original" ? "original" : "preview";
 
 /*
 	Captcha
@@ -21,7 +23,8 @@ $payload = [
 	"timetaken" => microtime(true),
 	"images" => "",
 	"nextpage" => "",
-	"infinite_scroll" => ""
+	"infinite_scroll" => "",
+	"image_classes" => ' class="images-view-' . $image_view . ' images-quality-' . $image_quality . '"'
 ];
 
 try{
@@ -174,6 +177,10 @@ foreach($result_images as $image){
 	}
 
 	$thumbnail_src = $frontend->htmlimage($thumbnail_url, "thumb");
+	$display_src =
+		$image_quality === "original" ?
+		$frontend->htmlimage($original_url, "original") :
+		$thumbnail_src;
 	$poster_fallback_urls = [];
 	for($source_index = $source_count - 2; $source_index >= 0; $source_index--){
 
@@ -213,12 +220,12 @@ foreach($result_images as $image){
 			$motion_fallback_attribute = ' data-motion-fallback-src="' . $frontend->htmlimage($original_url, "animated") . '"';
 		}
 		$image_markup =
-			'<img src="' . $thumbnail_src . '" data-motion-src="' . $frontend->htmlimage($motion_url, "animated") . '"' . $motion_fallback_attribute . ' data-motion-format="' . htmlspecialchars($animation_format) . '" data-motion-retry="' . $motion_retry . '" data-poster-src="' . $thumbnail_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" class="animated-preview" loading="lazy" decoding="async" fetchpriority="low">' .
+			'<img src="' . $display_src . '" data-motion-src="' . $frontend->htmlimage($motion_url, "animated") . '"' . $motion_fallback_attribute . ' data-motion-format="' . htmlspecialchars($animation_format) . '" data-motion-retry="' . $motion_retry . '" data-poster-src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" class="animated-preview" loading="lazy" decoding="async" fetchpriority="low">' .
 			'<span class="motion-badge" aria-hidden="true">' . htmlspecialchars($animation_format) . '</span>';
 	}else{
 
 		$image_markup =
-			'<img src="' . $thumbnail_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" loading="lazy" decoding="async" fetchpriority="low">';
+			'<img src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" loading="lazy" decoding="async" fetchpriority="low">';
 	}
 
 	$source_json = json_encode($safe_sources, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);

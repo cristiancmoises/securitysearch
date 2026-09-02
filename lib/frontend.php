@@ -1106,6 +1106,24 @@ class frontend{
 
 			unset($filters["scraper"]["option"]["google_api"]);
 		}
+
+		if($page === "images"){
+
+			$filters["view"] = [
+				"display" => "View",
+				"option" => [
+					"grid" => "Grid",
+					"feed" => "Large feed"
+				]
+			];
+			$filters["quality"] = [
+				"display" => "Quality",
+				"option" => [
+					"preview" => "Fast preview",
+					"original" => "Original"
+				]
+			];
+		}
 		
 		// get scraper name from user input, or default out to preferred scraper
 		$scraper_out = null;
