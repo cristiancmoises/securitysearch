@@ -4,10 +4,12 @@
 
 No database or persistent-volume migration is required. Rebuild the whole image
 and retain private proxy mounts, both production networks and the icon volume.
-The static asset version is now `15`. The original Lain GIF is visible on mobile
+The static asset version is now `16`. The original Lain GIF is visible on mobile
 and desktop, with a native still-background control; six image layouts preserve
 no-JavaScript navigation. Filmstrip uses manual pagination to avoid loading pages
 prematurely while its vertical Next link remains visible.
+The release helper no longer requires the removed SecOps artwork; its obsolete
+Lain decoration was removed as well. No deleted artwork is restored.
 
 Google reuses same-request/same-egress connections, shares query-free bootstrap
 and cooldown state between CSE aliases, bounds responses to 4 MiB and preserves
@@ -26,7 +28,7 @@ See the [English](docs/OPERATIONS-0.9.12.md) and
 Older sections below are historical, not current default settings.
 
 Português: não há migração de dados. Reconstrua a imagem mantendo volumes, redes
-e proxies privados. Assets `15`, Lain animado também no celular, seis layouts e
+e proxies privados. Assets `16`, Lain animado também no celular, seis layouts e
 falhas HTTP honestas são publicados juntos. Valide o formato dos proxies antes
 da troca e preserve o container anterior para retorno seguro.
 

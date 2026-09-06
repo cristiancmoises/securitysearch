@@ -65,7 +65,7 @@ Privacy-first proxy metasearch engine. Hardened fork of
   [SecurityOps Brasil](https://securityops.com.br/).
 - Lain is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;
-  valid saved themes remain selected, and asset version 15 invalidates stale
+  valid saved themes remain selected, and asset version 16 invalidates stale
   theme CSS and background assets.
 - NSFW-capable provider filters allow NSFW content by default through
   `config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes`. A request parameter
@@ -462,8 +462,8 @@ curl -s https://securityops.co/ | grep -o '<title>[^<]*</title>'
 
 # Lain is selected and cache-busted for a first visit?
 curl -fsS "$app_base/" |
-  grep -q '/static/themes/Lain.css?v15'
-curl -fsSI "$app_base/static/themes/Lain.css?v15" |
+  grep -q '/static/themes/Lain.css?v16'
+curl -fsSI "$app_base/static/themes/Lain.css?v16" |
   grep -qi '^Content-Type: text/css'
 
 # Search works? Assert result content; HTTP 200 alone also describes an error page.

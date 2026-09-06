@@ -29,8 +29,8 @@ cascade is:
 2. The selected theme stylesheet supplies shared color tokens.
 3. Home-page component rules consume those tokens, with safe fallback values.
 
-The stylesheet is `static/themes/Lain.css`. v0.9.12 uses `config::VERSION=15`
-so the current theme and image controllers load through `?v15`.
+The stylesheet is `static/themes/Lain.css`. v0.9.12 uses `config::VERSION=16`
+so the current theme and image controllers load through `?v16`.
 
 On the home page, Lain uses the tracked
 `static/misc/lain.gifv` GIF background. The CSS
@@ -194,7 +194,7 @@ hint; it is not an authoritative MIME report.
 Before promotion:
 
 1. Fetch the home page without a theme cookie and verify it links to
-   `/static/themes/Lain.css?v15`; compare actual GIF frames on desktop/mobile,
+   `/static/themes/Lain.css?v16`; compare actual GIF frames on desktop/mobile,
    and verify the still control and reduced-motion/data fallback.
 2. Verify that stylesheet returns HTTP 200 with a CSS content type.
 3. Test no cookie, an invalid cookie, `theme=Dark`, and a valid nondefault

@@ -63,8 +63,6 @@ printf '%s\n' "$archive_listing" |
 printf '%s\n' "$archive_listing" |
   grep -Fxq 'securitysearch-v0.9.12/banner/securitysearch.webp'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.12/static/misc/secops.gif'
-printf '%s\n' "$archive_listing" |
   grep -Fxq 'securitysearch-v0.9.12/static/misc/lain.gifv'
 printf '%s\n' "$archive_listing" |
   grep -Fxq 'securitysearch-v0.9.12/static/images-fallback.js'
@@ -72,7 +70,7 @@ printf '%s\n' "$archive_listing" |
   grep -Fxq 'securitysearch-v0.9.12/static/images-motion.js'
 tar -xzOf dist/securitysearch-v0.9.12.tar.gz \
   securitysearch-v0.9.12/data/config.php |
-  grep -Eq 'const VERSION = 15;'
+  grep -Eq 'const VERSION = 16;'
 if printf '%s\n' "$archive_listing" |
    LC_ALL=C grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.7/dist/|securitysearch\.zip|Kuruminha\.css|mimi\.jpg|(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/))'; then
   echo "unexpected release content"
@@ -326,20 +324,20 @@ Verify the default Lain cascade and cache version:
 
 ```bash
 home=$(curl -fsS http://127.0.0.1:5140/)
-printf '%s' "$home" | grep -q '/static/themes/Lain.css?v15'
-curl -fsSI http://127.0.0.1:5140/static/themes/Lain.css?v15 |
+printf '%s' "$home" | grep -q '/static/themes/Lain.css?v16'
+curl -fsSI http://127.0.0.1:5140/static/themes/Lain.css?v16 |
   grep -qi '^Content-Type: text/css'
 curl -fsSI http://127.0.0.1:5140/static/misc/lain.gifv |
   grep -qi '^Content-Type: image/gif'
-curl -fsS http://127.0.0.1:5140/static/themes/Lain.css?v15 |
+curl -fsS http://127.0.0.1:5140/static/themes/Lain.css?v16 |
   grep -Fq '/static/misc/lain.gifv?'
 docker compose exec -T security-search php -r \
-  'include "/var/www/html/4get/data/config.php"; exit(config::VERSION === 15 && config::DEFAULT_NSFW === "yes" ? 0 : 1);'
+  'include "/var/www/html/4get/data/config.php"; exit(config::VERSION === 16 && config::DEFAULT_NSFW === "yes" ? 0 : 1);'
 
 invalid_theme=$(curl -fsS -H 'Cookie: theme=missing-theme' \
   http://127.0.0.1:5140/)
 printf '%s' "$invalid_theme" |
-  grep -q '/static/themes/Lain.css?v15'
+  grep -q '/static/themes/Lain.css?v16'
 ```
 
 Complete the visual, cookie, keyboard, narrow-screen, error-action, and

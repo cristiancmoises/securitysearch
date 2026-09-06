@@ -16,6 +16,10 @@ foreach(['<script>', ['gallery']] as $view){
 }
 $header = $frontend->load('header.html');
 check(str_contains($header, '/static/themes/Lain.css?v'.config::VERSION), 'Lain default');
+preg_match_all('/url\("(\/static\/[^"?]+)(?:\?[^" ]*)?"\)/', file_get_contents('static/themes/Lain.css'), $assets);
+foreach($assets[1] as $asset){
+ check(is_file(ltrim($asset, '/')), 'Lain referenced asset exists: '.$asset);
+}
 $_COOKIE['theme'] = 'Tron';
 check(str_contains($frontend->load('header.html'), '/static/themes/Tron.css'), 'Saved theme preserved');
 $_COOKIE['theme'] = '../../etc/passwd';

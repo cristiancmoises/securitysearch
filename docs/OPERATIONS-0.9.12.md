@@ -46,7 +46,7 @@ changing this parser. Do not print full pools, environment files or Docker Env.
 
 ## Lain and images
 
-Asset version 15 invalidates older theme/controller URLs. The tracked
+Asset version 16 invalidates older theme/controller URLs. The tracked
 `static/misc/lain.gifv` is an actual GIF, not a video: serve it as `image/gif` with
 static-asset caching. The original is about 8.7 MB; the first animated visit can
 cost that download. It stays visible on mobile instead of being disabled solely

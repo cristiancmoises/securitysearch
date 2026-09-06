@@ -68,7 +68,7 @@ em [securityops.co](https://securityops.co/).
   [SecurityOps Brasil](https://securityops.com.br/).
 - Lain é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 15 evita
+  válidos já salvos continuam tendo precedência, e a versão de assets 16 evita
   reutilização de CSS e fundos antigos.
 - Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
   `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da
@@ -303,7 +303,7 @@ tokens compartilhados e os componentes da página inicial consomem esses tokens
 com valores de segurança. Sem cookie, com cookie inválido ou com tema
 inexistente, o resultado é `Lain`; `Dark` e outros temas válidos continuam
 preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.7 usa
-`/static/themes/Lain.css?v15` para atualizar o tema, os controladores de
+`/static/themes/Lain.css?v16` para atualizar o tema, os controladores de
 imagem e o fundo restaurado.
 
 Falhas de scraper usam o título neutro **Search provider unavailable**. O texto
@@ -577,7 +577,7 @@ override privado do Compose, arquivo de ambiente, credencial de proxy ou outro
 segredo somente se ele existir, for necessário e tiver sido revisado
 individualmente, mantendo permissões restritas.
 
-Depois, confirme `/static/themes/Lain.css?v15`, o tipo CSS, cartões reais de
+Depois, confirme `/static/themes/Lain.css?v16`, o tipo CSS, cartões reais de
 web/imagens, arrays `status=ok` não vazios na API, Brave separadamente, logs sem
 avisos/fatais PHP e HTTP público em `securityops.co` e
 `securityops.com.br`. Use um User-Agent semelhante ao de navegador nos curls

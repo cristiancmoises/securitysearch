@@ -145,15 +145,8 @@ body{
 }
 
 .wiki-head .photo::after{
-    content:"";
-    position:absolute;
-    width:100px;
-    height:100px;
-    background-image:url("/static/misc/secops.gif");
-    background-size:contain;
-    top:-61px;
-    left:-31px;
-    transform:rotate(310deg);
+    /* The old SecOps artwork was deliberately removed from this repository. */
+    display:none;
 }
 
 /* ─────────────────────────────────────────────
@@ -181,8 +174,7 @@ pre, code{
 /* An OS preference or the native checkbox removes the GIF source entirely.
    Mobile keeps the full wallpaper by default; search never depends on it. */
 @media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce){
-    .home .ambient-wallpaper,
-    .wiki-head .photo::after{background-image:none;}
+    .home .ambient-wallpaper{background-image:none;}
     .home .wallpaper-control,.home .wallpaper-toggle{display:none;}
     .home .motion-status{display:inline;margin-right:auto;color:#bffaff;font-size:.72rem;}
 }

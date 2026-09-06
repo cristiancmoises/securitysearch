@@ -35,7 +35,11 @@ Independent review covered provider routing/transport and actual browser output.
   GIF SHA-256 and image/gif MIME, static cache policy, 503/no-store/Retry-After for
   missing Google API, 404 for loopback/file image-proxy probes, and 403 for private
   data and test-router paths. Apache denies the entire tests directory.
-- Production is `security-search:v0.9.12-20260906`, with asset version 15. The
+- Release packaging caught a stale requirement for the deliberately removed
+  `secops.gif`. The requirement and its unused Lain decoration were removed,
+  never restoring that artwork. A regression checks Lain's referenced assets;
+  the final cache version was bumped from 15 to 16 for existing visitors.
+- Production is `security-search:v0.9.12-r2-20260906`, with asset version 16. The
   previous container, private mounts, both networks and icon volume were retained.
   Health checks and public HTTPS home, GIF MIME/cache and provider-error behavior
   were verified after cutover.

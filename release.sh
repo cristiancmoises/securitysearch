@@ -90,7 +90,6 @@ archive_listing=$(tar -tzf "$gzip_tmp")
 for required_path in \
     "${archive_prefix}/icons/" \
     "${archive_prefix}/banner/securitysearch.webp" \
-    "${archive_prefix}/static/misc/secops.gif" \
     "${archive_prefix}/static/misc/lain.gifv" \
     "${archive_prefix}/static/images-fallback.js" \
     "${archive_prefix}/static/images-motion.js" \

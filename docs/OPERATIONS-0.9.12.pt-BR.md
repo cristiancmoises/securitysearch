@@ -49,7 +49,7 @@ pools completos, arquivos de ambiente ou Docker Env.
 
 ## Lain e visualizações
 
-A versão de assets 15 invalida CSS/controladores antigos. O arquivo original
+A versão de assets 16 invalida CSS/controladores antigos. O arquivo original
 `static/misc/lain.gifv` é GIF, não vídeo: deve ser servido como `image/gif`, com
 cache de arquivo estático. Ele tem aproximadamente 8,7 MB; a primeira visita
 animada pode exigir esse download. O fundo fica visível também no celular,
