@@ -37,6 +37,15 @@ no NPM também precisam de auditoria: editar o repositório não substitui o ove
 
 ## Verificação e publicação
 
+A imagem passa ao Alpine 3.24 com suporte atual em main/community, mantendo PHP
+8.4. O manifesto base é fixado; `apk upgrade` acontece na construção, não dentro
+do contêiner ativo. Use `--build-arg APK_REFRESH=AAAA-MM-DD` nas reconstruções
+agendadas para não reutilizar silenciosamente uma camada antiga de pacotes quando
+a base não mudar. Valide a candidata antes da troca; não reinicie o Docker.
+O Apache remove duplicatas antes de definir seus cabeçalhos obrigatórios.
+Confira [o suporte do Alpine](https://www.alpinelinux.org/releases/) antes de
+futuras migrações e nunca misture repositórios de versões diferentes.
+
 Execute as quatro suítes da documentação anterior, lint PHP e os testes visuais
 sem JavaScript. As regressões cobrem seis links, codificação da consulta, ausência
 de embeds, isolamento do cache, temas, traversal e URLs de imagem inseguras.

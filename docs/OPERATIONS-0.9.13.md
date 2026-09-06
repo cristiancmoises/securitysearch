@@ -39,6 +39,16 @@ does not automatically replace an edge override.
 
 ## Verification and safe rollout
 
+The image moves to the currently supported Alpine 3.24 main/community branch
+while retaining PHP 8.4 compatibility. The base manifest is pinned; `apk upgrade`
+runs at build time, not inside a live container. Supply
+`--build-arg APK_REFRESH=YYYY-MM-DD` during a scheduled rebuild so an unchanged
+base image does not silently reuse an old package-install layer. Validate and
+promote that candidate; do not restart the Docker daemon. Apache removes the
+normal-response duplicate before setting its mandatory security headers.
+Check support against [Alpine releases](https://www.alpinelinux.org/releases/)
+before future branch migrations; do not mix repositories from different branches.
+
 Run all four suites listed in the previous baseline, plus PHP lint and the
 no-JavaScript browser fixtures. Regression tests cover six direct links, encoded
 Invidious queries, absence of embeds, separation of cached templates from queries,

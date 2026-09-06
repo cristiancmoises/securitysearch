@@ -1,11 +1,11 @@
 # Security Search (4get fork) — hardened, build-resilient image.
 #
-# Builds on Alpine 3.21. Includes apk mirror failover — the default
+# Builds on supported Alpine 3.24. Includes apk mirror failover — the default
 # dl-cdn.alpinelinux.org is geo-routed and sometimes flaky from Brazil,
 # Latin America, and parts of Europe.  If a mirror is down at build
 # time, the next one is tried automatically.
 
-FROM alpine:3.21
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 
 LABEL org.opencontainers.image.title="Security Search"
 LABEL org.opencontainers.image.description="Privacy-first proxy search engine (4get fork)"
@@ -21,7 +21,9 @@ WORKDIR /var/www/html/4get
 # Try the default CDN first. If that fails, sequentially swap to known-fast
 # regional mirrors. The build only fails if ALL of them are unreachable.
 # ---------------------------------------------------------------------------
+ARG APK_REFRESH=manual
 RUN set -eux; \
+    test -n "$APK_REFRESH"; \
     \
     try_apk_update() { \
         for try in 1 2 3; do \
@@ -45,7 +47,7 @@ RUN set -eux; \
     success=0; \
     for mirror in $MIRRORS; do \
         echo "=== Trying mirror: $mirror ==="; \
-        printf '%s/v3.21/main\n%s/v3.21/community\n' "$mirror" "$mirror" \
+        printf '%s/v3.24/main\n%s/v3.24/community\n' "$mirror" "$mirror" \
             > /etc/apk/repositories; \
         if try_apk_update; then \
             echo "=== Mirror $mirror works ==="; \
