@@ -5,7 +5,7 @@ class config {
 	const SERVER_NAME = "Security Search";
 	const SERVER_SHORT_DESCRIPTION = "Privacy-first proxy search engine";
 	const SERVER_LONG_DESCRIPTION = null;
-	const DEFAULT_THEME = "SecOps";
+	const DEFAULT_THEME = "Lain";
 	const DEFAULT_NSFW = "yes";
 	// Default providers are configurable with FOURGET_DEFAULT_SCRAPER_WEB and
 	// FOURGET_DEFAULT_SCRAPER_IMAGES. Google uses the bundled CSE-compatible
