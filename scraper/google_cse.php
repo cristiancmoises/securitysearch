@@ -13,8 +13,10 @@ class google_cse{
 	private $backend;
 	private $fuckhtml;
 	private $backend_name;
+	private $request_deadline;
 	
 	public function __construct($backend_name = "google_cse"){
+		$this->request_deadline = hrtime(true) + 25000000000;
 		$this->backend_name = $backend_name;
 		
 		include "lib/backend.php";
@@ -422,7 +424,14 @@ class google_cse{
 		}
 	}
 	
-	private function get($proxy, $url, $get = [], $reqtype = self::req_js){
+	private function remaining_network_ms(){
+		$remaining = (int)(($this->request_deadline - hrtime(true)) / 1000000);
+		if($remaining < 100){ throw new Exception("Google search reached its 25-second request budget. Please retry later or choose another provider."); }
+		return min(20000, $remaining);
+	}
+
+	private function get($proxy, $url, $get = [], $reqtype = self::req_js, $retried = false){
+		$remaining = $this->remaining_network_ms();
 		
 		$curlproc = curl_init();
 			
@@ -478,8 +487,8 @@ class google_cse{
 		curl_setopt($curlproc, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 10);
-		curl_setopt($curlproc, CURLOPT_TIMEOUT, 20);
+		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT_MS, min(5000, $remaining));
+		curl_setopt($curlproc, CURLOPT_TIMEOUT_MS, $remaining);
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
@@ -492,6 +501,12 @@ class google_cse{
 
 			throw new Exception($curl_error);
 		}
+		// One retry for transient gateway errors on the SAME provider/egress.
+		// No challenge solving, proxy rotation, TLS downgrade or unbounded loops.
+		if(!$retried && in_array($status, [502, 503, 504], true) && !$this->is_google_anti_abuse_error($data)){
+			usleep(150000);
+			return $this->get($proxy, $url, [], $reqtype, true);
+		}
 
 		if(
 			$status === 429 ||
@@ -500,6 +515,7 @@ class google_cse{
 
 			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
 		}
+		if($status >= 400){ throw new Exception("Google returned HTTP " . $status . ". Please retry later or choose another provider."); }
 
 		if(!is_string($data)){
 

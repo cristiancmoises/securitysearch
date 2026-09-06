@@ -39,6 +39,12 @@ body{
     background:#000000;
 }
 
+/* The animated wallpaper is decorative, never required for reading/search. */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce), (max-width: 600px){
+    .home::before{ background-image:none; }
+    .wiki-head .photo::after{ background-image:none; }
+}
+
 /* ─────────────────────────────────────────────
    CLEANUP
 ───────────────────────────────────────────── */

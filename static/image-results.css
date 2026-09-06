@@ -1,4 +1,33 @@
 /* IMAGE CARD POLISH ---------------------------------------- */
+/* Extra views use CSS only and keep row-major keyboard/reading order. */
+#images.images-view-compact,
+#images.images-view-gallery{
+    display:grid;
+    gap:.7rem;
+    grid-template-columns:repeat(auto-fill,minmax(min(100%,160px),1fr));
+    overflow:visible;
+}
+#images.images-view-gallery{
+    grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));
+    gap:1.2rem;
+}
+#images.images-view-compact .image-wrapper,
+#images.images-view-gallery .image-wrapper{
+    float:none;
+    width:100%;
+    min-width:0;
+}
+#images.images-view-compact .image,
+#images.images-view-gallery .image{width:100%;padding:.5rem;}
+#images.images-view-compact .thumb{height:125px;}
+#images.images-view-gallery .thumb{height:300px;}
+#images.images-view-gallery .thumb img{object-fit:contain;}
+#images.images-view-gallery .description{height:auto;min-height:3em;}
+#images a:focus-visible{outline:2px solid var(--8ec07c,#33f2ff);outline-offset:3px;}
+@media(prefers-reduced-motion:reduce){
+    #images .image-wrapper,#images .image .thumb img{transition:none;transform:none;}
+}
+
 .image-wrapper{
     transition: transform .18s ease, filter .18s ease;
 }

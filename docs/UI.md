@@ -1,6 +1,6 @@
 # Search-first interface
 
-Security Search v0.9.7 keeps the logo and search field as the landing page's
+Security Search v0.9.11 keeps the logo and search field as the landing page's
 primary visual anchors. Navigation and SecurityOps links remain available
 without competing with the search task.
 
@@ -18,9 +18,9 @@ The first page presents:
 The portal links are not large buttons or promotional cards. Additional
 services remain in the low-priority expandable directory and footer.
 
-## SecOps theme behavior
+## Lain theme behavior
 
-SecOps is the configured first-visit theme. v0.9.4 fixes its application on the
+Lain is the configured first-visit theme. The interface retains its application on the
 landing page by making home-page colors consume the active theme's CSS tokens
 instead of overriding them with a separate set of hard-coded colors. The normal
 cascade is:
@@ -29,15 +29,13 @@ cascade is:
 2. The selected theme stylesheet supplies shared color tokens.
 3. Home-page component rules consume those tokens, with safe fallback values.
 
-The SecOps stylesheet remains `static/themes/SecOps.css`. v0.9.4 introduced
-asset version 11 to replace stale v10 CSS; v0.9.7 uses `config::VERSION=13` so
-the current theme, image controllers, and restored background load through
-`?v13`.
+The stylesheet is `static/themes/Lain.css`. v0.9.11 uses `config::VERSION=14`
+so the current theme and image controllers load through `?v14`.
 
-On the home page, SecOps uses the genuine tracked
-`static/misc/secops.gif` background behind a restrained dark overlay. The CSS
+On the home page, Lain uses the tracked
+`static/misc/lain.gifv` GIF background. The CSS
 `prefers-reduced-motion: reduce` and `prefers-reduced-data: reduce` paths replace
-that image with a static radial background. The logo remains the primary visual
+that image with a plain dark background, also on screens up to 600 px. The logo remains the primary visual
 anchor above either treatment.
 
 Theme selection remains a browser preference:
@@ -46,11 +44,11 @@ Theme selection remains a browser preference:
 - The special `Dark` choice continues to use the base stylesheet without a
   separate theme file.
 - An absent, malformed, overlong, or nonexistent theme cookie falls back to
-  `config::DEFAULT_THEME`, which is `SecOps`.
+  `config::DEFAULT_THEME`, which is `Lain`.
 - Selecting the configured default removes the redundant cookie; it does not
   overwrite other valid saved choices.
 
-Container deployments also set `FOURGET_DEFAULT_THEME=SecOps`. Keep that
+Container deployments also set `FOURGET_DEFAULT_THEME=Lain`. Keep that
 environment value, `config::DEFAULT_THEME`, the exact-case filename, and the
 Settings option aligned.
 
@@ -93,6 +91,9 @@ headings and guidance must remain professional and free of profanity.
 
 ## Image-result flow
 
+v0.9.11 also offers Compact grid and an uncropped Gallery alongside Grid/Feed.
+These are CSS-only, row-major layouts; the View filter does not require JS.
+
 Image results expose two server-rendered controls: **Grid/Large feed** changes
 the responsive layout, while **Fast preview/Original** chooses the proxied
 thumbnail or best original source used directly in each card. `feed + original`
@@ -101,6 +102,7 @@ animate without a click even when JavaScript is disabled. Originals remain
 lazy-loaded and retain the poster/source fallback chain.
 
 Automatic loading is enabled by default but remains progressive enhancement.
+It stops after three added pages and skips automatic loads on Save-Data connections.
 Settings can save `image_infinite=no`. The server-rendered **Next page** link
 must continue to work when JavaScript is disabled, the preference is off, or
 the required browser APIs are missing. A failed automatic load stops additional
@@ -186,8 +188,8 @@ hint; it is not an authoritative MIME report.
 Before promotion:
 
 1. Fetch the home page without a theme cookie and verify it links to
-   `/static/themes/SecOps.css?v13`; verify `static/misc/secops.gif` loads for the
-   normal SecOps home and the static fallback applies under reduced motion/data.
+   `/static/themes/Lain.css?v14`; verify `static/misc/lain.gifv` loads for the
+   normal desktop Lain home and the static fallback applies under reduced motion/data.
 2. Verify that stylesheet returns HTTP 200 with a CSS content type.
 3. Test no cookie, an invalid cookie, `theme=Dark`, and a valid nondefault
    theme on the home, results, and Settings pages.

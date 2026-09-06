@@ -187,6 +187,12 @@ class frontend{
 	}
 	
 	public function drawscrapererror($error, $get, $target, $timetaken = null){
+		// A fast provider rejection is not a successful search or an empty result.
+		if(!headers_sent()){
+			http_response_code(503);
+			header("Cache-Control: no-store");
+			header("Retry-After: 30");
+		}
 		
 		if($timetaken === null){
 			
@@ -216,7 +222,7 @@ class frontend{
 			'<p>The selected provider could not complete this search.</p>' .
 			'<div class="code">' . htmlspecialchars($error) . '</div>' .
 			'<div class="error-actions">' . $actions . '</div>' .
-			'<p class="error-note">Upstream providers can temporarily rate-limit server traffic. Retrying later or selecting another provider usually resolves the issue.</p>',
+			'<p class="error-note">The time below measures this error response, not a completed search. A short cooldown can reject a retry immediately without contacting the provider. Wait about 30 seconds or explicitly select another provider; availability is not guaranteed.</p>',
 			$timetaken
 		);
 	}
@@ -1113,6 +1119,8 @@ class frontend{
 				"display" => "View",
 				"option" => [
 					"grid" => "Grid",
+					"compact" => "Compact grid",
+					"gallery" => "Gallery — uncropped",
 					"feed" => "Large feed"
 				]
 			];

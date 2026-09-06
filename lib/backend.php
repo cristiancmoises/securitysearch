@@ -218,7 +218,7 @@ class backend{
 		$page = $page[0];
 		$explode = explode(".", $npt, 2);
 		
-		if(count($explode) !== 2){
+		if(count($explode) !== 2 || preg_match('/\A[A-Za-z0-9_]+\.[A-Za-z0-9_-]{43}\z/', $npt) !== 1){
 			
 			throw new Exception("Malformed nextPageToken!");
 		}
@@ -228,30 +228,19 @@ class backend{
 		
 		$payload = apcu_fetch($apcu);
 		
-		if($payload === false){
+		if(!is_array($payload) || count($payload) !== 3 || !is_string($payload[0]) || strlen($payload[0]) !== SODIUM_CRYPTO_SECRETBOX_NONCEBYTES || !is_string($payload[2])){
 			
 			throw new Exception("The next page token is invalid or has expired!");
 		}
 		
-		$key =
-			base64_decode(
-				str_pad(
-					strtr($key, '-_', '+/'),
-					strlen($key) % 4,
-					'=',
-					STR_PAD_RIGHT
-				)
-			);
-		
-		// decrypt and decompress data
-		$payload[2] =
-			gzinflate(
-				sodium_crypto_secretbox_open(
-					$payload[2], // data
-					$payload[0], // nonce
-					$key
-				)
-			);
+		$key = base64_decode(strtr($key, '-_', '+/') . '=', true);
+		if(!is_string($key) || strlen($key) !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES){
+			throw new Exception("Malformed nextPageToken!");
+		}
+		// Authenticate before decompressing: malformed input must not reach sodium
+		// with a wrong-length key, or feed false into gzinflate and emit warnings.
+		$plaintext = sodium_crypto_secretbox_open($payload[2], $payload[0], $key);
+		$payload[2] = $plaintext === false ? false : @gzinflate($plaintext, 4194304);
 		
 		if($payload[2] === false){
 			

@@ -34,6 +34,9 @@ try{
 	);
 	
 }catch(Exception $e){
+	http_response_code(503);
+	header("Cache-Control: no-store");
+	header("Retry-After: 30");
 	
 	echo json_encode(["status" => $e->getMessage()]);
 }

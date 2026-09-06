@@ -1,5 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+// The header template must not commit HTTP 200 before the provider finishes.
+ob_start();
 
 /*
 	Initialize request dependencies
@@ -10,7 +12,7 @@ $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("images");
 $get = $frontend->parsegetfilters($_GET, $filters);
-$image_view = ($get["view"] ?? "grid") === "feed" ? "feed" : "grid";
+$image_view = in_array($get["view"] ?? null, ["grid", "compact", "gallery", "feed"], true) ? $get["view"] : "grid";
 $image_quality = ($get["quality"] ?? "preview") === "original" ? "original" : "preview";
 
 /*

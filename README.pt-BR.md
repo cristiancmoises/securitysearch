@@ -7,7 +7,18 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.10
+## Versão atual do código-fonte: v0.9.11
+
+- Lain é o padrão no código e no Compose; temas válidos salvos são preservados.
+- Quatro visualizações de imagens: grade, grade compacta, galeria sem recorte e
+  feed amplo. Paginação automática limitada a três páginas, respeitando Save-Data
+  e prazo de 25 segundos. Links comuns continuam funcionando sem JavaScript.
+- As chamadas Google compartilham um orçamento de 25 segundos. HTTP 502/503/504
+  transitório permite uma repetição por etapa, no mesmo provedor/IP; desafios
+  antiabuso não disparam essa repetição.
+- Falhas do provedor retornam HTTP 503 e `Retry-After`. Uma resposta rápida de
+  cooldown é identificada como erro, não como busca concluída.
+- [Operação, auditoria e rota do status](docs/OPERATIONS-0.9.11.pt-BR.md).
 
 - A v0.9.10 corrige o bind de IP dentro do container, diferencia pools de proxy
   ilegíveis, preserva todas as variáveis de proxy no Compose, permite pool
@@ -50,9 +61,9 @@ em [securityops.co](https://securityops.co/).
   indicação curta de privacidade/provedor e dois links discretos para
   [Chat](https://chat.securityops.co/) e
   [SecurityOps Brasil](https://securityops.com.br/).
-- SecOps é o tema padrão para novos visitantes. A página inicial agora consome
+- Lain é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 13 evita
+  válidos já salvos continuam tendo precedência, e a versão de assets 14 evita
   reutilização de CSS e fundos antigos.
 - Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
   `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da
@@ -138,7 +149,7 @@ produção ficam explícitos em `docker-compose.yml`:
 
 ```yaml
 environment:
-  - FOURGET_DEFAULT_THEME=SecOps
+  - FOURGET_DEFAULT_THEME=Lain
   - FOURGET_DEFAULT_NSFW=yes
   - FOURGET_DEFAULT_SCRAPER_WEB=google
   - FOURGET_DEFAULT_SCRAPER_IMAGES=google
@@ -162,7 +173,7 @@ filtro).
 
 Configurações importantes:
 
-- `FOURGET_DEFAULT_THEME=SecOps`: tema usado quando não há cookie de tema válido;
+- `FOURGET_DEFAULT_THEME=Lain`: tema usado quando não há cookie de tema válido;
 - `FOURGET_DEFAULT_NSFW=yes`: permite NSFW nos filtros compatíveis por padrão;
 - `FOURGET_DEFAULT_SCRAPER_WEB=google`: provedor web padrão;
 - `FOURGET_DEFAULT_SCRAPER_IMAGES=google`: provedor de imagens padrão;
@@ -285,9 +296,9 @@ completo da interface está em [docs/UI.md](docs/UI.md).
 Na v0.9.4, `static/style.css` fornece a base, o CSS do tema selecionado fornece
 tokens compartilhados e os componentes da página inicial consomem esses tokens
 com valores de segurança. Sem cookie, com cookie inválido ou com tema
-inexistente, o resultado é `SecOps`; `Dark` e outros temas válidos continuam
+inexistente, o resultado é `Lain`; `Dark` e outros temas válidos continuam
 preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.7 usa
-`/static/themes/SecOps.css?v13` para atualizar o tema, os controladores de
+`/static/themes/Lain.css?v14` para atualizar o tema, os controladores de
 imagem e o fundo restaurado.
 
 Falhas de scraper usam o título neutro **Search provider unavailable**. O texto
@@ -387,13 +398,13 @@ movimento, e `/proxy?...&s=animated` ainda pode validar e reproduzir até 32 MiB
 automaticamente, sem clique. Requisições genéricas de imagens derivam um Referer
 limitado da URL pública já validada da fonte; Referers específicos e revisados
 de provedores também passam por limite de tamanho e rejeição de CR/LF, em vez de
-aceitar texto arbitrário de header. A página SecOps usa o fundo rastreado
-`static/misc/secops.gif`; navegadores que pedem movimento reduzido ou economia
+aceitar texto arbitrário de header. A página Lain usa o fundo rastreado
+`static/misc/lain.gifv`; telas pequenas ou navegadores que pedem movimento reduzido ou economia
 de dados recebem um fundo CSS estático. O Google reutiliza parâmetros CSE
 validados por até cinco minutos por backend, CX e saída, sem armazenar consultas
 ou resultados.
-Cada transferência upstream do Google ou Brave usa timeout de 10 segundos para
-conexão e 20 segundos no total, limitando a latência de cada requisição lenta.
+Google usa até cinco segundos para conexão e um orçamento compartilhado de 25
+segundos; os limites de Brave continuam específicos daquele provedor.
 Isso normalmente elimina as chamadas ao HTML e ao script de inicialização em
 buscas próximas e reduz o volume upstream. Uma rejeição reconhecida do token em
 cache apaga a entrada, faz uma inicialização nova e repete apenas uma vez. Uma
@@ -561,7 +572,7 @@ override privado do Compose, arquivo de ambiente, credencial de proxy ou outro
 segredo somente se ele existir, for necessário e tiver sido revisado
 individualmente, mantendo permissões restritas.
 
-Depois, confirme `/static/themes/SecOps.css?v13`, o tipo CSS, cartões reais de
+Depois, confirme `/static/themes/Lain.css?v14`, o tipo CSS, cartões reais de
 web/imagens, arrays `status=ok` não vazios na API, Brave separadamente, logs sem
 avisos/fatais PHP e HTTP público em `securityops.co` e
 `securityops.com.br`. Use um User-Agent semelhante ao de navegador nos curls

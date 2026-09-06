@@ -6,7 +6,18 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.10
+## Current source version: v0.9.11
+
+- Lain is now consistent in source and Compose; valid saved themes are preserved.
+- Four server-rendered image views: Grid, Compact grid, uncropped Gallery and Large
+  feed. Automatic pagination is limited to three pages, respects Save-Data and
+  has a 25-second deadline. Normal links remain usable without JavaScript.
+- Google network work shares a 25-second budget. A transient HTTP 502/503/504 gets
+  at most one retry per hop on the same egress; challenges never trigger this retry.
+- Provider failures return HTTP 503 with `Retry-After`, not misleading HTTP 200.
+  A fast cooldown response is explicitly distinguished from a completed search.
+- [Current operations, audit and status routing](docs/OPERATIONS-0.9.11.md)
+  ([Português](docs/OPERATIONS-0.9.11.pt-BR.md)).
 
 - v0.9.10 fixes container/source-IP binding, validates unreadable proxy pools,
   persists all provider proxy variables in Compose, supports a bounded
@@ -47,9 +58,9 @@ Privacy-first proxy metasearch engine. Hardened fork of
   primary search field, a compact privacy/provider hint, and two quiet links to
   [Chat](https://chat.securityops.co/) and
   [SecurityOps Brasil](https://securityops.com.br/).
-- SecOps is the default theme for new visitors. The home page now consumes the
+- Lain is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;
-  valid saved themes remain selected, and asset version 13 invalidates stale
+  valid saved themes remain selected, and asset version 14 invalidates stale
   theme CSS and background assets.
 - NSFW-capable provider filters allow NSFW content by default through
   `config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes`. A request parameter
@@ -103,7 +114,7 @@ The production defaults are explicit in `docker-compose.yml`:
 
 ```yaml
 environment:
-  - FOURGET_DEFAULT_THEME=SecOps
+  - FOURGET_DEFAULT_THEME=Lain
   - FOURGET_DEFAULT_NSFW=yes
   - FOURGET_DEFAULT_SCRAPER_WEB=google
   - FOURGET_DEFAULT_SCRAPER_IMAGES=google
@@ -225,8 +236,8 @@ does not block motion discovery, and `/proxy?...&s=animated` can still validate
 and play up to 32 MiB automatically without a click. Generic image requests
 derive a bounded Referer from the already validated public source URL; reviewed
 provider-specific Referers are also length/CRLF checked rather than accepting
-arbitrary header text. The default SecOps landing page uses the
-tracked `static/misc/secops.gif` background; browsers requesting reduced motion
+arbitrary header text. The default Lain landing page uses the
+tracked `static/misc/lain.gifv` background; small screens or browsers requesting reduced motion
 or reduced data receive a static CSS fallback. Google reuses validated CSE
 bootstrap parameters for at most
 five minutes per configured backend, CX, and outbound egress. It does not cache
@@ -418,7 +429,7 @@ security-search/
 ├── static/images-motion.js              ← queued validated GIF/WebP/APNG playback
 ├── static/misc/secops.gif               ← tracked SecOps home background
 ├── static/{web,image}-results.css       ← cacheable page-specific result polish
-├── static/themes/*.css                  ← bundled themes; SecOps is the default
+├── static/themes/*.css                  ← bundled themes; Lain is the default
 ├── anubis/                              ← bot policies preserved
 ├── .well-known/security.txt             ← preserved
 └── robots.txt                           ← rewritten for crawl-budget management
@@ -444,10 +455,10 @@ curl -sI https://securityops.co/ | head -15
 curl -s https://securityops.co/ | grep -o '<title>[^<]*</title>'
 # Expect: <title>Security Search — Privacy-First Metasearch Engine</title>
 
-# SecOps is selected and cache-busted for a first visit?
+# Lain is selected and cache-busted for a first visit?
 curl -fsS "$app_base/" |
-  grep -q '/static/themes/SecOps.css?v13'
-curl -fsSI "$app_base/static/themes/SecOps.css?v13" |
+  grep -q '/static/themes/Lain.css?v14'
+curl -fsSI "$app_base/static/themes/Lain.css?v14" |
   grep -qi '^Content-Type: text/css'
 
 # Search works? Assert result content; HTTP 200 alone also describes an error page.

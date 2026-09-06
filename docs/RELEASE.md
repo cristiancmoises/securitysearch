@@ -1,6 +1,6 @@
 # Release and deployment
 
-These instructions prepare and deploy v0.9.7. They do not imply that the tag,
+These instructions prepare and deploy v0.9.11. They do not imply that the tag,
 remote commit, hosted release, or IONOS deployment already exists.
 
 ## Build the source artifact
@@ -40,37 +40,37 @@ Then, from a clean working tree:
 ```bash
 git diff --check
 git status --short
-./release.sh 0.9.7
-(cd dist && sha256sum -c securitysearch-v0.9.7.tar.gz.sha256)
-git tag -a v0.9.7 -m "Security Search v0.9.7"
+./release.sh 0.9.11
+(cd dist && sha256sum -c securitysearch-v0.9.11.tar.gz.sha256)
+git tag -a v0.9.11 -m "Security Search v0.9.11"
 ```
 
 The release helper uses `git archive`, respects `.gitattributes`, and adds only
 the required empty `icons/` runtime-cache directory that Git cannot track:
 
 ```text
-dist/securitysearch-v0.9.7.tar.gz
-dist/securitysearch-v0.9.7.tar.gz.sha256
+dist/securitysearch-v0.9.11.tar.gz
+dist/securitysearch-v0.9.11.tar.gz.sha256
 ```
 
 Inspect the archive before publishing:
 
 ```bash
-archive_listing=$(tar -tzf dist/securitysearch-v0.9.7.tar.gz)
+archive_listing=$(tar -tzf dist/securitysearch-v0.9.11.tar.gz)
 printf '%s\n' "$archive_listing" | sed -n '1,10p'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.7/icons/'
+  grep -Fxq 'securitysearch-v0.9.11/icons/'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.7/banner/securitysearch.webp'
+  grep -Fxq 'securitysearch-v0.9.11/banner/securitysearch.webp'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.7/static/misc/secops.gif'
+  grep -Fxq 'securitysearch-v0.9.11/static/misc/secops.gif'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.7/static/images-fallback.js'
+  grep -Fxq 'securitysearch-v0.9.11/static/images-fallback.js'
 printf '%s\n' "$archive_listing" |
-  grep -Fxq 'securitysearch-v0.9.7/static/images-motion.js'
-tar -xzOf dist/securitysearch-v0.9.7.tar.gz \
-  securitysearch-v0.9.7/data/config.php |
-  grep -Eq 'const VERSION = 13;'
+  grep -Fxq 'securitysearch-v0.9.11/static/images-motion.js'
+tar -xzOf dist/securitysearch-v0.9.11.tar.gz \
+  securitysearch-v0.9.11/data/config.php |
+  grep -Eq 'const VERSION = 14;'
 if printf '%s\n' "$archive_listing" |
    LC_ALL=C grep -Ei '(\.bak($|\.)|data/api_keys/|^securitysearch-v0\.9\.7/dist/|securitysearch\.zip|Kuruminha\.css|mimi\.jpg|(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/))'; then
   echo "unexpected release content"
@@ -105,7 +105,7 @@ target until `git ls-remote securityops` succeeds and the repository owner has
 created it. Never put access tokens in remote URLs.
 
 The remote inventory must contain only `main` and release tags v0.9.0 through
-v0.9.7. Capture the exact current remote object IDs immediately before each
+v0.9.11. Capture the exact current remote object IDs immediately before each
 push and use an explicit lease for every ref. A lease mismatch means someone
 updated that remote; stop and investigate instead of overwriting their work.
 The following Bash function publishes one named remote atomically while also
@@ -117,7 +117,7 @@ that target and is never mistaken for another target's result:
 publish_remote() (
   set -euo pipefail
   remote=$1
-  release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5 v0.9.6 v0.9.7)
+  release_tags=(v0.9.0 v0.9.1 v0.9.2 v0.9.3 v0.9.4 v0.9.5 v0.9.6 v0.9.11)
   expected_refs=(refs/heads/main)
   for tag in "${release_tags[@]}"; do
     expected_refs+=("refs/tags/${tag}")
@@ -196,7 +196,7 @@ release_refs=(
   refs/tags/v0.9.4
   refs/tags/v0.9.5
   refs/tags/v0.9.6
-  refs/tags/v0.9.7
+  refs/tags/v0.9.11
 )
 verify_remote() (
   set -euo pipefail
@@ -461,8 +461,8 @@ npm_data_host=$(
 )
 test -d "$npm_data_host"
 npm_backup_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-npm_database_backup="$npm_data_host/database.pre-securitysearch-v0.9.7-${npm_backup_stamp}.sqlite"
-npm_generated_backup="$npm_data_host/nginx/proxy_host/${npm_host_config##*/}.pre-securitysearch-v0.9.7-${npm_backup_stamp}"
+npm_database_backup="$npm_data_host/database.pre-securitysearch-v0.9.11-${npm_backup_stamp}.sqlite"
+npm_generated_backup="$npm_data_host/nginx/proxy_host/${npm_host_config##*/}.pre-securitysearch-v0.9.11-${npm_backup_stamp}"
 cp --preserve=mode,timestamps "$npm_data_host/database.sqlite" "$npm_database_backup"
 cp --preserve=mode,timestamps \
   "$npm_data_host/nginx/proxy_host/${npm_host_config##*/}" \
@@ -529,11 +529,11 @@ Use the approved Evelin profile and upload both files:
 
 ```bash
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.7.tar.gz \
-  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz
+  dist/securitysearch-v0.9.11.tar.gz \
+  remote:/srv/evelin/securitysearch-v0.9.11.tar.gz
 ev --config /home/berkeley/.evelin/client.toml cp \
-  dist/securitysearch-v0.9.7.tar.gz.sha256 \
-  remote:/srv/evelin/securitysearch-v0.9.7.tar.gz.sha256
+  dist/securitysearch-v0.9.11.tar.gz.sha256 \
+  remote:/srv/evelin/securitysearch-v0.9.11.tar.gz.sha256
 ev --config /home/berkeley/.evelin/client.toml shell
 ```
 
@@ -542,12 +542,12 @@ exact rollback archive before changing the active tree:
 
 ```bash
 cd /srv/evelin
-sha256sum -c securitysearch-v0.9.7.tar.gz.sha256
+sha256sum -c securitysearch-v0.9.11.tar.gz.sha256
 
 rollback_stamp=$(date -u +%Y%m%dT%H%M%SZ)
-rollback_archive=/root/security-search-pre-v0.9.7-${rollback_stamp}.tgz
+rollback_archive=/root/security-search-pre-v0.9.11-${rollback_stamp}.tgz
 old_tree=/root/security-search-update-old-${rollback_stamp}
-release_tree=/root/security-search-v0.9.7
+release_tree=/root/security-search-v0.9.11
 test -d /root/security-search-update
 test ! -e "$old_tree"
 test ! -e "$release_tree"
@@ -558,7 +558,7 @@ test -s "$rollback_archive"
 chmod 600 "$rollback_archive"
 
 install -d -m 0750 "$release_tree"
-tar -xzf /srv/evelin/securitysearch-v0.9.7.tar.gz \
+tar -xzf /srv/evelin/securitysearch-v0.9.11.tar.gz \
   --strip-components=1 \
   -C "$release_tree"
 test -f "$release_tree/docker-compose.yml"
@@ -587,9 +587,9 @@ the current image under a rollback tag first:
 ```bash
 previous_image_id=$(docker image inspect --format '{{.Id}}' security-search:latest)
 test -n "$previous_image_id"
-docker image tag "$previous_image_id" security-search:pre-v0.9.7
+docker image tag "$previous_image_id" security-search:pre-v0.9.11
 
-cd /root/security-search-v0.9.7
+cd /root/security-search-v0.9.11
 umask 077
 printf 'SECURITYSEARCH_BIND_ADDRESS=172.17.0.1\n' > .env
 chmod 600 .env
@@ -605,7 +605,7 @@ cd /root
 docker compose -f /root/security-search-update/docker-compose.yml \
   down --remove-orphans
 mv /root/security-search-update "$old_tree"
-mv /root/security-search-v0.9.7 /root/security-search-update
+mv /root/security-search-v0.9.11 /root/security-search-update
 
 cd /root/security-search-update
 docker compose up -d --no-build
@@ -662,10 +662,10 @@ timestamped old directory, and retag the preserved image:
 cd /root
 docker compose -f /root/security-search-update/docker-compose.yml down
 mv /root/security-search-update \
-  /root/security-search-update-failed-v0.9.7
+  /root/security-search-update-failed-v0.9.11
 mv /root/security-search-update-old-YYYYMMDDTHHMMSSZ \
   /root/security-search-update
-docker image tag security-search:pre-v0.9.7 security-search:latest
+docker image tag security-search:pre-v0.9.11 security-search:latest
 cd /root/security-search-update
 docker compose up -d --no-build
 docker compose ps
@@ -678,7 +678,7 @@ cutover. If that old directory is unavailable, extract the exact predeploy
 
 After health, result-bearing local checks, both public domains, NPM limits, and
 logs pass, remove the timestamped old directory and the
-`security-search:pre-v0.9.7` image tag:
+`security-search:pre-v0.9.11` image tag:
 
 ```bash
 test -n "${old_tree:-}"
@@ -689,7 +689,7 @@ esac
 test -d "$old_tree"
 test -s "$rollback_archive"
 rm -rf -- "$old_tree"
-docker image rm security-search:pre-v0.9.7
+docker image rm security-search:pre-v0.9.11
 test -s "$rollback_archive"
 ```
 

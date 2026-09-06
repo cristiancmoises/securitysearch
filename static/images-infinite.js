@@ -10,6 +10,9 @@
 	}
 
 	var loading = false;
+	var automaticPages = 0;
+	// Save-Data users retain ordinary pagination; never prefetch a paid connection.
+	if (navigator.connection && navigator.connection.saveData) { return; }
 	var status = document.createElement("div");
 	status.className = "infinite-status";
 	status.setAttribute("role", "status");
@@ -26,7 +29,7 @@
 			loadNextPage();
 		}
 	}, {
-		rootMargin: "600px 0px"
+		rootMargin: "200px 0px"
 	});
 
 	function offerRestart(message) {
@@ -52,9 +55,13 @@
 		next.setAttribute("aria-disabled", "true");
 		next.classList.add("loading");
 		status.textContent = "Loading more images…";
+		var controller = typeof AbortController === "function" ? new AbortController() : null;
+		var deadline = controller ? setTimeout(function () { controller.abort(); }, 25000) : null;
 
 		try {
+			if (new URL(next.href).origin !== window.location.origin) { throw new Error("Foreign pagination URL"); }
 			var response = await fetch(next.href, {
+				signal: controller ? controller.signal : undefined,
 				credentials: "same-origin",
 				cache: "no-store",
 				headers: { "Accept": "text/html" }
@@ -85,16 +92,22 @@
 				return;
 			}
 
-			next.href = new URL(following.getAttribute("href"), response.url).href;
+			var followingUrl = new URL(following.getAttribute("href"), response.url);
+			if (followingUrl.origin !== window.location.origin) { throw new Error("Foreign pagination URL"); }
+			next.href = followingUrl.href;
 			next.removeAttribute("aria-disabled");
 			next.classList.remove("loading");
 			status.textContent = "";
 			loading = false;
-			observer.observe(next);
+			automaticPages++;
+			if (automaticPages < 3) { observer.observe(next); }
+			else { observer.disconnect(); status.textContent = "Continue with Next page to keep this page lightweight."; }
 		} catch (error) {
 			// The dispatched next-page token is one-time use, even when its
 			// upstream request fails. Never expose that consumed URL again.
 			offerRestart("Automatic loading stopped. Restart the search to continue.");
+		} finally {
+			if (deadline !== null) { clearTimeout(deadline); }
 		}
 	}
 

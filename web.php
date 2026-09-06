@@ -1,5 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+// Buffer the small HTML response so provider failures can still send HTTP 503.
+ob_start();
 /*
 	Initialize request dependencies
 */
