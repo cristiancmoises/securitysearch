@@ -1,5 +1,19 @@
 /* IMAGE CARD POLISH ---------------------------------------- */
 /* Extra views use CSS only and keep row-major keyboard/reading order. */
+#images{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr));
+    gap:.8rem;
+    padding:4px;
+    overflow:visible;
+}
+#images .image-wrapper{float:none;width:100%;min-width:0;}
+#images .image{width:100%;min-width:0;padding:.55rem .55rem 1rem;}
+#images .thumb{height:180px;background:rgba(0,0,0,.18);}
+#images .thumb img{max-width:100%;object-fit:contain;}
+#images .description{line-height:1.5;}
+#images .images-empty{grid-column:1/-1;width:min(100%,540px);box-sizing:border-box;}
+.image-view-note{margin:.8rem 4px 1rem;color:var(--bdae93,#b9cbd1);font-size:.85rem;line-height:1.6;}
 #images.images-view-compact,
 #images.images-view-gallery{
     display:grid;
@@ -103,9 +117,63 @@
 
 /* LARGE, SERVER-RENDERED IMAGE FEED ----------------------- */
 #images.images-view-feed{
+    display:block;
     max-width: 980px;
     margin-inline: auto;
     overflow: visible;
+}
+
+/* Metadata-first reading: natural DOM/tab order, no script positioning. */
+#images.images-view-list{
+    display:block;
+    max-width:1080px;
+    margin-inline:auto;
+}
+#images.images-view-list .image{
+    display:grid;
+    grid-template-columns:minmax(100px,220px) minmax(0,1fr);
+    gap:1.25rem;
+    padding:1rem .4rem;
+    border-bottom:1px solid var(--504945,#29434b);
+}
+#images.images-view-list .thumb{height:160px;margin:0;}
+#images.images-view-list .image > a:not(.thumb){
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    gap:.65rem;
+}
+#images.images-view-list .title{white-space:normal;overflow-wrap:anywhere;margin:0;opacity:1;}
+#images.images-view-list .description{height:auto;max-height:none;font-size:1rem;line-height:1.6;}
+
+/* Side-by-side comparison remains a real scroll container. Tab focuses and
+   scrolls links natively; no cloned cards or reordered keyboard navigation. */
+#images.images-view-filmstrip{
+    display:flex;
+    gap:1rem;
+    overflow-x:auto;
+    overflow-y:hidden;
+    scroll-snap-type:x proximity;
+    scroll-padding-inline:.6rem;
+    padding:.6rem .6rem 1.2rem;
+    scrollbar-width:auto;
+    scrollbar-color:var(--8ec07c,#33f2ff) var(--282828,#071015);
+}
+#images.images-view-filmstrip .image-wrapper{
+    flex:0 0 min(78vw,360px);
+    scroll-snap-align:start;
+    scroll-margin-inline:.6rem;
+}
+#images.images-view-filmstrip .image{padding:.65rem;border:1px solid var(--504945,#29434b);border-radius:.35rem;}
+#images.images-view-filmstrip .thumb{height:clamp(170px,34vh,300px);}
+#images.images-view-filmstrip .description{height:4.5em;}
+
+@media(max-width:600px){
+    #images.images-view-list .image{grid-template-columns:minmax(84px,32%) minmax(0,1fr);gap:.8rem;}
+    #images.images-view-list .thumb{height:110px;}
+    #images.images-view-list .description{font-size:.88rem;}
+    #images.images-view-gallery .thumb{height:250px;}
 }
 #images.images-view-feed .image-wrapper{
     float: none;

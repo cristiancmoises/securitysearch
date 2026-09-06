@@ -1,6 +1,6 @@
 # Search-first interface
 
-Security Search v0.9.11 keeps the logo and search field as the landing page's
+Security Search v0.9.12 keeps the logo and search field as the landing page's
 primary visual anchors. Navigation and SecurityOps links remain available
 without competing with the search task.
 
@@ -29,14 +29,17 @@ cascade is:
 2. The selected theme stylesheet supplies shared color tokens.
 3. Home-page component rules consume those tokens, with safe fallback values.
 
-The stylesheet is `static/themes/Lain.css`. v0.9.11 uses `config::VERSION=14`
-so the current theme and image controllers load through `?v14`.
+The stylesheet is `static/themes/Lain.css`. v0.9.12 uses `config::VERSION=15`
+so the current theme and image controllers load through `?v15`.
 
 On the home page, Lain uses the tracked
 `static/misc/lain.gifv` GIF background. The CSS
 `prefers-reduced-motion: reduce` and `prefers-reduced-data: reduce` paths replace
-that image with a plain dark background, also on screens up to 600 px. The logo remains the primary visual
-anchor above either treatment.
+that image with a plain dark background. Mobile uses the animation normally,
+without a width-based ban. A native still-background checkbox works without JS.
+The wallpaper has an explicit stacking layer so the black page cannot hide it;
+foreground controls retain a dark readable surface. The real GIF is served with
+the correct MIME and static caching. It costs approximately 8.7 MB uncached.
 
 Theme selection remains a browser preference:
 
@@ -91,10 +94,13 @@ headings and guidance must remain professional and free of profanity.
 
 ## Image-result flow
 
-v0.9.11 also offers Compact grid and an uncropped Gallery alongside Grid/Feed.
-These are CSS-only, row-major layouts; the View filter does not require JS.
+v0.9.12 offers Grid, Compact, uncropped Gallery, Feed, metadata-first List and a
+horizontal Filmstrip. The filmstrip deliberately scrolls inside its own region,
+not the page. These are CSS-only layouts retaining document/keyboard order;
+the View filter does not require JS. Intrinsic size hints reserve image space;
+the initial preview group loads eagerly while later cards stay lazy.
 
-Image results expose two server-rendered controls: **Grid/Large feed** changes
+Image results expose two server-rendered controls: **View** changes
 the responsive layout, while **Fast preview/Original** chooses the proxied
 thumbnail or best original source used directly in each card. `feed + original`
 provides a Tumblr-like reading flow and lets browser-supported GIF/WebP/APNG
@@ -188,8 +194,8 @@ hint; it is not an authoritative MIME report.
 Before promotion:
 
 1. Fetch the home page without a theme cookie and verify it links to
-   `/static/themes/Lain.css?v14`; verify `static/misc/lain.gifv` loads for the
-   normal desktop Lain home and the static fallback applies under reduced motion/data.
+   `/static/themes/Lain.css?v15`; compare actual GIF frames on desktop/mobile,
+   and verify the still control and reduced-motion/data fallback.
 2. Verify that stylesheet returns HTTP 200 with a CSS content type.
 3. Test no cookie, an invalid cookie, `theme=Dark`, and a valid nondefault
    theme on the home, results, and Settings pages.
@@ -202,7 +208,7 @@ Before promotion:
 7. Verify Google, Brave, DuckDuckGo, and Yandex separately with real result
    cards/API arrays. HTTP 200 by itself is not evidence of a working scraper.
    Give command-line HTML `/web` and `/images` requests a browser-like
-   User-Agent; API requests do not need one. Record anti-abuse results as
+   User-Agent; reverse-proxy bot rules may also apply to API requests. Record anti-abuse results as
    upstream limitations, not scraper success.
 8. Test image automatic loading, its opt-out, the ordinary pagination link, and
    the default `nsfw=yes` plus saved/request `maybe` and `no` overrides.

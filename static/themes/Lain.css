@@ -7,42 +7,62 @@ body{
     color:#00eaff;
 }
 
-/* ─────────────────────────────────────────────
-   FULL-SCREEN STATIC TRON GIF OVERLAY
-───────────────────────────────────────────── */
-
-.home::before{
-    content:"";
+/* The original GIF is an actual animated raster, not a CSS animation.
+   Keep its layer above the opaque body and below the page's own stacking
+   context. Negative z-index used to bury it behind the body background. */
+.home .ambient-wallpaper{
     position:fixed;
     inset:0;
     width:100%;
     height:100%;
-
-    background-image:url("/static/misc/lain.gifv");
+    background-image:
+        linear-gradient(180deg,rgba(0,0,0,.18),rgba(0,0,0,.38)),
+        url("/static/misc/lain.gifv?v=42eb5cfb1901");
     background-repeat:no-repeat;
     background-position:center center;
-    background-size:cover; /* FULL SCREEN */
-
+    background-size:cover;
     pointer-events:none;
-    z-index:-1;
-    opacity:.70;
-
-    /* ABSOLUTELY STATIC */
-    animation:none;
+    z-index:0;
 }
-
-/* ─────────────────────────────────────────────
-   MAIN CONTAINER
-───────────────────────────────────────────── */
-
 .home{
     background:#000000;
+    position:relative;
+    isolation:isolate;
 }
-
-/* The animated wallpaper is decorative, never required for reading/search. */
-@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce), (max-width: 600px){
-    .home::before{ background-image:none; }
-    .wiki-head .photo::after{ background-image:none; }
+.home #center{position:relative;z-index:1;}
+.home .wallpaper-toggle{display:block;}
+.home .wallpaper-control{
+    display:inline-flex;
+    align-items:center;
+    min-height:44px;
+    padding:.45rem .8rem;
+    margin-right:auto;
+    gap:.55rem;
+    border:1px solid #16434c;
+    border-radius:999px;
+    background:#020b0fe8;
+    color:#bffaff;
+    font-size:.72rem;
+    cursor:pointer;
+}
+.home .wallpaper-control::before{
+    content:"";
+    width:.7rem;height:.7rem;
+    border:1px solid currentColor;
+    border-radius:2px;
+}
+.home .wallpaper-toggle:checked ~ .ambient-wallpaper{background-image:none;}
+.home .wallpaper-toggle:checked ~ #center .wallpaper-control::before{background:#33f2ff;}
+.home .wallpaper-toggle:focus-visible ~ #center .wallpaper-control{outline:2px solid #33f2ff;outline-offset:3px;}
+/* Text stays readable over every frame, not just a convenient still frame. */
+.home .sub-hint,
+.home .quick-links{
+    background:rgba(0,0,0,.82);
+    border:1px solid #12363d;
+    border-radius:10px;
+    padding:.55rem .8rem;
+    color:#bffaff;
+    text-shadow:0 1px 2px #000;
 }
 
 /* ─────────────────────────────────────────────
@@ -156,4 +176,16 @@ pre, code{
     background:#000000;
     color:#00eaff;
     border:1px solid #004c55;
+}
+
+/* An OS preference or the native checkbox removes the GIF source entirely.
+   Mobile keeps the full wallpaper by default; search never depends on it. */
+@media (prefers-reduced-motion: reduce), (prefers-reduced-data: reduce){
+    .home .ambient-wallpaper,
+    .wiki-head .photo::after{background-image:none;}
+    .home .wallpaper-control,.home .wallpaper-toggle{display:none;}
+    .home .motion-status{display:inline;margin-right:auto;color:#bffaff;font-size:.72rem;}
+}
+@media print{
+    .home .ambient-wallpaper,.home .wallpaper-control,.home .motion-status{display:none;}
 }

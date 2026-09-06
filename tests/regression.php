@@ -6,7 +6,7 @@ function check($value, $label){ if(!$value){ throw new RuntimeException($label);
 $frontend = new frontend();
 $_GET = ['scraper'=>'google']; $_COOKIE = [];
 [$provider, $filters] = $frontend->getscraperfilters('images');
-foreach(['grid','compact','gallery','feed'] as $view){
+foreach(['grid','compact','gallery','feed','list','filmstrip'] as $view){
  $get = $frontend->parsegetfilters(['s'=>'GNU Guix','view'=>$view], $filters);
  check($get['view']===$view, 'View whitelist: '.$view);
 }
@@ -15,7 +15,7 @@ foreach(['<script>', ['gallery']] as $view){
  check(!in_array($get['view'], ['<script>', ['gallery']], true), 'Invalid view rejected');
 }
 $header = $frontend->load('header.html');
-check(str_contains($header, '/static/themes/Lain.css?v14'), 'Lain default');
+check(str_contains($header, '/static/themes/Lain.css?v'.config::VERSION), 'Lain default');
 $_COOKIE['theme'] = 'Tron';
 check(str_contains($frontend->load('header.html'), '/static/themes/Tron.css'), 'Saved theme preserved');
 $_COOKIE['theme'] = '../../etc/passwd';

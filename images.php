@@ -12,7 +12,7 @@ $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("images");
 $get = $frontend->parsegetfilters($_GET, $filters);
-$image_view = in_array($get["view"] ?? null, ["grid", "compact", "gallery", "feed"], true) ? $get["view"] : "grid";
+$image_view = in_array($get["view"] ?? null, ["grid", "compact", "gallery", "feed", "list", "filmstrip"], true) ? $get["view"] : "grid";
 $image_quality = ($get["quality"] ?? "preview") === "original" ? "original" : "preview";
 
 /*
@@ -26,6 +26,9 @@ $payload = [
 	"images" => "",
 	"nextpage" => "",
 	"infinite_scroll" => "",
+	"image_view_help" => $image_view === "filmstrip" ?
+		'<p class="image-view-note">Filmstrip: swipe or scroll sideways. Tab moves between previews and sources; use Next page for more results.</p>' :
+		($image_view === "list" ? '<p class="image-view-note">List view: previews alongside readable titles and source websites.</p>' : ''),
 	"image_classes" => ' class="images-view-' . $image_view . ' images-quality-' . $image_quality . '"'
 ];
 
@@ -183,6 +186,15 @@ foreach($result_images as $image){
 		$image_quality === "original" ?
 		$frontend->htmlimage($original_url, "original") :
 		$thumbnail_src;
+	// Reserve the image's intrinsic ratio before the proxy responds. The
+	// same-origin validated proxy and explicit Original option remain unchanged.
+	$display_source = $image_quality === "original" ? $safe_sources[0] : $safe_sources[$source_count - 1];
+	$display_width = $display_source["width"] ?? 236;
+	$display_height = $display_source["height"] ?? 180;
+	$image_loading_attributes =
+		' width="' . $display_width . '" height="' . $display_height . '"' .
+		' loading="' . ($rendered_images < 4 ? 'eager' : 'lazy') . '" decoding="async"' .
+		' fetchpriority="' . ($rendered_images === 0 ? 'high' : ($rendered_images < 4 ? 'auto' : 'low')) . '"';
 	$poster_fallback_urls = [];
 	for($source_index = $source_count - 2; $source_index >= 0; $source_index--){
 
@@ -222,12 +234,12 @@ foreach($result_images as $image){
 			$motion_fallback_attribute = ' data-motion-fallback-src="' . $frontend->htmlimage($original_url, "animated") . '"';
 		}
 		$image_markup =
-			'<img src="' . $display_src . '" data-motion-src="' . $frontend->htmlimage($motion_url, "animated") . '"' . $motion_fallback_attribute . ' data-motion-format="' . htmlspecialchars($animation_format) . '" data-motion-retry="' . $motion_retry . '" data-poster-src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" class="animated-preview" loading="lazy" decoding="async" fetchpriority="low">' .
+			'<img src="' . $display_src . '" data-motion-src="' . $frontend->htmlimage($motion_url, "animated") . '"' . $motion_fallback_attribute . ' data-motion-format="' . htmlspecialchars($animation_format) . '" data-motion-retry="' . $motion_retry . '" data-poster-src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" class="animated-preview"' . $image_loading_attributes . '>' .
 			'<span class="motion-badge" aria-hidden="true">' . htmlspecialchars($animation_format) . '</span>';
 	}else{
 
 		$image_markup =
-			'<img src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '" loading="lazy" decoding="async" fetchpriority="low">';
+			'<img src="' . $display_src . '"' . $image_fallback_attributes . ' alt="' . htmlspecialchars($title) . '"' . $image_loading_attributes . '>';
 	}
 
 	$source_json = json_encode($safe_sources, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -269,7 +281,9 @@ if(isset($results["npt"]) && is_string($results["npt"]) && $results["npt"] !== "
 	$payload["nextpage"] =
 		'<a href="' . $frontend->htmlnextpage($get, $results["npt"], "images") . '" class="nextpage img">Next page &gt;</a>';
 
-	if(($_COOKIE["image_infinite"] ?? "yes") !== "no"){
+	// A horizontal strip leaves the vertical next-page link in view; do not
+	// spend bandwidth automatically fetching pages the user has not reached.
+	if($image_view !== "filmstrip" && ($_COOKIE["image_infinite"] ?? "yes") !== "no"){
 		$payload["infinite_scroll"] =
 			'<script src="/static/images-infinite.js?v' . config::VERSION . '" defer></script>';
 	}

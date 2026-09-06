@@ -6,18 +6,23 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.11
+## Current source version: v0.9.12
 
-- Lain is now consistent in source and Compose; valid saved themes are preserved.
-- Four server-rendered image views: Grid, Compact grid, uncropped Gallery and Large
-  feed. Automatic pagination is limited to three pages, respects Save-Data and
+- Lain's original animation is visible on desktop and mobile, with readable
+  foregrounds and a no-JavaScript still-background switch. Reduced motion/data
+  preferences and valid saved themes remain respected.
+- Six server-rendered image views: Grid, Compact grid, uncropped Gallery, Large
+  feed, List and Filmstrip. Automatic pagination is limited to three pages, respects Save-Data and
   has a 25-second deadline. Normal links remain usable without JavaScript.
 - Google network work shares a 25-second budget. A transient HTTP 502/503/504 gets
   at most one retry per hop on the same egress; challenges never trigger this retry.
 - Provider failures return HTTP 503 with `Retry-After`, not misleading HTTP 200.
   A fast cooldown response is explicitly distinguished from a completed search.
-- [Current operations, audit and status routing](docs/OPERATIONS-0.9.11.md)
-  ([Português](docs/OPERATIONS-0.9.11.pt-BR.md)).
+- Google reuses connections inside the same search and egress, shares bootstrap
+  and cooldown state across its CSE aliases, and bounds responses to 4 MiB.
+  Invalid proxy configurations now fail closed instead of permitting direct traffic.
+- [Current operations, audit and status routing](docs/OPERATIONS-0.9.12.md)
+  ([Português](docs/OPERATIONS-0.9.12.pt-BR.md)).
 
 - v0.9.10 fixes container/source-IP binding, validates unreadable proxy pools,
   persists all provider proxy variables in Compose, supports a bounded
@@ -60,7 +65,7 @@ Privacy-first proxy metasearch engine. Hardened fork of
   [SecurityOps Brasil](https://securityops.com.br/).
 - Lain is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;
-  valid saved themes remain selected, and asset version 14 invalidates stale
+  valid saved themes remain selected, and asset version 15 invalidates stale
   theme CSS and background assets.
 - NSFW-capable provider filters allow NSFW content by default through
   `config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes`. A request parameter
@@ -237,17 +242,17 @@ and play up to 32 MiB automatically without a click. Generic image requests
 derive a bounded Referer from the already validated public source URL; reviewed
 provider-specific Referers are also length/CRLF checked rather than accepting
 arbitrary header text. The default Lain landing page uses the
-tracked `static/misc/lain.gifv` background; small screens or browsers requesting reduced motion
-or reduced data receive a static CSS fallback. Google reuses validated CSE
+tracked `static/misc/lain.gifv` background on desktop and mobile; the still-background
+control or reduced-motion/reduced-data preferences provide a static CSS fallback. Google reuses validated CSE
 bootstrap parameters for at most
-five minutes per configured backend, CX, and outbound egress. It does not cache
+five minutes per CX and outbound egress, shared by the Google/CSE aliases. It does not cache
 queries or result documents. This normally removes the HTML and loader-script
 bootstrap round trips from nearby searches and reduces upstream request volume.
-A Google or Brave upstream transfer uses a 10-second connection timeout and a
-20-second total timeout, bounding slow-path latency per request.
+Google uses a five-second connection timeout and one shared 25-second request
+budget; Brave retains its separate provider-specific transfer limits.
 A recognized cached-token rejection deletes that entry, performs one fresh
 bootstrap, and retries once. The single-flight owner lock self-expires after 60
-seconds; waiters consume a published result for up to six seconds, then fail fast
+seconds; waiters consume a published result for up to 24 seconds within the total deadline, then fail
 instead of starting another bootstrap. A failed ordinary bootstrap is shared
 for five seconds, while a recognized anti-abuse bootstrap failure is shared for
 30 seconds. The same 30-second cooldown also covers recognized anti-abuse
@@ -358,13 +363,13 @@ Summary of high-impact changes:
 | **Security** | All HTTP security headers centralized in `lib/security_headers.php`. CSP tightened (no `'unsafe-inline'` in `script-src`). |
 | **Security** | Container drops all kernel capabilities except those required by httpd, enables `no-new-privileges`, and applies resource limits. |
 | **SEO** | `robots.txt` blocks dynamic search paths and 28 AI/SEO scrapers. `sitemap.php` has dynamic `<lastmod>`. |
-| **SEO** | `template/home.html` now has `<link rel="canonical">`, Twitter Cards, and JSON-LD `WebSite` + `SearchAction` (Google sitelinks search box). |
-| **Perf** | Apache OPcache, compression/static caching, reduced-motion/data fallbacks for the animated SecOps backdrop, lazy result media, thumbnail passthrough, structural animation validation, bounded queues, a release-free Docker build context, and a five-minute per-egress Google bootstrap cache that stores no queries or results. |
+| **SEO** | The home template provides canonical/social metadata and semantic `WebSite` + `SearchAction` data; these do not guarantee indexing or a special search-engine display. |
+| **Perf** | Apache OPcache, static caching, accessible Lain animation, prioritized initial previews, lazy later cards, bounded image validation/queues, same-search connection reuse and a five-minute query-free Google bootstrap cache. |
 | **Backports** | Upstream fixes for Google, Yandex, Yep, Pinterest, Qwant, SoundCloud, fuckhtml.php JSON parser. |
 | **Backports** | New image scrapers: Pexels, Unsplash, Pixabay. |
 | **Reliability** | Dockerfile has multi-mirror failover for Alpine apk fetches. Healthcheck. tini PID 1. |
 | **Providers** | Google is the configured web/image default through the bundled CSE-compatible transport. Unusual-traffic blocks are not retried; users get an explicit Brave action instead of a silent fallback. Direct Brave PoW challenges fail fast, while a configured pool can rotate for up to three bounded attempts. Google API remains opt-in with privately supplied keys. |
-| **UX** | A minimalist, responsive landing page prioritizes the logo and search. The token-driven SecOps cascade works across the home/results UI, friendly errors provide clear actions, valid saved themes remain intact, and image auto-pagination is default-on with an opt-out. |
+| **UX** | Responsive Lain landing page with the original animated background and a native still switch; six image layouts, explicit errors and preserved saved themes. Automatic pagination is bounded and opt-out, while Filmstrip uses ordinary Next links. |
 
 ---
 
@@ -457,8 +462,8 @@ curl -s https://securityops.co/ | grep -o '<title>[^<]*</title>'
 
 # Lain is selected and cache-busted for a first visit?
 curl -fsS "$app_base/" |
-  grep -q '/static/themes/Lain.css?v14'
-curl -fsSI "$app_base/static/themes/Lain.css?v14" |
+  grep -q '/static/themes/Lain.css?v15'
+curl -fsSI "$app_base/static/themes/Lain.css?v15" |
   grep -qi '^Content-Type: text/css'
 
 # Search works? Assert result content; HTTP 200 alone also describes an error page.

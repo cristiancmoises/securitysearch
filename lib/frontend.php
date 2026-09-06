@@ -1110,7 +1110,13 @@ class frontend{
 			!securitysearch_google_api_available()
 		){
 
-			unset($filters["scraper"]["option"]["google_api"]);
+			if($get_scraper === "google_api"){
+				// Respect an explicit or saved choice: never send its query to CSE
+				// merely because this instance has no API key configured.
+				$filters["scraper"]["option"]["google_api"] = "Google API — not configured";
+			}else{
+				unset($filters["scraper"]["option"]["google_api"]);
+			}
 		}
 
 		if($page === "images"){
@@ -1121,7 +1127,9 @@ class frontend{
 					"grid" => "Grid",
 					"compact" => "Compact grid",
 					"gallery" => "Gallery — uncropped",
-					"feed" => "Large feed"
+					"feed" => "Large feed",
+					"list" => "List — titles & sources",
+					"filmstrip" => "Filmstrip — side by side"
 				]
 			];
 			$filters["quality"] = [

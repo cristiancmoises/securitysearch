@@ -7,18 +7,23 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.11
+## Versão atual do código-fonte: v0.9.12
 
-- Lain é o padrão no código e no Compose; temas válidos salvos são preservados.
-- Quatro visualizações de imagens: grade, grade compacta, galeria sem recorte e
-  feed amplo. Paginação automática limitada a três páginas, respeitando Save-Data
+- A animação original Lain fica visível no desktop e celular, com primeiro plano
+  legível e opção de fundo estático sem JavaScript. Preferências de movimento/dados
+  reduzidos e temas válidos salvos continuam sendo respeitados.
+- Seis visualizações de imagens: grade, grade compacta, galeria sem recorte,
+  feed amplo, lista e faixa horizontal. Paginação automática limitada a três páginas, respeitando Save-Data
   e prazo de 25 segundos. Links comuns continuam funcionando sem JavaScript.
 - As chamadas Google compartilham um orçamento de 25 segundos. HTTP 502/503/504
   transitório permite uma repetição por etapa, no mesmo provedor/IP; desafios
   antiabuso não disparam essa repetição.
 - Falhas do provedor retornam HTTP 503 e `Retry-After`. Uma resposta rápida de
   cooldown é identificada como erro, não como busca concluída.
-- [Operação, auditoria e rota do status](docs/OPERATIONS-0.9.11.pt-BR.md).
+- O Google reutiliza conexões dentro da mesma busca/saída, compartilha a
+  inicialização e o cooldown entre seus aliases CSE e limita respostas a 4 MiB.
+  Configurações inválidas de proxy falham sem permitir tráfego direto.
+- [Operação, auditoria e rota do status](docs/OPERATIONS-0.9.12.pt-BR.md).
 
 - A v0.9.10 corrige o bind de IP dentro do container, diferencia pools de proxy
   ilegíveis, preserva todas as variáveis de proxy no Compose, permite pool
@@ -63,7 +68,7 @@ em [securityops.co](https://securityops.co/).
   [SecurityOps Brasil](https://securityops.com.br/).
 - Lain é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 14 evita
+  válidos já salvos continuam tendo precedência, e a versão de assets 15 evita
   reutilização de CSS e fundos antigos.
 - Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
   `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da
@@ -298,7 +303,7 @@ tokens compartilhados e os componentes da página inicial consomem esses tokens
 com valores de segurança. Sem cookie, com cookie inválido ou com tema
 inexistente, o resultado é `Lain`; `Dark` e outros temas válidos continuam
 preservados. A v0.9.4 introduziu a invalidação `v11`; a v0.9.7 usa
-`/static/themes/Lain.css?v14` para atualizar o tema, os controladores de
+`/static/themes/Lain.css?v15` para atualizar o tema, os controladores de
 imagem e o fundo restaurado.
 
 Falhas de scraper usam o título neutro **Search provider unavailable**. O texto
@@ -399,9 +404,9 @@ automaticamente, sem clique. Requisições genéricas de imagens derivam um Refe
 limitado da URL pública já validada da fonte; Referers específicos e revisados
 de provedores também passam por limite de tamanho e rejeição de CR/LF, em vez de
 aceitar texto arbitrário de header. A página Lain usa o fundo rastreado
-`static/misc/lain.gifv`; telas pequenas ou navegadores que pedem movimento reduzido ou economia
-de dados recebem um fundo CSS estático. O Google reutiliza parâmetros CSE
-validados por até cinco minutos por backend, CX e saída, sem armazenar consultas
+`static/misc/lain.gifv` também no celular; a opção de fundo estático e preferências de
+movimento/dados reduzidos oferecem uma alternativa CSS. O Google reutiliza parâmetros CSE
+validados por até cinco minutos por CX e saída, compartilhados pelos aliases Google/CSE, sem armazenar consultas
 ou resultados.
 Google usa até cinco segundos para conexão e um orçamento compartilhado de 25
 segundos; os limites de Brave continuam específicos daquele provedor.
@@ -572,7 +577,7 @@ override privado do Compose, arquivo de ambiente, credencial de proxy ou outro
 segredo somente se ele existir, for necessário e tiver sido revisado
 individualmente, mantendo permissões restritas.
 
-Depois, confirme `/static/themes/Lain.css?v14`, o tipo CSS, cartões reais de
+Depois, confirme `/static/themes/Lain.css?v15`, o tipo CSS, cartões reais de
 web/imagens, arrays `status=ok` não vazios na API, Brave separadamente, logs sem
 avisos/fatais PHP e HTTP público em `securityops.co` e
 `securityops.com.br`. Use um User-Agent semelhante ao de navegador nos curls

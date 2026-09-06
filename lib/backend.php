@@ -36,7 +36,9 @@ class backend{
 
 			throw new Exception("The configured proxy list could not be read by the web process.");
 		}
-		$proxylist = explode("\n", $proxylist);
+		$proxylist = array_map(function($entry){
+			return trim($entry, " \t\r\n");
+		}, explode("\n", $proxylist));
 
 		// ignore empty or commented lines
 		$proxylist = array_filter($proxylist, function($entry){
@@ -51,8 +53,49 @@ class backend{
 			throw new Exception("A proxy list was specified but it's empty!");
 		}
 		
-		//echo $proxylist[$proxy_index_raw % count($proxylist)];
-		return $proxylist[$proxy_index_raw % count($proxylist)];
+		$selected = $proxylist[$proxy_index_raw % count($proxylist)];
+		$this->parse_proxy_line($selected);
+		return $selected;
+	}
+
+	private function parse_proxy_line(string $line){
+		$line = trim($line, " \t\r\n");
+		// A proxy typo must never fall through to direct/ambient egress. Reject
+		// control characters before parsing, without reflecting credentials.
+		if($line === "" || preg_match('/[\x00-\x1f\x7f]/', $line)){
+			throw new Exception("The configured proxy entry is malformed.");
+		}
+		$parts = explode(":", $line, 5);
+		if(count($parts) !== 5){
+			throw new Exception("The configured proxy entry must have type:host:port:username:password fields.");
+		}
+		[$type, $address, $port, $username, $password] = $parts;
+		if($type === "raw_ip"){
+			if($line !== "raw_ip::::"){
+				throw new Exception("The configured direct-egress entry must be exactly raw_ip::::.");
+			}
+			return $parts;
+		}
+		if(!in_array($type, ["http", "https", "socks4", "socks4a", "socks5", "socks5_hostname", "socks5h", "socks5a"], true)){
+			throw new Exception("The configured proxy protocol is unsupported.");
+		}
+		// The legacy colon-delimited format supports DNS names and IPv4 only.
+		// IPv6 literals are ambiguous here: use a DNS name instead of guessing.
+		$valid_address = filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4) !== false;
+		if(!$valid_address && !preg_match('/^[0-9.]+$/', $address)){
+			$valid_address = filter_var($address, FILTER_VALIDATE_DOMAIN, FILTER_FLAG_HOSTNAME) !== false;
+		}
+		if(!$valid_address || strpos($address, ":") !== false){
+			throw new Exception("The configured proxy host is invalid; use a DNS name or IPv4 address.");
+		}
+		if(preg_match('/\A[0-9]+\z/', $port) !== 1 || (int)$port < 1 || (int)$port > 65535){
+			throw new Exception("The configured proxy port must be between 1 and 65535.");
+		}
+		if($username === "" && $password !== ""){
+			throw new Exception("The configured proxy password requires a username.");
+		}
+		// Split at most five fields: colons in passwords remain supported.
+		return [$type, $address, $port, $username, $password];
 	}
 	
 	// this function is also called directly on nextpage
@@ -64,11 +107,17 @@ class backend{
 			$port,
 			$username,
 			$password
-		] = explode(":", $ip, 5);
+		] = $this->parse_proxy_line($ip);
+		// Explicit instance routing wins over ambient no_proxy/NO_PROXY, which
+		// could otherwise bypass a configured pool even with CURLOPT_PROXY set.
+		curl_setopt($curlproc, CURLOPT_NOPROXY, "");
+		curl_setopt($curlproc, CURLOPT_PROXYUSERPWD, "");
 		
 		switch($type){
 			
 			case "raw_ip":
+				// Empty (not null) disables http_proxy/https_proxy/ALL_PROXY too.
+				curl_setopt($curlproc, CURLOPT_PROXY, "");
 				$this->assign_source_interface($curlproc);
 				return;
 			

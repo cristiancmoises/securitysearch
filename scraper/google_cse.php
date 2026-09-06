@@ -9,20 +9,23 @@ class google_cse{
 	private const TOKEN_FAILURE_TTL = 5;
 	private const TOKEN_ANTI_ABUSE_FAILURE_TTL = 30;
 	private const TOKEN_WAIT_USEC = 50000;
-	private const TOKEN_WAIT_ATTEMPTS = 120;
+	private const TOKEN_WAIT_ATTEMPTS = 480;
 	private $backend;
 	private $fuckhtml;
 	private $backend_name;
 	private $request_deadline;
+	private $transport;
+	private $transport_proxy;
+	private const MAX_RESPONSE_BYTES = 4194304;
 	
 	public function __construct($backend_name = "google_cse"){
 		$this->request_deadline = hrtime(true) + 25000000000;
 		$this->backend_name = $backend_name;
 		
-		include "lib/backend.php";
+		include_once "lib/backend.php";
 		$this->backend = new backend($backend_name);
 		
-		include "lib/fuckhtml.php";
+		include_once "lib/fuckhtml.php";
 		$this->fuckhtml = new fuckhtml();
 	}
 	
@@ -430,10 +433,23 @@ class google_cse{
 		return min(20000, $remaining);
 	}
 
+	private function transport_for($proxy){
+		// Reuse DNS/TLS/SOCKS connections only within this search and this egress.
+		// Reset options before every hop; never retain a handle across users.
+		if($this->transport === null || $this->transport_proxy !== $proxy){
+			$this->transport = curl_init();
+			$this->transport_proxy = $proxy;
+		}else{
+			curl_reset($this->transport);
+		}
+		return $this->transport;
+	}
+
 	private function get($proxy, $url, $get = [], $reqtype = self::req_js, $retried = false){
 		$remaining = $this->remaining_network_ms();
+		$this->validate_request_url($url);
 		
-		$curlproc = curl_init();
+		$curlproc = $this->transport_for($proxy);
 			
 		if($get !== []){
 			
@@ -443,7 +459,7 @@ class google_cse{
 		
 		curl_setopt($curlproc, CURLOPT_URL, $url);
 		
-		// http2 bypass
+		// Negotiate HTTP/2 when available; no challenge bypass is performed.
 		curl_setopt($curlproc, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_2_0);
 		
 		curl_setopt($curlproc, CURLOPT_ENCODING, ""); // default encoding
@@ -485,6 +501,8 @@ class google_cse{
 		}
 		
 		curl_setopt($curlproc, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($curlproc, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+		curl_setopt($curlproc, CURLOPT_FOLLOWLOCATION, false);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curlproc, CURLOPT_SSL_VERIFYPEER, true);
 		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT_MS, min(5000, $remaining));
@@ -492,14 +510,25 @@ class google_cse{
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
-		$curl_error = curl_errno($curlproc) ? curl_error($curlproc) : null;
+		$data = "";
+		$oversized = false;
+		curl_setopt($curlproc, CURLOPT_WRITEFUNCTION, function($handle, $chunk) use (&$data, &$oversized){
+			if(strlen($data) + strlen($chunk) > self::MAX_RESPONSE_BYTES){
+				$oversized = true;
+				return 0;
+			}
+			$data .= $chunk;
+			return strlen($chunk);
+		});
+		curl_exec($curlproc);
+		$curl_errno = curl_errno($curlproc);
 		$status = (int)curl_getinfo($curlproc, CURLINFO_RESPONSE_CODE);
-		curl_close($curlproc);
-
-		if($curl_error !== null){
-
-			throw new Exception($curl_error);
+		if($oversized){ throw new Exception("Google response exceeded the safe size limit."); }
+		if($curl_errno !== 0){
+			// libcurl errors may contain internal proxy addresses. Do not expose them.
+			throw new Exception($curl_errno === CURLE_OPERATION_TIMEDOUT
+				? "Google connection timed out. Please retry later or select another provider."
+				: "Google transport could not complete the request (code " . $curl_errno . "). Please retry later.");
 		}
 		// One retry for transient gateway errors on the SAME provider/egress.
 		// No challenge solving, proxy rotation, TLS downgrade or unbounded loops.
@@ -523,6 +552,17 @@ class google_cse{
 		}
 
 		return $data;
+	}
+
+	private function validate_request_url($url){
+		$parts = is_string($url) ? parse_url($url) : false;
+		if(!is_array($parts) || ($parts["scheme"] ?? "") !== "https" ||
+			($parts["host"] ?? "") !== "cse.google.com" ||
+			(isset($parts["port"]) && $parts["port"] !== 443) ||
+			isset($parts["user"]) || isset($parts["pass"]) || isset($parts["fragment"]) ||
+			preg_match('/[\x00-\x20\x7f]/', $url)){
+			throw new Exception("Google returned an unsafe bootstrap URL.");
+		}
 	}
 
 	private function decode_response($payload){
@@ -645,7 +685,7 @@ class google_cse{
 			"g.cse.request.failure." .
 			hash(
 				"sha256",
-				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . serialize($proxy)
+				config::GOOGLE_CX_ENDPOINT . "\0" . serialize($proxy)
 			);
 	}
 
@@ -1223,12 +1263,14 @@ class google_cse{
 	}
 	
 	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){
+		// A known provider block must not trigger another query-free bootstrap.
+		$this->throw_cse_request_cooldown($this->cse_request_cooldown_key($proxy));
 
 		$cache_key =
 			"g.cse.bootstrap." .
 			hash(
 				"sha256",
-				$this->backend_name . "\0" . config::GOOGLE_CX_ENDPOINT . "\0" . (string)$proxy
+				config::GOOGLE_CX_ENDPOINT . "\0" . (string)$proxy
 			);
 		$lock_key = $cache_key . ".lock";
 		$failure_key = $cache_key . ".failure";
@@ -1277,6 +1319,7 @@ class google_cse{
 			if(!$owns_lock){
 
 				for($attempt = 0; $attempt < self::TOKEN_WAIT_ATTEMPTS; $attempt++){
+					$this->remaining_network_ms();
 
 					$this->throw_cached_bootstrap_failure($failure_key);
 					$cached = $this->get_cached_bootstrap($cache_key);

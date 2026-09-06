@@ -1,5 +1,35 @@
 # Security Search — Migration Notes
 
+## v0.9.12 — Lain, proxy validation and reliable status reporting
+
+No database or persistent-volume migration is required. Rebuild the whole image
+and retain private proxy mounts, both production networks and the icon volume.
+The static asset version is now `15`. The original Lain GIF is visible on mobile
+and desktop, with a native still-background control; six image layouts preserve
+no-JavaScript navigation. Filmstrip uses manual pagination to avoid loading pages
+prematurely while its vertical Next link remains visible.
+
+Google reuses same-request/same-egress connections, shares query-free bootstrap
+and cooldown state between CSE aliases, bounds responses to 4 MiB and preserves
+the total 25-second deadline while waiting for concurrent bootstrap work.
+Configured proxies are validated before transport and cannot silently fall back
+to direct traffic. Check existing private entries for the supported five-field
+format before promotion; use DNS names instead of ambiguous IPv6 literals.
+
+All five search APIs return HTTP 503 for caught provider failures. Clients must
+check status and `Retry-After`; explicit/saved Google API selection without a key
+reports unavailable instead of silently selecting Google CSE. Fresh pickers still
+hide that unconfigured option. No query is automatically sent to another provider.
+
+See the [English](docs/OPERATIONS-0.9.12.md) and
+[Portuguese](docs/OPERATIONS-0.9.12.pt-BR.md) operating guides and their tests.
+Older sections below are historical, not current default settings.
+
+Português: não há migração de dados. Reconstrua a imagem mantendo volumes, redes
+e proxies privados. Assets `15`, Lain animado também no celular, seis layouts e
+falhas HTTP honestas são publicados juntos. Valide o formato dos proxies antes
+da troca e preserve o container anterior para retorno seguro.
+
 ## v0.9.7 — image delivery and provider reliability corrections
 
 v0.9.7 is a drop-in update from v0.9.6 with no persistent-data migration.

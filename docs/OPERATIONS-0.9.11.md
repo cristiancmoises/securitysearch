@@ -1,7 +1,7 @@
 # v0.9.11 operating guide
 
-This is the current operational supplement; older release notes describe their
-historical versions. See also [Português](OPERATIONS-0.9.11.pt-BR.md).
+Historical v0.9.11 supplement. For current behavior see
+[v0.9.12](OPERATIONS-0.9.12.md). See also [Português](OPERATIONS-0.9.11.pt-BR.md).
 
 ## Search reliability and privacy
 

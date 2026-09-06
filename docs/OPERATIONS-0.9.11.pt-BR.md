@@ -1,6 +1,7 @@
 # Operação da v0.9.11
 
-Este documento complementa as notas históricas. [English](OPERATIONS-0.9.11.md).
+Documento histórico da v0.9.11. Consulte a operação atual da
+[v0.9.12](OPERATIONS-0.9.12.pt-BR.md). [English](OPERATIONS-0.9.11.md).
 
 ## Confiabilidade e privacidade
 

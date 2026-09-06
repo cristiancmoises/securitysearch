@@ -1,12 +1,14 @@
 <?php
 
+require_once __DIR__ . "/../lib/provider_availability.php";
+
 // @TODO check for consent.google.com page, if need be
 
 class google_api{
 	
 	public function __construct(){
 		
-		include "lib/backend.php";
+		include_once "lib/backend.php";
 		$this->backend = new backend("google_api");
 	}
 	
@@ -464,6 +466,9 @@ class google_api{
 	
 	
 	public function web($get){
+		if(!securitysearch_google_api_available()){
+			throw new Exception("Google API is not configured on this instance. Choose another provider in the Scraper filter.");
+		}
 		
 		// rotate proxy + key on EVERY request
 		$keydata = $this->backend->get_key();
@@ -711,6 +716,9 @@ class google_api{
 	
 	
 	public function image($get){
+		if(!securitysearch_google_api_available()){
+			throw new Exception("Google API is not configured on this instance. Choose another provider in the Scraper filter.");
+		}
 		
 		// rotate proxy + key on EVERY request
 		$keydata = $this->backend->get_key();

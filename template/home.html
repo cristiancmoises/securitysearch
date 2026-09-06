@@ -171,12 +171,21 @@ body.home a:focus-visible{
     height: 1px;
     margin: 0;
 }
+.wallpaper-toggle{
+    display:none;
+    position:absolute;
+    width:1px;height:1px;
+    margin:0;
+    opacity:0;
+}
+.wallpaper-control,.motion-status{display:none;}
 
 /* ============================================================
    PAGE LAYOUT
    ============================================================ */
 .home #center{
     min-height: 100vh;
+    min-height: 100svh;
     display: grid;
     grid-template-rows: auto 1fr auto;
     width: min(100%, 920px);
@@ -195,6 +204,7 @@ body.home a:focus-visible{
     justify-content: flex-end;
     align-items: center;
     min-height: 44px;
+    gap: .75rem;
 }
 
 .btn-icon{
@@ -611,11 +621,15 @@ body.home a:focus-visible{
      Keyboard support + ARIA are layered on by the script at end of body;
      with JS disabled the label still toggles it via mouse. -->
 <input type="checkbox" id="services-toggle" class="services-cb">
+<input type="checkbox" id="wallpaper-static" class="wallpaper-toggle">
+<div class="ambient-wallpaper" aria-hidden="true"></div>
 
 <div id="center">
 
     <!-- TOP CORNER -->
     <div class="corner">
+        <label for="wallpaper-static" class="wallpaper-control">Still background</label>
+        <span class="motion-status">Reduced motion / data</span>
         <a href="/settings" class="btn-icon" aria-label="Settings" title="Settings">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="3"/>

@@ -1,9 +1,14 @@
 # Search providers
 
-For the v0.9.11 deadline, transient retry and HTTP 503 contract, see
-[current operations](OPERATIONS-0.9.11.md).
+For the v0.9.12 connection reuse, strict proxy validation and HTTP 503 contract, see
+[current operations](OPERATIONS-0.9.12.md).
 
-Security Search v0.9.11 keeps **Google** as the configured default for web and
+Caught provider exceptions return HTTP 503 in web, images, news, videos and
+music APIs, with no-store and Retry-After. Clients must not interpret a fast
+cooldown rejection as an empty successful result. When Google API is explicitly
+selected but unconfigured, it fails before network access and does not become CSE.
+
+Security Search v0.9.12 keeps **Google** as the configured default for web and
 image searches. Users can select another provider for one request with the
 **Scraper** filter or save a preference in **Settings**. Brave is selectable for
 both web and image search; availability still depends on Brave accepting the
@@ -53,7 +58,7 @@ the separate 4play/Firefox renderer used by upstream 4get's newer direct Google
 scraper.
 
 The transport caches validated CSE bootstrap parameters for 300 seconds per
-backend, CX, and outbound egress. It never stores a query or result document in
+CX and outbound egress, shared by the Google/CSE aliases. It never stores a query or result document in
 that cache. Nearby searches therefore skip the CSE HTML and loader-script
 requests, removing two sequential upstream round trips and lowering request
 volume. If a cached token receives a recognized token rejection, the scraper
@@ -61,8 +66,8 @@ deletes it, bootstraps once, and retries the result request exactly once.
 Unusual-traffic and CAPTCHA responses never trigger that refresh.
 
 On a cold cache key, an APCu single-flight lock allows only one request to make
-the two bootstrap calls. Other requests poll the same generation for up to six
-seconds and immediately consume the winner's parameters when published. A
+the two bootstrap calls. Other requests poll the same generation for up to 24
+seconds within the total 25-second deadline and immediately consume the winner's parameters when published. A
 waiter that sees neither a published result nor a cached failure in that window
 fails fast instead of duplicating the upstream bootstrap. The owner lock
 self-expires after 60 seconds so a dead owner cannot strand the key. An ordinary
