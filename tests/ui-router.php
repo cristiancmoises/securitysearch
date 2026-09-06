@@ -18,13 +18,21 @@ if($path === '/static/misc/lain.gifv'){
 if(preg_match('#\A/(?:static/|banner/|favicon\.)#', $path)){
     return false;
 }
-if($path !== '/fixture-images'){
+if(!in_array($path, ['/fixture-images','/fixture-videos'], true)){
     http_response_code(404);
     return true;
 }
 require 'data/config.php';
 require 'lib/frontend.php';
 $frontend = new frontend();
+if($path === '/fixture-videos'){
+    $_GET['scraper'] = 'brave';
+    [$provider, $filters] = $frontend->getscraperfilters('videos');
+    $get = $frontend->parsegetfilters(['s'=>'GNU Guix & privacy'], $filters);
+    $frontend->loadheader($get, $filters, 'videos');
+    echo $frontend->load('search.html', ['timetaken'=>null,'class'=>'','right-left'=>'','right-right'=>'','left'=>'<p>Offline video fixture: suggestion remains available independently of provider results.</p>']);
+    return true;
+}
 $_GET['scraper'] = 'google';
 [$provider, $filters] = $frontend->getscraperfilters('images');
 $get = $frontend->parsegetfilters(['s'=>'Offline layout fixture', 'view'=>$_GET['view'] ?? 'grid'], $filters);

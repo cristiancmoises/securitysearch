@@ -533,6 +533,19 @@ form[role="search"]{
 
 .provider-status span{ color:var(--8ec07c); padding:0 .22rem; }
 
+.video-suggestion{
+  max-width:780px;
+  box-sizing:border-box;
+  padding:.8rem 1rem;
+  margin:.85rem 0;
+  border-left:3px solid var(--8ec07c);
+  background:var(--3c3836);
+  overflow-wrap:anywhere;
+  line-height:1.6;
+}
+.video-suggestion a{ display:inline-block; padding:.25rem 0; }
+.video-suggestion small{ display:block; color:var(--928374); }
+
 .web.error-view .right-wrapper{ display:none; }
 .web.error-view .left{ width:min(100%, 780px); }
 .error-actions{

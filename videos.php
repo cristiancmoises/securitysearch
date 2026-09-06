@@ -1,5 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+// Keep the status truthful if a provider fails after navigation is rendered.
+ob_start();
 /*
 	Initialize request dependencies
 */

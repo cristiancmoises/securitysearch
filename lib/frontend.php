@@ -3,11 +3,41 @@
 require_once __DIR__ . "/provider_availability.php";
 
 class frontend{
+	// Cache only bundled, unrendered templates. Never store queries, cookies or
+	// rendered HTML in the shared cache. File metadata invalidates local edits.
+	private static function template_source(string $template): string{
+		if(!preg_match('/\A[a-z][a-z0-9_-]*\.html\z/', $template)){
+			throw new InvalidArgumentException("Invalid template name");
+		}
+		$path = dirname(__DIR__) . "/template/" . $template;
+		$stat = stat($path);
+		if($stat === false){ throw new RuntimeException("Template unavailable"); }
+		$key = 'securitysearch-template-v1-' . hash('sha256', $path . ':' . config::VERSION . ':' . $stat['mtime'] . ':' . $stat['size']);
+		$shared = function_exists('apcu_enabled') && apcu_enabled();
+		if($shared){
+			$source = apcu_fetch($key, $found);
+			if($found && is_string($source)){ return $source; }
+		}
+		$data = file_get_contents($path);
+		if($data === false){ throw new RuntimeException("Template unavailable"); }
+		$source = implode('', array_map('trim', explode("\n", $data)));
+		if($shared && strlen($source) <= 131072){ apcu_store($key, $source, 300); }
+		return $source;
+	}
+
+	public function video_suggestion(string $query): string{
+		$url = 'https://invidious.securityops.co/search?q=' . rawurlencode($query);
+		return '<aside class="video-suggestion" aria-label="YouTube alternative">' .
+			'<strong>Looking for YouTube videos?</strong> ' .
+			'<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" rel="noreferrer noopener">Search our Invidious instance</a>' .
+			'<small>Your query is sent to Invidious only when you open this link. Playback depends on YouTube availability.</small></aside>';
+	}
 	
 	public function load($template, $replacements = []){
 
 		$replacements["server_name"] = htmlspecialchars(config::SERVER_NAME);
 		$replacements["version"] = config::VERSION;
+		$replacements["video_suggestion"] ??= "";
 
 		$theme = config::DEFAULT_THEME;
 		if(isset($_COOKIE["theme"]) && is_string($_COOKIE["theme"])){
@@ -53,17 +83,7 @@ class frontend{
 			$replacements["timetaken"] = '<div class="timetaken">Took ' . number_format(microtime(true) - $replacements["timetaken"], 2) . 's</div>';
 		}
 		
-		$handle = fopen("template/{$template}", "r");
-		$data = fread($handle, filesize("template/{$template}"));
-		fclose($handle);
-		
-		$data = explode("\n", $data);
-		$html = "";
-		
-		for($i=0; $i<count($data); $i++){
-			
-			$html .= trim($data[$i]);
-		}
+		$html = self::template_source($template);
 		
 		foreach($replacements as $key => $value){
 		
@@ -79,6 +99,8 @@ class frontend{
 	}
 	
 	public function loadheader(array $get, array $filters, string $page){
+		// Search pages contain a visitor's query and selected preferences.
+		if(!headers_sent()){ header('Cache-Control: private, no-store'); }
 		$page_styles = [
 			"web" => "web-results.css",
 			"images" => "image-results.css"
@@ -104,7 +126,8 @@ class frontend{
 				"tabs" => $this->generatehtmltabs($page, $get["s"]),
 				"filters" => $this->generatehtmlfilters($filters, $get),
 				"page_style" => $page_style,
-				"page_script" => $page_script
+				"page_script" => $page_script,
+				"video_suggestion" => $page === "videos" ? $this->video_suggestion($get["s"]) : ""
 			]);
 		
 		$headers_raw = getallheaders();

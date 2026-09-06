@@ -197,6 +197,7 @@ class proxy{
 		if(
 			!is_array($url_parts) ||
 			!isset($url_parts["scheme"], $url_parts["host"]) ||
+			isset($url_parts["user"]) || isset($url_parts["pass"]) ||
 			!in_array(strtolower($url_parts["scheme"]), ["http", "https"], true)
 		){
 
@@ -970,22 +971,10 @@ class proxy{
 	}
 	
 	public function clientcache(){
-		
-		if($this->cache === false){
-			
-			return;
-		}
-		
-		header("Last-Modified: Thu, 01 Oct 1970 00:00:00 GMT");
-		$headers = getallheaders();
-		
-		if(
-			isset($headers["If-Modified-Since"]) ||
-			isset($headers["If-Unmodified-Since"])
-		){
-			
-			http_response_code(304); // 304: Not Modified
-			die();
-		}
+		// A client date is not proof that a remote image still exists or is
+		// unchanged. Never fabricate a 1970 validator or return 304 before URL
+		// validation/fetch. Keep the method for existing proxy callers; their
+		// explicit response Cache-Control remains responsible for reuse.
+		return;
 	}
 }

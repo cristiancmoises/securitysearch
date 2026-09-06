@@ -4,10 +4,9 @@ include_once __DIR__ . "/lib/security_headers_minimal.php";
 header("Content-Type: application/xml; charset=utf-8");
 include "data/config.php";
 
-$domain = htmlspecialchars(
-    (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == "on" ? "https" : "http") .
-    '://' . $_SERVER["HTTP_HOST"]
-);
+// Match the public landing page canonical, never an untrusted Host header or
+// the HTTP scheme of the private TLS-terminating proxy connection.
+$domain = 'https://securityops.co';
 
 // Use the most-recently-modified PHP file in the public root as the
 // "site lastmod" — gives a real signal to crawlers without pinning
@@ -36,7 +35,6 @@ $urls = [
     ['/',          $site_lastmod, 'daily',   '1.0'],
     ['/about',     $site_lastmod, 'monthly', '0.7'],
     ['/instances', $site_lastmod, 'weekly',  '0.5'],
-    ['/settings',  $site_lastmod, 'yearly',  '0.3'],
     ['/api.txt',   $site_lastmod, 'monthly', '0.3'],
 ];
 

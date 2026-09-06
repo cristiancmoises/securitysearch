@@ -15,6 +15,34 @@ foreach(['<script>', ['gallery']] as $view){
  check(!in_array($get['view'], ['<script>', ['gallery']], true), 'Invalid view rejected');
 }
 $header = $frontend->load('header.html');
+foreach(['Images'=>'images', 'Videos'=>'invidious', 'Pixiv'=>'pixiv', 'Chat'=>'chat', 'News'=>'news', 'Wiki'=>'wiki'] as $label=>$host){
+ foreach(['header.html','home.html'] as $template){
+  check(preg_match('#href="https://'.preg_quote($host, '#').'\.securityops\.co/"[^>]*>'.preg_quote($label, '#').'</a>#', $frontend->load($template))===1, 'Correct external navigation: '.$template.' '.$label);
+ }
+}
+$query = 'Guix & "privacy" <script> ação';
+$suggestion = $frontend->video_suggestion($query);
+check(str_contains($suggestion, 'https://invidious.securityops.co/search?q='.rawurlencode($query)), 'Invidious query encoded');
+check(!str_contains($suggestion, '<script>') && !str_contains($suggestion, '<iframe') && !str_contains($suggestion, '<img'), 'Suggestion is opt-in, not an embed or query leak');
+check(!str_contains($header, '{%video_suggestion%}'), 'Non-video header placeholder cleared');
+$first = $frontend->load('header.html', ['search'=>'unique-private-query-one']);
+$second = $frontend->load('header.html', ['search'=>'unique-private-query-two']);
+check(str_contains($first, 'unique-private-query-one') && !str_contains($second, 'unique-private-query-one'), 'Shared template cache never caches rendered queries');
+if(function_exists('apcu_cache_info')){
+ foreach(apcu_cache_info(true) === false ? [] : (apcu_cache_info()['cache_list'] ?? []) as $entry){
+  if(str_starts_with($entry['info'], 'securitysearch-template-')){
+   $cached = apcu_fetch($entry['info']);
+   check(!str_contains($cached, 'unique-private-query-'), 'Raw template cache contains no private query');
+  }
+ }
+}
+try{$frontend->load('../data/config.php');throw new LogicException('Traversal accepted');}
+catch(InvalidArgumentException $e){}
+require 'lib/curlproxy.php';
+$resolve = (new ReflectionClass('proxy'))->getMethod('resolvepublictarget');
+foreach(['http://user:secret@8.8.8.8/a.png','https://user@8.8.8.8/a.png','file:///etc/passwd','http://127.0.0.1/','http://[::1]/'] as $unsafe){
+ check($resolve->invoke(new proxy(false), $unsafe)===false, 'Image proxy rejects credentials and private/non-HTTP targets');
+}
 check(str_contains($header, '/static/themes/Lain.css?v'.config::VERSION), 'Lain default');
 preg_match_all('/url\("(\/static\/[^"?]+)(?:\?[^" ]*)?"\)/', file_get_contents('static/themes/Lain.css'), $assets);
 foreach($assets[1] as $asset){

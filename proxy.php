@@ -404,7 +404,7 @@ try{
 		// ImageMagick policy coder patterns are case-sensitive.
 		$image->setFormat("JPEG");
 		$image->setImageCompressionQuality(90);
-		$image->setImageCompression(Imagick::COMPRESSION_JPEG2000);
+		$image->setImageCompression(Imagick::COMPRESSION_JPEG);
 		
 		$image->resizeImage($image_width, $image_height, Imagick::FILTER_LANCZOS, 1);
 		
@@ -431,20 +431,18 @@ try{
 
 	if($conversion_error !== null){
 
-		$error_message = preg_replace('/[\r\n]+/', ' ', $conversion_error->getMessage());
-		header("X-Error: Could not convert the image: (" . substr((string)$error_message, 0, 512) . ")");
+		header("Cache-Control: no-store");
+		header("X-Error: Image conversion unavailable");
 		$proxy->do404();
 	}
 	
 }catch(Exception $error){
 
-	if(isset($_GET["s"]) && $_GET["s"] === "animated"){
-
-		header("Cache-Control: no-store");
-		header("Pragma: no-cache");
-		header("Expires: 0");
-	}
+	header("Cache-Control: no-store");
+	header("Pragma: no-cache");
+	header("Expires: 0");
 	
-	header("X-Error: " . $error->getMessage());
+	// Do not disclose upstream URLs, resolver details or internal paths.
+	header("X-Error: Image temporarily unavailable or URL rejected");
 	$proxy->do404();
 }

@@ -64,6 +64,20 @@ async function screenshot(sessionId, name) {
   return file;
 }
 try {
+  for (const width of [320, 390, 768, 1440]) {
+    const {targetId, sessionId} = await open('/fixture-videos', width);
+    const state = await evaluate(sessionId, `({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,links:[...document.querySelectorAll('.navigation a')].map(a=>[a.textContent,a.href]),suggestion:document.querySelector('.video-suggestion a')?.href})`);
+    const problems = [];
+    if (state.scroll > state.client) problems.push('horizontal overflow');
+    for (const [label, host] of [['Images','images'],['Videos','invidious'],['Pixiv','pixiv'],['Chat','chat'],['News','news'],['Wiki','wiki']]) {
+      if (!state.links.some(([text, href])=>text===label && href===`https://${host}.securityops.co/`)) problems.push('wrong navigation: '+label);
+    }
+    if (new URL(state.suggestion).searchParams.get('q') !== 'GNU Guix & privacy') problems.push('wrong Invidious query');
+    if ((requests.get(sessionId)||[]).some(url=>url.includes('invidious.securityops.co'))) problems.push('unexpected automatic query transfer');
+    report.push({test:'videos-'+width,...state,problems});
+    await screenshot(sessionId, 'videos-'+width);
+    await call('Target.closeTarget', {targetId});
+  }
   for (const [name, width, reduced] of [['desktop', 1440, false], ['mobile', 390, false], ['reduced', 390, true]]) {
     const {targetId, sessionId} = await open('/', width, reduced);
     const state = await evaluate(sessionId, `({width:innerWidth,client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,wallpaper:getComputedStyle(document.querySelector('.ambient-wallpaper')).backgroundImage,wallpaperLayer:getComputedStyle(document.querySelector('.ambient-wallpaper')).zIndex,contentLayer:getComputedStyle(document.querySelector('#center')).zIndex,toggleDisplay:getComputedStyle(document.querySelector('.wallpaper-control')).display})`);

@@ -7,7 +7,16 @@ implantação própria, derivado e reforçado a partir do
 [4get](https://git.lolcat.ca/lolcat/4get). A instância de produção é publicada
 em [securityops.co](https://securityops.co/).
 
-## Versão atual do código-fonte: v0.9.12
+## Versão atual do código-fonte: v0.9.13
+
+- Navegação direta: Images, Videos (Invidious), Pixiv, Chat, News e Wiki. As abas
+  internas continuam disponíveis; a consulta só vai ao Invidious ao clicar no link.
+- Cache de cinco minutos apenas dos templates locais, antes da renderização, reduz
+  leituras e compactação repetidas. Consultas, resultados e preferências não são
+  compartilhados nem armazenados nesse cache.
+- Falhas de vídeo preservam HTTP 503. Erros de imagens não expõem detalhes internos;
+  URLs com credenciais e respostas condicionais 304 sem validação são rejeitadas.
+- [Operação e validação da v0.9.13](docs/OPERATIONS-0.9.13.pt-BR.md).
 
 - A animação original Lain fica visível no desktop e celular, com primeiro plano
   legível e opção de fundo estático sem JavaScript. Preferências de movimento/dados
@@ -62,13 +71,12 @@ em [securityops.co](https://securityops.co/).
   mas continuam excluindo os ícones gerados. Busca, provedores, animações, tema
   e interface mantêm a implementação testada da v0.9.4.
 
-- A página inicial prioriza o logotipo e a busca, com apenas Configurações, uma
-  indicação curta de privacidade/provedor e dois links discretos para
-  [Chat](https://chat.securityops.co/) e
-  [SecurityOps Brasil](https://securityops.com.br/).
+- A página inicial prioriza o logotipo e a busca, Configurações, uma indicação
+  curta de privacidade/provedor e links responsivos para Images, Invidious, Pixiv,
+  Chat, News, Wiki e SecurityOps Brasil.
 - Lain é o tema padrão para novos visitantes. A página inicial agora consome
   os tokens de cor do tema ativo, sem escondê-los sob uma segunda paleta; temas
-  válidos já salvos continuam tendo precedência, e a versão de assets 16 evita
+  válidos já salvos continuam tendo precedência, e a versão de assets 17 evita
   reutilização de CSS e fundos antigos.
 - Filtros de provedores compatíveis permitem conteúdo NSFW por padrão com
   `config::DEFAULT_NSFW=yes` e `FOURGET_DEFAULT_NSFW=yes`. Um parâmetro da

@@ -6,7 +6,17 @@ Privacy-first proxy metasearch engine. Hardened fork of
 [4get](https://git.lolcat.ca/lolcat/4get) deployed at
 [securityops.co](https://securityops.co).
 
-## Current source version: v0.9.12
+## Current source version: v0.9.13
+
+- Direct service navigation: Images, Videos (Invidious), Pixiv, Chat, News and Wiki.
+  Internal search tabs remain available. Video searches offer an explicit Invidious
+  link; no query is sent there until you click it.
+- A five-minute cache stores only bundled, unrendered templates to reduce repeated
+  file reads/compaction. Queries, results and preferences are not shared or cached.
+- Video provider failures retain HTTP 503. Image errors hide internal details;
+  credential-bearing image URLs and unverified conditional 304 responses are rejected.
+- [v0.9.13 operation and verification](docs/OPERATIONS-0.9.13.md)
+  ([Português](docs/OPERATIONS-0.9.13.pt-BR.md)).
 
 - Lain's original animation is visible on desktop and mobile, with readable
   foregrounds and a no-JavaScript still-background switch. Reduced motion/data
@@ -60,12 +70,11 @@ Privacy-first proxy metasearch engine. Hardened fork of
   tested v0.9.4 implementation.
 
 - The landing page is search-first: Settings, the Security Search logo, the
-  primary search field, a compact privacy/provider hint, and two quiet links to
-  [Chat](https://chat.securityops.co/) and
-  [SecurityOps Brasil](https://securityops.com.br/).
+  primary search field, a compact privacy/provider hint, and responsive links to
+  Images, Invidious, Pixiv, Chat, News, Wiki and SecurityOps Brasil.
 - Lain is the default theme for new visitors. The home page now consumes the
   active theme's color tokens instead of masking them with a separate palette;
-  valid saved themes remain selected, and asset version 16 invalidates stale
+  valid saved themes remain selected, and asset version 17 invalidates stale
   theme CSS and background assets.
 - NSFW-capable provider filters allow NSFW content by default through
   `config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes`. A request parameter
