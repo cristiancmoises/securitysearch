@@ -10,7 +10,7 @@ try {
  fclose($pipes[0]);$output=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
  if(proc_close($p)!==0){throw new RuntimeException('Configuration generator failed: '.$error);}
  require $root.'/data/config.php';
- if(config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::VERSION!==23 || config::DEFAULT_THEME!=="Tron"){throw new RuntimeException('Configuration literals/types changed');}
+ if(config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::VERSION!==24 || config::DEFAULT_THEME!=="Black"){throw new RuntimeException('Configuration literals/types changed');}
  echo "PASS: quoted literals, boolean API disable, unknown environment keys and version integrity.\n";
 } finally {
  unlink($root.'/docker/gen_config.php');unlink($root.'/data/config.php');rmdir($root.'/data/captcha');rmdir($root.'/data');rmdir($root.'/docker');rmdir($root);

@@ -43,7 +43,7 @@ $resolve = (new ReflectionClass('proxy'))->getMethod('resolvepublictarget');
 foreach(['http://user:secret@8.8.8.8/a.png','https://user@8.8.8.8/a.png','file:///etc/passwd','http://127.0.0.1/','http://[::1]/'] as $unsafe){
  check($resolve->invoke(new proxy(false), $unsafe)===false, 'Image proxy rejects credentials and private/non-HTTP targets');
 }
-check(str_contains($header, '/static/themes/Tron.css?v'.config::VERSION), 'Tron default');
+check(str_contains($header, '/static/themes/Black.css?v'.config::VERSION), 'Black default');
 preg_match_all('/url\("(\/static\/[^"?]+)(?:\?[^" ]*)?"\)/', file_get_contents('static/themes/Tron.css'), $assets);
 foreach($assets[1] as $asset){
  check(is_file(ltrim($asset, '/')), 'Tron referenced asset exists: '.$asset);
@@ -51,7 +51,7 @@ foreach($assets[1] as $asset){
 $_COOKIE['theme'] = 'Lain';
 check(str_contains($frontend->load('header.html'), '/static/themes/Lain.css'), 'Saved theme preserved');
 $_COOKIE['theme'] = '../../etc/passwd';
-check(str_contains($frontend->load('header.html'), '/static/themes/Tron.css'), 'Traversal theme rejected');
+check(str_contains($frontend->load('header.html'), '/static/themes/Black.css'), 'Traversal theme rejected');
 $r = new ReflectionClass('google_cse');
 $provider = (new ReflectionClass('google'))->getProperty('delegate')->getValue($provider);
 $decode = $r->getMethod('decode_response');

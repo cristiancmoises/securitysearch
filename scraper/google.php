@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 // noJS but requires login/cookie token
 // https://www.google.com/search?q=asmr&tbm=isch&asearch=arc&async=arc_id:srp_a,ffilt:all,ve_name:MoreResultsContainer,use_ac:false,inf:0,_id:arc-srp_a,_pms:s,_fmt:pc
@@ -556,7 +557,7 @@ class google_renderer{
 
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			

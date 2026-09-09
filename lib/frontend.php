@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . "/provider_availability.php";
+require_once __DIR__ . "/theme_picker.php";
 
 class frontend{
 	// Cache only bundled, unrendered templates. Never store queries, cookies or
@@ -74,6 +75,7 @@ class frontend{
 			}
 		}
 		
+        if ($template === 'home.html') { $replacements['theme_picker'] = securitysearch_theme_picker($theme); }
 		if($theme != "Dark"){
 			
 			$replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">';

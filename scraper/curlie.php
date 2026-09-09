@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 class curlie{
 	
@@ -154,7 +155,7 @@ class curlie{
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			

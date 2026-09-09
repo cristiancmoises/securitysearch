@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 class coccoc{
 	
@@ -51,7 +52,7 @@ class coccoc{
 		curl_setopt($curlproc, CURLOPT_CONNECTTIMEOUT, 30);
 		curl_setopt($curlproc, CURLOPT_TIMEOUT, 30);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			throw new Exception(curl_error($curlproc));

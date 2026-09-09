@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 class facebook{
 	
@@ -110,7 +111,7 @@ class facebook{
 
 		$this->proxy->assign_proxy($curlproc);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			

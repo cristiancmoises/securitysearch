@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 class yandex{
 	
@@ -93,7 +94,7 @@ class yandex{
 
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if($get_cookie === 0){
 			

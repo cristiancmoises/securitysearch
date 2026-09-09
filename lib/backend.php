@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/provider_http.php";
 class backend{
 	private $scraper;
 	

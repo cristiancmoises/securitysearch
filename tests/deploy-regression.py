@@ -63,29 +63,32 @@ class Engine:
  def healthy(self,cid):
   if cid=='replacement' and self.mode in ('readiness_failure','cleanup_failure'):raise RuntimeError('Simulated failed replacement readiness')
 
-for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create']:
+for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create','offline_audit_failure','live_audit_failure']:
  engine=Engine(mode)
  def run(*args,capture=False):
   return json.dumps({'VERSION':19,'DEFAULT_THEME':'Lain','SERVER_NAME':'original','API_ENABLED':True}) if 'php' in args else ''
- with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
+ with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m,'offline_audit',side_effect=RuntimeError('Audit failed') if mode=='offline_audit_failure' else None),patch.object(m,'live_binternet_gate',side_effect=RuntimeError('Live gate failed') if mode=='live_audit_failure' else None),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
   failed=False
   try:m.main()
   except RuntimeError:failed=True
   assert failed==(mode!='success')
   previous=engine.containers[OLD_ID]
+  if mode in ('offline_audit_failure','live_audit_failure'):
+   assert previous['State']['Running'] and previous['Name']=='/security-search'
+   assert not any(method=='POST' and '/'+OLD_ID+'/' in url for method,url,data in engine.calls),'Audit failure touched production'
   assert 'candidate' not in engine.containers,'Candidate leaked after response loss'
   if mode=='success':
    assert not previous['State']['Running'] and previous['HostConfig']['RestartPolicy']=={'Name':'no'}
    assert engine.find('security-search')['Id']=='replacement'
    assert engine.containers['replacement']['HostConfig']['RestartPolicy']['Name']=='always'
    migrated_env=engine.containers['replacement']['Config']['Env']
-   assert 'FOURGET_DEFAULT_THEME=Tron' in migrated_env and 'FOURGET_SERVER_NAME=original' in migrated_env
+   assert 'FOURGET_DEFAULT_THEME=Black' in migrated_env and 'FOURGET_SERVER_NAME=original' in migrated_env
    assert 'FOURGET_DEFAULT_THEME=Lain' not in migrated_env
   else:
    assert previous['State']['Running'],'Previous container was not restarted'
    assert previous['HostConfig']['RestartPolicy']==old['HostConfig']['RestartPolicy'],'Original restart policy not restored'
    if mode!='cleanup_failure':assert previous['Name']=='/security-search'
-  if mode!='lost_candidate_create':
+  if mode not in ('lost_candidate_create','offline_audit_failure','live_audit_failure'):
    rollback=next((Path(temp)/'backups').glob('*/rollback.sh'));body=rollback.read_text()
    assert 'flock -n 9' in body and 'docker update --restart=always' in body and 'current_image=' in body
    # Check the actual generated shell syntax without executing Docker commands.
@@ -102,8 +105,8 @@ for destination in ['/etc','/etc/apache2','/etc/php84/conf.d','/etc/ImageMagick-
 print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts rejected before mutation.')
 
 for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
- responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '23|Tron'),
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v23' if failure=='theme_asset' else '/static/themes/Tron.css?v23')+('<script src="x"></script>' if failure=='script' else ''),
+ responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '24|Black'),
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v24' if failure=='theme_asset' else '/static/themes/Black.css?v24')+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',
@@ -112,4 +115,4 @@ for failure in [None,'version','theme','theme_asset','script','csp','image_csp',
  with patch.object(m,'inspect',return_value={'State':{'Health':{'Status':'healthy'}}}),patch.object(m,'run',side_effect=responses):
   try:m.healthy('candidate');assert failure is None
   except RuntimeError:assert failure is not None
-print('PASS: candidate gates validate asset 23, effective Tron, homepage no-script CSP, scoped image CSP and enhancer asset.')
+print('PASS: candidate gates validate asset 24, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')

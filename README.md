@@ -1,63 +1,59 @@
-# Security Search v0.9.19
+# Security Search v0.9.20
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![Security Search — Tron](docs/screenshots/securitysearch-home.jpg)
+![Security Search — pure black](docs/screenshots/securitysearch-0.9.20-home-black.png)
 
-Live homepage captured on 2026-09-09 at securityops.co (Tron, 1363 × 936). The instance served asset 22; v0.9.19 retains this interface and uses asset 23. This is a real browser capture.
+Local rendering of this release, not a screenshot of the deployed VPS. The HTTP controller was exercised locally; Chromium rendered its HTML with bundled resources embedded for the isolated preview. Asset version: **24**.
 
-A PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get), maintained for [SecurityOps](https://securityops.co/). This complete source release uses two small, same-origin JavaScript enhancements for **infinite image scrolling and visible animated previews**. Other pages remain script-free; CSP permits scripts and fetch connections only on image search.
+Security Search is a PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get), maintained for [SecurityOps](https://securityops.co/). Search providers remain external services: a working adapter cannot guarantee their availability.
 
-- Minimal 14 px SVG icons sit in a single row **inside the right edge of the search bar**, with labels on hover/focus: **Search → Search Image → Search Pinterest → Search YouTube**. Native forms route Pinterest through Binternet and YouTube through Invidious.
-- Image search has six views: Grid, Compact grid, Gallery, Large feed, List and Filmstrip; Fast preview, High quality (up to 1280 px) and Original quality choices; and provider-specific format filters including GIF and WebP.
-- **Infinite image scrolling** appends results, including sideways in Filmstrip. The timer panel is removed. Settings can disable automatic loading; native Next page navigation works without JavaScript. Long documents offer manual continuation before exceeding 480 cards.
-- **Google stays the default.** A failed first web/image search automatically tries Brave once, with compatible filters and a visible provider notice. Google gets up to 12 seconds of network time and Brave up to 8 within a shared 20-second deadline. Continuations retain their provider; API behavior is unchanged. If both providers fail, the page reports an honest 503 with recovery links.
-- **GIF, animated WebP and APNG previews play when visible**, with at most two loading and four active. Hidden/offscreen or disabled animations use static posters. Reduced motion, Save-Data and a separate Settings opt-out are respected.
-- **Reddit** joins the top links. Local `/news` shows the latest r/news + r/worldnews posts; a keyword search shows related posts through your Redlib instance. The external News link still opens news.securityops.co.
-- Tron uses a lightweight black/cyan background and clear text. The old 12 MB GIF is not fetched by default.
-- Native image/source links, Original/Preview/View animation actions, a services disclosure, and the centered **In Code We Trust.** footer with plain Wiki/Git links work without scripts.
-- Existing navigation, API support, saved themes, transport limits, private-address rejection, query-free Apache access logs and encrypted ordinary pagination are retained.
+## This update
 
-[Operations and IONOS deployment](docs/OPERATIONS-0.9.19.md) · [Audit and test evidence](docs/AUDIT-0.9.19.md) · [UI behavior](docs/UI.md) · [Release packaging](docs/RELEASE.md)
+Binternet accepts the older `img-container`/`img-result` markup and the newer `image-gallery`/`image-link` layout. Both root-relative and page-relative proxy/pagination links work. Query validation now follows the newer service's 160-byte UTF-8 limit rather than measuring 64 HTML-escaped bytes. Bookmarks up to 4096 bytes are supported; foreign hosts, unsafe URLs and repeated pagination cursors are rejected. Recognizable empty results are distinct from broken/blocked pages.
 
-## Services
+Fast previews use the smaller image actually returned by Binternet, while preserving the original URL and dimensions. No larger thumbnail URL is fabricated. The fixed service origin remains `https://images.securityops.co`; this release does not guess that the separate navigation host `img.securityops.co` is interchangeable.
 
-| Search integration | Instance |
-|---|---|
-| YouTube through Invidious | https://invidious.securityops.co |
-| Pinterest through Binternet | https://images.securityops.co |
-| Reddit news through Redlib | https://libre.securityops.co |
+Legacy cURL calls now share a request-local deadline: by default, 3 seconds to connect, 12 seconds per call and 20 seconds across those calls. DNS and TLS-session state are shared within one PHP request, never cookies or search results. Baidu's multi-request loop waits instead of spinning continuously. Google CSE and Brave retain their separate bounded transports and the existing first-search fallback policy. These are bounded waits and local optimizations, not measured claims about live provider speed.
 
-The navigation's **Img** link intentionally points to `https://img.securityops.co/`. Git links point to `https://git.securityops.co/`. Home, Settings, Vids, Img, Wiki, Reddit, Chat, Zupt, News and BR retain the requested destinations.
+Pure black is the new instance default. **Choose appearance** restores native, keyboard-accessible theme selection with small previews of existing image assets. Saved browser themes still win over the default. The homepage remains JavaScript-free; wallpaper is loaded only for the selected image theme. The twelve new still previews total about 45 KB.
 
-## Publish the complete update
+![Native theme picker](docs/screenshots/securitysearch-0.9.20-theme-picker.png)
 
-The `v0.9.19` publication kit includes a history-preserving Git bundle, the complete source archive, checksums and one fish launcher. It updates an existing clean `main` checkout from the Codeberg history, then pushes the branch/tag and creates or resumes the release on Codeberg, GitHub and both SecurityOps forges. Enter each host's own token in the terminal. Re-running completes missing hosts/assets; conflicting tags or assets are never replaced.
+## Existing behavior retained
+
+The four search actions remain inside the search bar: Search, Search Image, Search Pinterest and Search YouTube. Image search retains six layouts, preview/high/original quality choices, format filters, manual pagination, optional infinite scrolling and bounded animated previews. Only image search permits the two local enhancement scripts. The services disclosure, API routes, native links and **In Code We Trust.** footer remain.
+
+Google stays the default web/image provider. A failed first Google search can try Brave once with a visible notice; continuation requests do not silently change provider. Reddit uses the configured Redlib service and YouTube uses Invidious. Their availability has not been established by this patch.
+
+## Apply, deploy and publish
+
+Use the `securitysearch-update-0.9.20` patch kit, not the old v0.9.19 publication launcher:
 
 ```fish
-fish ./publish-securitysearch-v0.9.19.fish ~/securitysearch
+fish ./apply-securitysearch.fish ~/securitysearch
+fish ./deploy-securitysearch.fish ~/securitysearch
+fish ./push-securitysearch.fish ~/securitysearch
 ```
 
-Run from the extracted publication kit. The launcher prints the checkout/commit and uses a fast-forward update, so your existing history remains. If `data/config.php` still says `VERSION = 17`, pushing the checkout alone publishes the old source; import this kit first. [English publication guide](docs/PUBLISHING.md) · [Português do Brasil](docs/PUBLISHING.pt-BR.md) · [Bilingual release notes](docs/RELEASE-0.9.19.md).
+The first command requires a clean `main`, verifies every touched baseline file, applies only the patch and creates one local commit with your configured Git identity. It never resets, stashes or overwrites unrelated work. Deployment archives that verified commit and uploads over SSH **5119** to **root@securityops.co**. The updater retains the existing **172.17.0.1:5140 → 80** binding and Docker networks; it refuses unsupported mount/port layouts instead of changing Nginx Proxy Manager.
 
-## Existing IONOS installation
+Before cutover, deployment must pass the full offline suite in a disposable, network-disabled audit container, candidate readiness, and a real neutral Binternet search from the VPS. Available Binternet pagination is checked too. Failed pre-cutover gates leave production running. A failed replacement readiness restores the retained old container. The printed backup directory may hold mounted private-data snapshots: do not prune it.
 
-Use the supplied `deploy-securitysearch-v0.9.19.fish` with the archive and checksum in `~/Downloads`. It copies over SSH port **5119** to **root@securityops.co**, builds and checks a candidate, and updates the existing `security-search` container while preserving **172.17.0.1:5140 → 80**. The updater retains a rollback container and private-data backups. Read the operation guide before pruning any retained files.
+Publishing prompts privately for four separate tokens and preflights all four HTTPS repositories. Only fast-forward `main` pushes are allowed. Existing remote configuration, tags and release objects are untouched. Separate servers cannot be updated atomically; partial publication is reported and can be reconciled by rerunning.
 
-The Docker build and live VPS deployment were not run in the authoring environment. Candidate readiness and cutover checks run on your VPS when you execute the script. Existing Docker capabilities, security options and resource limits are inherited; fresh installations using the included Compose file apply its explicit hardening settings.
+[Operation details](docs/UPDATE-0.9.20.md) · [Detalhes em português](docs/UPDATE-0.9.20.pt-BR.md) · [Audit limitations](docs/AUDIT-0.9.20.md)
 
-## Development and tests
+## Tests
 
 ```sh
 sh scripts/test.sh
 ```
 
-Requires PHP with curl, mbstring, DOM/XML, APCu, sodium, fileinfo and Imagick, plus Python 3 and Node.js (tests only). The suite includes isolated localhost HTTP controllers, neutral provider fixtures and real two-frame media files; it makes no external search requests. Docker targets Alpine 3.24 / PHP 8.4 / ImageMagick 7; local validation used PHP 8.3.
+Requires PHP with curl, DOM/XML, mbstring, APCu, sodium, fileinfo and Imagick, plus Python 3, Node.js, Git and fish for tests. The production image does not gain Python/Node/fish: those dependencies are installed only in its disposable audit derivative.
 
-The runtime generates configuration from `FOURGET_*` environment variables. Default image/web provider is Google, default news provider is Reddit, and default theme is Tron. Existing saved choices take precedence. The v0.9.19 updater explicitly migrates the instance default to Tron, while retaining browser theme preferences. See [configuration](docs/configure.md), the current operation guide and the bundled Compose file. Keep secrets out of source archives.
+For a separate, explicit live provider matrix after deployment, run `fish ./audit-providers.fish` from the patch kit. It makes one neutral `teste` search per enabled provider/page combination, sequentially. An unavailable or empty provider is not counted as a successful search. Results, credentials and pagination tokens are not dumped into the JSON report.
 
-The Redlib instance returned HTTP 503 during the 2026-09-09 availability check. Its parser and route integration passed offline fixtures; live Reddit news depends on the instance recovering. Brave image results have no continuation; its format filter checks the returned page locally and may leave no matches.
+Local authoring did **not** execute Docker, the extension-dependent PHP suites, or live VPS/provider requests. See the audit report for passes versus dependency blockers. Historical release tools and documents remain under `scripts/` and `docs/` for v0.9.19; they are not the v0.9.20 publishing path.
 
-This is a search proxy, not an independent index. The operator processes searches and selected upstreams can rate-limit requests. Ordinary continuation tokens remain encrypted and short-lived. Timer snapshots are removed; old frame links expire safely. Reverse-proxy logs must also omit query strings. See the audit for limits.
-
-Historical release details remain in [the previous README](docs/HISTORY-README-0.9.14.md), MIGRATION.md and PATCHES.md. Licensed under the repository's [AGPL-3.0 license](license.txt).
+License: [AGPL-3.0](license.txt).

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 
 class baidu{
 	
@@ -241,7 +242,7 @@ class baidu{
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			
@@ -310,6 +311,7 @@ class baidu{
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
+		provider_http::apply($curlproc);
 		curl_multi_add_handle($this->proc, $curlproc);
 		$this->handles[$this->handle_category][$this->handle_increment][$this->sublink_increment] = $curlproc;
 	}
@@ -344,7 +346,12 @@ class baidu{
 		}
 		
 		do{
+			provider_http::remaining_ms();
 			$status = curl_multi_exec($this->proc, $active);
+			if($active && $status == CURLM_OK){
+				// Wait for socket activity instead of spinning a CPU core.
+				if(curl_multi_select($this->proc, 0.1) === -1){ usleep(10000); }
+			}
 			
 		}while($active && $status == CURLM_OK);
 		

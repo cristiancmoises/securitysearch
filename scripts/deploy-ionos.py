@@ -16,10 +16,11 @@ import socket
 import subprocess
 import sys
 import time
+import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.19'
+VERSION = '0.9.20'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -133,11 +134,11 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '23|Tron':
+            if marker.strip() != '24|Black':
                 raise RuntimeError('New source/config version is masked by an old setting or mount.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
-            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Tron.css?v23' not in html:
+            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v24' not in html:
                 raise RuntimeError('New home page failed its content check.')
             headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                           'http://127.0.0.1/',capture=True).lower()
@@ -148,20 +149,62 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v23',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v24',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v23',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v24',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',
-                           'require "data/config.php"; require "lib/frontend.php"; require "lib/search_execution.php"; require "lib/image_poster.php"; require "scraper/reddit.php"; echo class_exists("reddit") && function_exists("image_poster_body") ? "ready" : "missing";',capture=True)
+                           'require "data/config.php"; require "lib/frontend.php"; require "lib/search_execution.php"; require "lib/image_poster.php"; require "scraper/reddit.php"; require "scraper/binternet.php"; echo class_exists("reddit") && class_exists("provider_http") && class_exists("binternet") && function_exists("securitysearch_theme_picker") && function_exists("image_poster_body") ? "ready" : "missing";',capture=True)
             if adapters.strip() != 'ready':
                 raise RuntimeError('New provider/media helpers are missing or masked.')
             return
         time.sleep(2)
     raise RuntimeError('New container did not become healthy within 100 seconds.')
+
+def offline_audit(image, backup):
+    """Run every checked-in suite in an isolated disposable container.
+
+    No production environment, volumes, network or private runtime files are
+    attached. Test dependencies go into a separate audit image, never production.
+    """
+    audit_image = image + '-audit'
+    with tempfile.TemporaryDirectory(prefix='securitysearch-audit-build-') as temp:
+        context = Path(temp)
+        (context/'Dockerfile').write_text('FROM '+image+'\nRUN apk add --no-cache python3 nodejs git fish\n')
+        run('docker','build','-t',audit_image,str(context))
+    cid = run('docker','create','--network','none','--entrypoint','/bin/sh',
+              '--workdir',APP,audit_image,'-c','sh scripts/test.sh',capture=True).strip()
+    if not re.fullmatch(r'[a-f0-9]{64}',cid):
+        raise RuntimeError('The isolated audit container could not be created.')
+    try:
+        # ROOT is the clean git archive extracted by deploy-securitysearch.fish.
+        # Copy tests explicitly; production .dockerignore rightly excludes them.
+        run('docker','cp',str(ROOT)+'/.',cid+':'+APP)
+        result = subprocess.run(['docker','start','--attach',cid],text=True,
+                                stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
+        (backup/'offline-audit.log').write_text(result.stdout or '')
+        code = inspect(cid)['State'].get('ExitCode',1)
+        if result.returncode != 0 or code != 0:
+            raise RuntimeError('Offline audit failed; production is unchanged. Inspect '+str(backup/'offline-audit.log'))
+        print('All offline release suites passed in the isolated runtime.',flush=True)
+    finally:
+        run('docker','rm','--force',cid)
+
+
+def live_binternet_gate(cid, backup):
+    """Bounded real request from this candidate's actual network and config."""
+    run('docker','cp',str(ROOT/'scripts/provider-probe.php'),cid+':/tmp/securitysearch-provider-probe.php')
+    result = run('docker','exec','--workdir',APP,cid,'timeout','35','php','-d','apc.enable_cli=1',
+                 '/tmp/securitysearch-provider-probe.php','binternet','images','teste','2',capture=True)
+    (backup/'binternet-live.json').write_text(result)
+    report = json.loads(result)
+    if report.get('status') != 'ok' or report.get('first_count',0) < 1:
+        raise RuntimeError('Live Binternet gate failed; production is unchanged. Inspect '+str(backup/'binternet-live.json'))
+    print('Binternet returned real results from the VPS candidate; available pagination checked.',flush=True)
+
 
 def main():
     if os.geteuid() != 0:
@@ -229,7 +272,7 @@ def main():
         env['FOURGET_'+key] = value
     # This release explicitly migrates the instance default requested by the owner.
     # Browser theme cookies remain user choices; all other effective settings persist.
-    env['FOURGET_DEFAULT_THEME'] = 'Tron'
+    env['FOURGET_DEFAULT_THEME'] = 'Black'
     env.pop('FOURGET_VERSION',None)
     old['Config']['Env'] = [k+'='+v for k,v in env.items()]
     (backup/'effective-config.json').write_text(raw)
@@ -248,6 +291,7 @@ def main():
             old['_private_binds'].append(str(target)+':'+destination+':ro')
     print('Building the new image while the current service stays online.',flush=True)
     run('docker','build','--pull','-t',image,str(ROOT))
+    offline_audit(image,backup)
     candidate = None
     replacement = None
     stopped = False
@@ -257,6 +301,7 @@ def main():
         candidate = api('POST','/containers/create?name='+candidate_name,create_payload(old,image,True))['Id']
         api('POST','/containers/'+candidate+'/start')
         healthy(candidate)
+        live_binternet_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')
         candidate = None
         # Store the recovery command before stopping production.
@@ -344,6 +389,7 @@ if __name__ == '__main__':
     def interrupted(signum, frame):
         raise KeyboardInterrupt()
     signal.signal(signal.SIGTERM,interrupted)
+    signal.signal(signal.SIGHUP,interrupted)
     try:
         main()
     except (Exception, KeyboardInterrupt) as error:

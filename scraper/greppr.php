@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . "/../lib/provider_http.php";
 // greppr dev probably monitors 4get code, lol
 // hello greppr dude, add an API you moron
 
@@ -135,7 +136,7 @@ class greppr{
 			}
 		);
 				
-		$data = curl_exec($curlproc);
+		$data = provider_http::exec($curlproc);
 		
 		if(curl_errno($curlproc)){
 			
