@@ -1,5 +1,6 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+ob_start();
 /*
 	Initialize request dependencies
 */
@@ -37,18 +38,11 @@ try{
 /*
 	Populate links
 */
-if(count($results["news"]) === 0){
-	
-	$payload["left"] =
-		'<div class="infobox">' .
-			"<h1>Nobody here but us chickens!</h1>" .
-			'Have you tried:' .
-			'<ul>' .
-				'<li>Using a different scraper</li>' .
-				'<li>Using fewer keywords</li>' .
-				'<li>Defining broader filters (Is NSFW turned off?)</li>' .
-			'</ul>' .
-		'</div>';
+if($get['scraper']==='reddit') {
+    $payload['left']='<p class="news-context">'.($get['s']==='' ? 'Latest posts' : 'Related posts').' from r/news and r/worldnews · <a href="https://libre.securityops.co/r/news+worldnews/new" rel="noreferrer noopener">Open Reddit</a></p>';
+}
+if(count($results['news'])===0) {
+    $payload['left'].='<div class="infobox"><h1>No news found</h1><p>Try fewer keywords, another period or another provider.</p></div>';
 }
 
 foreach($results["news"] as $news){
@@ -62,7 +56,7 @@ foreach($results["news"] as $news){
 	
 	if($news["author"] !== null){
 		
-		$greentext[] = htmlspecialchars($news["author"]);
+		$greentext[] = $news["author"];
 	}
 	
 	if(count($greentext) !== 0){
@@ -80,7 +74,7 @@ foreach($results["news"] as $news){
 if($results["npt"] !== null){
 	
 	$payload["left"] .=
-		'<a href="' . $frontend->htmlnextpage($get, $results["npt"], "news") . '" class="nextpage">Next page &gt;</a>';
+		'<a href="' . htmlspecialchars($frontend->htmlnextpage($get, $results["npt"], "news"),ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8') . '" class="nextpage">Next page &gt;</a>';
 }
 
 echo $frontend->load("search.html", $payload);

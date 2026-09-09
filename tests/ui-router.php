@@ -10,11 +10,6 @@ if($path === '/'){
     require 'index.php';
     return true;
 }
-if($path === '/static/misc/lain.gifv'){
-    header('Content-Type: image/gif');
-    readfile('static/misc/lain.gifv');
-    return true;
-}
 if(preg_match('#\A/(?:static/|banner/|favicon\.)#', $path)){
     return false;
 }
@@ -53,7 +48,7 @@ echo $frontend->load('images.html', [
     'images'=>$cards,
     'image_classes'=>' class="images-view-'.htmlspecialchars($view).' images-quality-preview"',
     'image_view_help'=>'<p class="image-view-note">Offline, bundled-image fixture. No provider or remote image request.</p>',
-    'infinite_scroll'=>'',
+    'image_script'=>'',
     'timetaken'=>microtime(true),
     'nextpage'=>'<a class="nextpage img" href="/fixture-images?view='.htmlspecialchars($view).'">Next page</a>',
 ]);

@@ -59,3 +59,15 @@ data/proxies/*.txt
 data/api_keys/
 .env
 .env.*
+
+# Offline checks and operator tools are source-only.
+tests/
+scripts/
+README.pt-BR.md
+PATCHES.md
+release.sh
+deploy.sh
+
+# Local Python validation artifacts
+**/__pycache__/
+*.pyc

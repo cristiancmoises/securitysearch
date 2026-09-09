@@ -8,6 +8,7 @@ ob_start();
 include "data/config.php";
 
 include "lib/frontend.php";
+require "lib/search_execution.php";
 $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("web");
@@ -29,7 +30,8 @@ $payload = [
 ];
 
 try{
-	$results = $scraper->web($get);
+	[$results,$notice]=search_execution::run($frontend,$scraper,$get,$filters,'web');
+    if ($notice!=='') { ob_clean();$frontend->loadheader($get,$filters,'web',$notice); }
 
 }catch(Exception $error){
 

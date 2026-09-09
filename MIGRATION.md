@@ -1,3 +1,27 @@
+## v0.9.19
+
+Complete v0.9.18 improvements integrated on Codeberg commit `0751f14`, preserving the removed Lain animation. Adds annotated release packaging, a fast-forward Git bundle for existing checkouts, four-host token publication, real homepage capture in English/pt-BR READMEs and matching release notes. Asset marker 23. [Release notes](docs/RELEASE-0.9.19.md) · [Publication](docs/PUBLISHING.md).
+
+## v0.9.18
+
+Smaller icons inside the search bar's right edge; plain footer Wiki/Git links; visible bounded GIF/WebP/APNG playback with static posters and independent opt-out; Reddit navigation and local news via Redlib; one labeled Brave fallback for failed new Google web/image searches. Continuations retain their provider. Asset marker 22. [Operations](docs/OPERATIONS-0.9.18.md) · [Validation](docs/AUDIT-0.9.18.md).
+
+## v0.9.17
+
+Real image append-on-scroll restored with one scoped local script. Removed the Automatic pages timer, Refresh navigation and snapshots. Native fallback, Filmstrip support, bounded requests, consumed-token recovery and updated IONOS readiness. Asset marker 21. [Operations](docs/OPERATIONS-0.9.17.md) · [Validation](docs/AUDIT-0.9.17.md).
+
+## v0.9.16
+
+Compact native SVG search icons with accessible labels, shared action markup, and Tron as the effective default. Lightweight Tron background and corrected updater theme migration. [Operations](docs/OPERATIONS-0.9.16.md) · [Validation](docs/AUDIT-0.9.16.md).
+
+## v0.9.15
+
+No browser JavaScript; native search actions, provider recovery, opt-in timed image pages and stronger deployment rollback. Read [operations](docs/OPERATIONS-0.9.15.md) and [audit](docs/AUDIT-0.9.15.md). Earlier sections are historical.
+
+## v0.9.14
+
+See [the operation guide](docs/OPERATIONS-0.9.14.md) and [audit](docs/AUDIT-0.9.14.md) for integrated service search, high-quality previews, UI updates and deployment changes.
+
 # Security Search — Migration Notes
 
 ## v0.9.12 — Lain, proxy validation and reliable status reporting

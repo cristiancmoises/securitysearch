@@ -30,37 +30,19 @@ $settings = [
 				]
 			],
 			[
+				"description" => "Load more images while scrolling",
+				"parameter" => "image_infinite",
+				"options" => [["value" => "yes", "text" => "Yes"], ["value" => "no", "text" => "No"]]
+			],
+			[
+				"description" => "Play visible GIF, WebP and APNG previews",
+				"parameter" => "image_motion",
+				"options" => [["value" => "yes", "text" => "Yes"], ["value" => "no", "text" => "No"]]
+			],
+			[
 				"description" => "Theme",
 				"parameter" => "theme",
 				"options" => []
-			],
-			[
-				"description" => "Prevent clicking background elements when image viewer is open",
-				"parameter" => "bg_noclick",
-				"options" => [
-					[
-						"value" => "no",
-						"text" => "No"
-					],
-					[
-						"value" => "yes",
-						"text" => "Yes"
-					]
-				]
-			],
-			[
-				"description" => "Load more image results automatically while scrolling",
-				"parameter" => "image_infinite",
-				"options" => [
-					[
-						"value" => "yes",
-						"text" => "Yes (default)"
-					],
-					[
-						"value" => "no",
-						"text" => "No"
-					]
-				]
 			]
 		]
 	],
@@ -68,7 +50,7 @@ $settings = [
 		"name" => "Scrapers to use",
 		"settings" => [
 			[
-				"description" => "Autocomplete<br><i>Picking <span class=\"code-inline\">Auto</span> changes the source dynamically depending of the page's scraper<br><b>Warning:</b> If you edit this field, you will need to re-add the search engine so that the new autocomplete settings are applied!</i>",
+				"description" => "Browser / OpenSearch suggestions<br><i>Picking <span class=\"code-inline\">Auto</span> changes the source dynamically depending of the page's scraper<br><b>Warning:</b> If you edit this field, you will need to re-add the search engine so that the new autocomplete settings are applied!</i>",
 				"parameter" => "scraper_ac",
 				"options" => [
 					[
@@ -120,8 +102,12 @@ $settings = [
 						"text" => "Marginalia"
 					],
 					[
+						"value" => "invidious",
+						"text" => "YouTube via Invidious"
+					],
+					[
 						"value" => "yt",
-						"text" => "YouTube"
+						"text" => "YouTube (direct)"
 					],
 					[
 						"value" => "sc",
@@ -256,8 +242,12 @@ $settings = [
 						"text" => "Solofield"
 					],
 					[
+						"value" => "binternet",
+						"text" => "Pinterest via Binternet"
+					],
+					[
 						"value" => "pinterest",
-						"text" => "Pinterest"
+						"text" => "Pinterest (direct)"
 					],
 					[
 						"value" => "cara",
@@ -302,8 +292,12 @@ $settings = [
 				"parameter" => "scraper_videos",
 				"options" => [
 					[
+						"value" => "invidious",
+						"text" => "YouTube via Invidious"
+					],
+					[
 						"value" => "yt",
-						"text" => "YouTube"
+						"text" => "YouTube (direct)"
 					],
 					[
 						"value" => "vimeo",
@@ -355,6 +349,7 @@ $settings = [
 				"description" => "News",
 				"parameter" => "scraper_news",
 				"options" => [
+                    ["value" => "reddit", "text" => "Reddit via Redlib"],
 					[
 						"value" => "ddg",
 						"text" => "DuckDuckGo"

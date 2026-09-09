@@ -267,12 +267,24 @@ class proxy{
 			return false;
 		}
 		foreach($addresses as $address){
+            $packed = @inet_pton($address);
+            // GLOBAL_RANGE does not exclude multicast. Also refuse IPv6
+            // translation/tunnel forms that could reach nonpublic IPv4 routes.
+            if ($packed === false ||
+                (strlen($packed) === 4 && ord($packed[0]) >= 224) ||
+                (strlen($packed) === 16 && (
+                    ord($packed[0]) === 255 ||
+                    substr($packed,0,12) === str_repeat("\0",10)."\xff\xff" ||
+                    substr($packed,0,4) === "\x00\x64\xff\x9b" ||
+                    substr($packed,0,2) === "\x20\x02" ||
+                    substr($packed,0,4) === "\x20\x01\0\0"
+                ))) { return false; }
 
 			if(
 				filter_var(
 					$address,
 					FILTER_VALIDATE_IP,
-					FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+					FILTER_FLAG_GLOBAL_RANGE | FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
 				) === false
 			){
 
@@ -659,7 +671,8 @@ class proxy{
 		$this->stream($url, $referer, "audio");
 	}
 	
-	private function stream($url, $referer, $format, $redirectcount = 0, $deadline = null){
+	private function stream($url, $referer, $format, $redirectcount = 0, $deadline = null, $transfer_budget = null){
+        $transfer_budget ??= (object)["remaining" => $format === "image" ? 67108864 : 134217728];
 
 		if($deadline === null){
 
@@ -751,6 +764,7 @@ class proxy{
 				&$headers_ready,
 				&$callback_error,
 				$format,
+                $transfer_budget,
 				$url
 			){
 
@@ -790,6 +804,11 @@ class proxy{
 					return 0;
 				}
 
+                if (isset($headers['content-length']) && is_numeric($headers['content-length']) &&
+                    (float)$headers['content-length'] > $transfer_budget->remaining) {
+                    $callback_error = 'Remote stream exceeds the configured byte limit';
+                    return 0;
+                }
 				$content_type = strtolower($headers["content-type"]);
 				$octet_stream = stripos($content_type, "octet-stream") !== false;
 				if(stripos($content_type, $format . "/") === false && !$octet_stream){
@@ -818,9 +837,14 @@ class proxy{
 		curl_setopt(
 			$curl,
 			CURLOPT_WRITEFUNCTION,
-			function($curl, $data) use (&$status, &$headers_ready, &$callback_error){
+			function($curl, $data) use (&$status, &$headers_ready, &$callback_error, $transfer_budget){
 
-				$length = strlen($data);
+                $length = strlen($data);
+                if ($length > $transfer_budget->remaining) {
+                    $callback_error = 'Remote stream exceeds the configured byte limit';
+                    return 0;
+                }
+                $transfer_budget->remaining -= $length;
 				if($status >= 300 && $status <= 309){
 
 					return $length;
@@ -860,7 +884,8 @@ class proxy{
 				$referer,
 				$format,
 				$redirectcount + 1,
-				$deadline
+				$deadline,
+                $transfer_budget
 			);
 		}
 		if($status !== 200){

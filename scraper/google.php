@@ -432,7 +432,9 @@ class google_renderer{
 								"png" => "PNG",
 								"bmp" => "BMP",
 								"svg" => "SVG",
-								"webp" => "WEBP",
+								"webp" => "WebP",
+								"avif" => "AVIF",
+								"apng" => "APNG",
 								"ico" => "ICO",
 								"craw" => "RAW"
 							]
@@ -1134,6 +1136,8 @@ class google{
 		require_once "scraper/google_cse.php";
 		$this->delegate = new google_cse("google");
 	}
+
+	public function set_request_deadline(int $deadline): void { $this->delegate->set_request_deadline($deadline); }
 
 	public function getfilters($page){
 		return $this->delegate->getfilters($page);

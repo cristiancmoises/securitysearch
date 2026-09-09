@@ -1,243 +1,33 @@
-# Search-first interface
+# Interface behavior — v0.9.19
 
-Security Search v0.9.12 keeps the logo and search field as the landing page's
-primary visual anchors. Navigation and SecurityOps links remain available
-without competing with the search task.
+The homepage and result header place four 14 px SVG actions inside the right edge of the search bar in a horizontal row: Search, Search Image, Search Pinterest and Search YouTube. Native form destinations, full accessible names, focus labels and 28 px desktop / 44 px coarse-pointer targets remain. Tron is the default; explicit saved themes are honored. The input reserves room for the actions. The black/cyan CSS background does not request the old 12 MB GIF. Wiki/Git in the homepage footer are plain links, without the rectangle.
 
-## Landing-page hierarchy
+## Images
 
-The first page presents:
+Grid, Compact grid, Gallery, Large feed, List and Filmstrip retain quality and format filters. Each provider page renders up to 24 images; omitted results are disclosed. Original, Preview and View animation links use the validated media proxy. Full originals can consume more bandwidth, and a WebP file need not be animated.
 
-1. One subordinate Settings utility.
-2. The Security Search logo.
-3. The primary search field and submit action.
-4. One compact hint: Google is the default and Brave is available.
-5. Quiet text links to [Chat](https://chat.securityops.co/) and
-   [securityops.com.br](https://securityops.com.br/).
+Image results now append when the visitor scrolls near the last card. Filmstrip observes inside its horizontal container and checks that the strip is on screen. Earlier cards stay in place. Clicking Next page also appends when the enhancement is available; modified clicks retain native navigation. No code moves the viewport, replaces the document or changes browser history. There is no timer/interval/Play/Pause panel.
 
-The portal links are not large buttons or promotional cards. Additional
-services remain in the low-priority expandable directory and footer.
+The enhancement uses [Intersection Observer](https://developer.mozilla.org/en-US/docs/Web/API/Intersection_Observer_API), one passive scroll listener per relevant scroll container and one request at a time. It waits for scrolling before the first automatic request and for fresh scroll activity after each completed page. It does not fill a short page with an uncontrolled chain of requests. New requests pause while the document is hidden; an already-started request may finish. No animation loop or polling runs.
 
-## Lain theme behavior
+Settings → **Load more images while scrolling → No** omits the pagination script. Disabled/unsupported JavaScript and browsers reporting Save-Data keep native Next page navigation. Empty initial pages do not start automatic loading. The rest of the application retains native, script-free forms and links.
 
-Lain is the configured first-visit theme. The interface retains its application on the
-landing page by making home-page colors consume the active theme's CSS tokens
-instead of overriding them with a separate set of hard-coded colors. The normal
-cascade is:
+Visible GIF, animated WebP and APNG sources play through the privacy proxy with at most two loading/four active. Viewport exit, a hidden tab, reduced motion and Save-Data restore static posters. Settings → **Play visible GIF, WebP and APNG previews → No** omits the independent motion script. Malformed, static or oversized candidates restore the poster without retries. The native animation link remains. GIF/WebP/APNG first-frame extraction avoids decoding a full sequence just for a poster. Cropped WebP first frames may produce a cropped poster; the original animation is unchanged. Static formats do not acquire animation, and unsupported animated AVIF/video is outside this change.
 
-1. `static/style.css` supplies the base layout.
-2. The selected theme stylesheet supplies shared color tokens.
-3. Home-page component rules consume those tokens, with safe fallback values.
+## Google and Reddit
 
-The stylesheet is `static/themes/Lain.css`. v0.9.12 uses `config::VERSION=16`
-so the current theme and image controllers load through `?v16`.
+Google stays selected by default. One failed initial Google web/image search automatically tries Brave with a 12+8-second shared network budget. Successful fallback replaces the header's provider and shows a notice. Shared filters survive; incompatible ones reset. No fallback occurs for empty successful results, API calls or continuation pages. Brave supplies no image continuation; format filtering checks only the returned page. Dual failure still gives an honest error with recovery.
 
-On the home page, Lain uses the tracked
-`static/misc/lain.gifv` GIF background. The CSS
-`prefers-reduced-motion: reduce` and `prefers-reduced-data: reduce` paths replace
-that image with a plain dark background. Mobile uses the animation normally,
-without a width-based ban. A native still-background checkbox works without JS.
-The wallpaper has an explicit stacking layer so the black page cannot hide it;
-foreground controls retain a dark readable surface. The real GIF is served with
-the correct MIME and static caching. It costs approximately 8.7 MB uncached.
+The new Reddit navigation link opens the operator's Redlib. Local News search shows r/news + r/worldnews recent posts when blank and related posts for keywords. Sort/period are labeled as keyword-search options. News in the top service navigation retains its external destination. Returned post text is escaped; paging uses validated encrypted continuation data. Live Redlib was unavailable (503) at the release check.
 
-Theme selection remains a browser preference:
+## Bounds and recovery
 
-- A syntactically valid saved theme whose stylesheet exists takes precedence.
-- The special `Dark` choice continues to use the base stylesheet without a
-  separate theme file.
-- An absent, malformed, overlong, or nonexistent theme cookie falls back to
-  `config::DEFAULT_THEME`, which is `Lain`.
-- Selecting the configured default removes the redundant cookie; it does not
-  overwrite other valid saved choices.
+Each response is limited to 1 MiB and each request has a 25-second deadline. The server emits normalized JSON; the client validates every card and builds elements with text APIs, without parsing or inserting HTML. Appended images are lazy, async and low priority. Pagination URLs must remain on the same origin and `/images`; media URLs must use the local `/proxy` route. Both JSON and continuation provider identity must match the current stream. Fetch redirects are rejected.
 
-Container deployments also set `FOURGET_DEFAULT_THEME=Lain`. Keep that
-environment value, `config::DEFAULT_THEME`, the exact-case filename, and the
-Settings option aligned.
+To keep long sessions responsive, a page retains at most 480 cards. When less than one full provider page fits, a short message invites native Next page navigation to start a fresh document. Earlier results are not removed or reordered, including a focused card. No continuation is consumed solely to enforce this limit.
 
-## NSFW preference
+Final pages end loading. An empty page with a continuation stops automatic loading and retains native Next page. Status text announces loading, completion or recovery without moving focus. On a failed/ambiguous request, the current images stay visible and the link becomes **Restart search** with compatible search preferences retained. Choose another provider in the filters if necessary. The consumed continuation is never retried automatically. Leaving a page during a request aborts it and preserves restart recovery for browser history restoration.
 
-`config::DEFAULT_NSFW=yes` and `FOURGET_DEFAULT_NSFW=yes` allow NSFW content by
-default wherever the selected provider exposes that filter. An explicit
-request value overrides a valid saved cookie, and Settings can persist `yes`,
-`maybe`, or `no`; the application default applies only when neither override is
-present. Provider-specific interpretation is documented in
-[PROVIDERS.md](PROVIDERS.md).
+The standalone provider error page still returns HTTP 503 with explicit recovery and no success timing. Upstream rate limits can continue. Legacy frame links return HTTP 410 and a new-search link without a provider request.
 
-## Responsive and accessible behavior
-
-- Keep the logo and search form centered from 320 px through desktop.
-- Avoid horizontal overflow and allow the field/action to reflow on narrow
-  screens.
-- Keep the Settings action and quiet domain links subordinate but reachable.
-- Retain visible `:focus-visible` styling and usable touch targets.
-- Do not require JavaScript for search, Settings, theme selection, or portal
-  navigation.
-- Avoid autofocus that opens a mobile keyboard or shifts the page unexpectedly.
-- Mark links that open a new context with an appropriate `rel` value.
-
-## Provider errors
-
-All scraper failures use the neutral **Search provider unavailable** view.
-Upstream text is escaped before rendering. The view preserves the search and
-offers:
-
-- **Retry search** with the same provider and filters;
-- **Provider settings**;
-- **Try Brave** on web and image paths.
-
-The Brave action is an explicit provider choice. Security Search does not
-silently resubmit the query, and the UI must not describe Brave results as
-Google results. Google unusual-traffic responses use a concise rate-limit
-explanation instead of exposing the long upstream block page. User-facing error
-headings and guidance must remain professional and free of profanity.
-
-## Image-result flow
-
-v0.9.12 offers Grid, Compact, uncropped Gallery, Feed, metadata-first List and a
-horizontal Filmstrip. The filmstrip deliberately scrolls inside its own region,
-not the page. These are CSS-only layouts retaining document/keyboard order;
-the View filter does not require JS. Intrinsic size hints reserve image space;
-the initial preview group loads eagerly while later cards stay lazy.
-
-Image results expose two server-rendered controls: **View** changes
-the responsive layout, while **Fast preview/Original** chooses the proxied
-thumbnail or best original source used directly in each card. `feed + original`
-provides a Tumblr-like reading flow and lets browser-supported GIF/WebP/APNG
-animate without a click even when JavaScript is disabled. Originals remain
-lazy-loaded and retain the poster/source fallback chain.
-
-Automatic loading is enabled by default but remains progressive enhancement.
-It stops after three added pages and skips automatic loads on Save-Data connections.
-Settings can save `image_infinite=no`. The server-rendered **Next page** link
-must continue to work when JavaScript is disabled, the preference is off, or
-the required browser APIs are missing. A failed automatic load stops additional
-attempts and offers a first-page restart that preserves the query and filters.
-
-An animated GIF, WebP, or APNG candidate starts with its normal lazy provider
-thumbnail as a poster. `static/images-fallback.js` is declared early and, on a
-poster error, tries up to two alternative proxied provider sources before
-showing a local **Image unavailable** state. Its poster reference stays aligned
-with `static/images-motion.js`, so a recovered source can proceed to motion
-without duplicate requests.
-
-A URL/filter/provider hint selects a preferred motion source. Google normally
-uses the original. Brave can prefer its smaller animation-preserving resized URL
-and preserve the original as fallback. Ordinary `.gif`, `.webp`, and `.apng`
-URLs are probed, including common WebP names; static WebP returns to its poster.
-WebP is a low-confidence candidate: it still receives structural validation and
-the provider motion fallback, but skips the automatic cache-busted retry after
-failure. Explicit user work stays at the front of the queue; automatic GIF/APNG
-work is ordered before WebP. Inline data URLs are excluded. The motion controller
-is also declared early and discovers candidates within 700 px of the viewport,
-then swaps in the selected source through same-origin
-`/proxy?...&s=animated`.
-
-The endpoint caps decompressed output at 32 MiB, carries an
-animation-specific GIF/APNG/PNG/WebP `Accept` value through redirects, validates
-the returned raster MIME, and requires at least two structural frames before
-forwarding the original bytes unchanged. Bounded format-specific parsers inspect
-GIF blocks/frame bounds, animated WebP RIFF/`VP8X`/`ANIM`/`ANMF` structure, and
-APNG CRC/order/`acTL`/`fcTL`/`fdAT` sequence, data, count, and canvas bounds.
-Animation validation does not decode through ImageMagick. It also bounds
-frames, dimensions, pixel-frames, container chunks, and GIF sub-block traversal.
-
-The browser queues candidates and permits at most three validation loads at
-once on desktop or two on coarse-pointer/mobile devices. The server separately
-permits three expensive validations, nine bounded waiters for up to three
-seconds, and 900 admitted candidates per client/minute. A busy-only rejection
-does not consume that quota and advertises a two-second retry interval.
-
-A failed preferred motion source first tries the provider fallback. An eligible
-non-WebP candidate (normally GIF/APNG) then makes one delayed automatic
-cache-busted retry after roughly 2.2–3.0 seconds, after the server's two-second
-retry interval; low-confidence WebP skips it. A final failure retains the best
-usable poster. That is a loading bound, not a playback cap. Completed candidates
-use a soft LRU retention budget of 36 on desktop or 18 on
-coarse-pointer/mobile devices. The
-controller never interrupts an in-flight load or evicts a candidate inside the
-observer margin, so the budget can be exceeded temporarily. It restores only
-the oldest settled off-screen item to its poster, then automatically prepares
-and activates it when it returns. A mutation observer registers infinite-scroll
-additions. Reduced-motion disables motion entirely; data-saver disables
-automatic activation. Providers without a usable URL/filter/metadata hint can
-still leave an extensionless animation or ordinary `.png` APNG as a static
-poster. SVG, video, gifv, data URLs, and raster formats outside the
-GIF/WebP/APNG allowlist are not motion candidates.
-
-For normal thumbnails, only a valid JPEG no larger than 128 KiB and 512 pixels
-per axis, or a structurally validated animated GIF/WebP/APNG no larger than 1.5
-MiB, 2,048 pixels per axis, and 4 MP can bypass ImageMagick; the upstream body is
-capped at 16 MiB. This fast path reduces CPU without allowing large originals to
-act as thumbnails, and preserves small native animations. Static or malformed
-animation-capable formats, AVIF, and larger sources keep the bounded ImageMagick
-resize path.
-
-The ImageMagick fallback first enforces a detected-MIME allowlist of JPEG, PNG,
-GIF, WebP, and AVIF. It is limited to one frame, 16,384 pixels per axis, 40 MP,
-64 MiB each of memory and map, no disk-backed pixel cache, one thread, and ten
-seconds; previous process limits are restored afterward. The container policy
-denies delegates, filters, indirect `@` paths, and all coders by default before
-enabling its narrow raster set. An animated GIF above 1.5 MiB may therefore fail
-as a poster, but the poster error still allows automatic, click-free motion
-activation through the separate 32 MiB `s=animated` path. Image requests derive
-a bounded Referer from the already validated public source URL when no reviewed
-provider-specific value is supplied. Derived and explicit values are
-length/CRLF checked, and redirect targets remain SSRF-validated.
-
-The motion badge becomes visible only after a candidate passes multi-frame
-validation and loads. Its label reflects the URL, filter, or provider candidate
-hint; it is not an authoritative MIME report.
-
-## Release checks
-
-Before promotion:
-
-1. Fetch the home page without a theme cookie and verify it links to
-   `/static/themes/Lain.css?v16`; compare actual GIF frames on desktop/mobile,
-   and verify the still control and reduced-motion/data fallback.
-2. Verify that stylesheet returns HTTP 200 with a CSS content type.
-3. Test no cookie, an invalid cookie, `theme=Dark`, and a valid nondefault
-   theme on the home, results, and Settings pages.
-4. Inspect computed colors or screenshots—not only the stylesheet link—at
-   representative phone, tablet, and desktop sizes.
-5. Exercise keyboard traversal, visible focus, contrast, and no-JavaScript
-   search/settings behavior.
-6. Force a scraper failure and verify the neutral message, escaped upstream
-   detail, same-query retry, Settings action, and explicit Brave URL.
-7. Verify Google, Brave, DuckDuckGo, and Yandex separately with real result
-   cards/API arrays. HTTP 200 by itself is not evidence of a working scraper.
-   Give command-line HTML `/web` and `/images` requests a browser-like
-   User-Agent; reverse-proxy bot rules may also apply to API requests. Record anti-abuse results as
-   upstream limitations, not scraper success.
-8. Test image automatic loading, its opt-out, the ordinary pagination link, and
-   the default `nsfw=yes` plus saved/request `maybe` and `no` overrides.
-9. Include verified animated, static, malformed, and unavailable fixtures.
-   Confirm early controller placement, poster-first loading, both poster
-   fallbacks, the local unavailable state, the same-origin motion URL, Brave
-   resized-motion/original fallback, eligible non-WebP retry with
-   2.2–3.0-second delay, WebP retry suppression and fallback, queue priority,
-   truthful post-validation badge visibility, infinite-append registration,
-   and no direct result-host image request.
-10. Verify the 32 MiB decompressed ceiling and structural GIF/WebP/APNG parsers:
-    malformed/truncated blocks, bad RIFF length or padding, static WebP, invalid
-    PNG CRC/order/sequence/count/data, forged-acTL-only PNG, frame/canvas bounds,
-    frame/dimension/pixel-frame limits, chunk/sub-block limits, and rejection
-    outside the GIF/WebP/PNG allowlist. Confirm three/two browser load queues,
-    three server workers plus nine bounded waiters, 900 admissions/client/minute,
-    uncharged busy rejection with a two-second retry hint, reduced-motion/data
-    saver behavior, soft 36/18 LRU retention without cancelling in-flight or
-    near-viewport work, and automatic reactivation after an evicted item returns.
-11. Exercise the thumbnail passthrough boundaries: accepted JPEG at no more than
-    128 KiB and 512 px/axis, or structurally validated animated GIF/WebP/APNG at
-    no more than 1.5 MiB, 2,048 px/axis, and 4 MP; rejection to the ImageMagick
-    resize path above each bound; 16 MiB upstream cap; native animation
-    preservation; animated GIF above 1.5 MiB continuing automatically through
-    the 32 MiB motion path even if its poster fails; and static, malformed,
-    AVIF, invalid-MIME, and invalid-dimension fallback. Verify the ImageMagick
-    one-frame, 16,384-pixel/40-MP, 64-MiB memory/map, disk-zero, one-thread,
-    ten-second limits, container coder/delegate policy, and bounded Referer
-    derivation from a validated source URL.
-
-Provider request behavior and anti-abuse limitations are documented in
-[PROVIDERS.md](PROVIDERS.md).
+Local HTTP and Node state tests exercise these contracts. The live desktop homepage was captured and inspected in a real browser for v0.9.19. Image scrolling/animation, mobile behavior and assistive technologies still need real-device acceptance testing.

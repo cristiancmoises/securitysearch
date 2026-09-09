@@ -371,7 +371,7 @@
     margin: .75rem auto 0;
     padding: 0 1rem;
     color: var(--928374, #8d9aa4);
-    font-size: .76rem;
+    font-size: .875rem;
     text-align: center;
 }
 
@@ -384,3 +384,9 @@
     .nextpage.img:hover{ transform: none; }
     .image-wrapper:hover .image .thumb img{ transform: none; }
 }
+
+.image-links{display:flex;flex-wrap:wrap;gap:.7rem;padding:.45rem .6rem;font-size:.8rem;}
+.image-links a{display:inline-flex!important;align-items:center;min-height:36px;width:auto!important;}
+
+.nextpage.img[hidden]{display:none!important;}
+.nextpage.img[aria-disabled="true"]{opacity:.55;cursor:wait;}

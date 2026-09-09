@@ -5,7 +5,7 @@
 <title>Security Search — Privacy-First Metasearch Engine</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Privacy-first proxy metasearch engine. No tracking, no ads, and no JavaScript required for core search. Google is the default; Brave remains available.">
+<meta name="description" content="Privacy-first proxy metasearch engine. No tracking, no ads, and no JavaScript. Google is the default; Brave remains available.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#02070a">
@@ -30,7 +30,7 @@
 
 <meta property="og:site_name" content="Security Search">
 <meta property="og:title" content="Security Search — Privacy-first proxy search engine">
-<meta property="og:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript required for core search.">
+<meta property="og:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://securityops.co/">
 <meta property="og:image" content="https://securityops.co/banner/securitysearch.webp?v{%version%}">
@@ -41,7 +41,7 @@
 
 <meta name="twitter:card" content="summary">
 <meta name="twitter:title" content="Security Search — Privacy-first proxy search">
-<meta name="twitter:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript required for core search.">
+<meta name="twitter:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript.">
 <meta name="twitter:image" content="https://securityops.co/banner/securitysearch.webp?v{%version%}">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
@@ -53,66 +53,6 @@
 
 <link rel="stylesheet" href="/static/style.css?v{%version%}">
 {%style%}
-
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@graph": [
-    {
-      "@type": "Organization",
-      "@id": "https://securityops.co/#organization",
-      "name": "SecurityOps",
-      "url": "https://securityops.co/",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://securityops.co/banner/securitysearch.webp?v{%version%}",
-        "width": 400,
-        "height": 86
-      },
-      "sameAs": [
-        "https://git.securityops.co/cristiancmoises",
-        "https://youtube.com/@securityops",
-        "https://wiki.securityops.co",
-        "https://codeberg.org/berkeley"
-      ]
-    },
-    {
-      "@type": "WebSite",
-      "@id": "https://securityops.co/#website",
-      "name": "Security Search",
-      "alternateName": "SecurityOps Search",
-      "url": "https://securityops.co/",
-      "description": "Privacy-first proxy metasearch engine maintained by SecurityOps.",
-      "inLanguage": ["en", "pt-BR"],
-      "publisher": { "@id": "https://securityops.co/#organization" },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": { "@type": "EntryPoint", "urlTemplate": "https://securityops.co/web?s={search_term_string}" },
-        "query-input": "required name=search_term_string"
-      }
-    },
-    {
-      "@type": "WebApplication",
-      "@id": "https://securityops.co/#app",
-      "name": "Security Search",
-      "url": "https://securityops.co/",
-      "applicationCategory": "UtilitiesApplication",
-      "operatingSystem": "Any",
-      "isPartOf": { "@id": "https://securityops.co/#website" },
-      "publisher": { "@id": "https://securityops.co/#organization" },
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
-      "featureList": [
-        "No tracking",
-        "No advertising",
-        "No JavaScript required",
-        "Tor onion service access",
-        "Aggregates Google, DuckDuckGo, Brave, Yandex, Startpage, Qwant and Mojeek",
-        "OpenSearch integration"
-      ]
-    }
-  ]
-}
-</script>
 
 <style>
 /* ============================================================
@@ -158,19 +98,8 @@ body.home a:focus-visible{
     border-radius: 4px;
 }
 
-/* ============================================================
-   CHECKBOX HACK — drives the Services drawer with zero JS
-   (a tiny progressive-enhancement script adds keyboard support;
-    mouse operation works with JavaScript disabled)
-   ============================================================ */
-.services-cb{
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    width: 1px;
-    height: 1px;
-    margin: 0;
-}
+/* Native theme background control. */
+
 .wallpaper-toggle{
     display:none;
     position:absolute;
@@ -259,73 +188,9 @@ body.home a:focus-visible{
 }
 
 .search-wrap{ width: 100%; max-width: 640px; }
-.home .searchbox{
-    display: flex;
-    align-items: center;
-    background: var(--glass-2);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    border-top-color: var(--glass-edge-2);
-    border-radius: 999px;
-    overflow: hidden;
-    box-shadow: var(--glass-shadow);
-    transition: border-color .2s, box-shadow .2s, transform .2s;
-}
-.home .searchbox:focus-within{
-    border-color: var(--net);
-    border-color: color-mix(in srgb, var(--net) 48%, transparent);
-    box-shadow: 0 8px 40px rgba(0,0,0,.25);
-    transform: translateY(-1px);
-}
-.home .searchbox::before{
-    content: ">";
-    color: var(--net);
-    font-weight: 700;
-    padding: 0 0 0 1.3rem;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-.home .searchbox input{
-    flex: 1;
-    height: clamp(52px, 6vw, 60px);
-    padding: 0 1.1rem;
-    font: inherit;
-    font-size: var(--fs-md);
-    color: var(--fg);
-    background: transparent;
-    border: 0;
-    outline: 0;
-    min-width: 0;
-}
-.home .searchbox input::placeholder{ color: var(--fg-4); }
-.home .searchbox button{
-    height: 100%;
-    padding: 0 clamp(1.1rem, 2.5vw, 1.6rem);
-    background: transparent;
-    color: var(--fg-2);
-    border: 0;
-    border-left: 1px solid var(--glass-edge);
-    cursor: pointer;
-    font: inherit;
-    font-size: var(--fs-xs);
-    letter-spacing: .15em;
-    text-transform: uppercase;
-    transition: background .15s, color .15s;
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    align-self: stretch;
-}
-.home .searchbox button:hover{
-    background: var(--glass-1);
-    background: color-mix(in srgb, var(--fg) 6%, transparent);
-    color: var(--net);
-}
-.home .searchbox svg{ width: 13px; height: 13px; fill: currentColor; }
 
 .sub-hint{
-    margin-top: -.4rem;
+    margin-top: .85rem;
     font-size: var(--fs-xs);
     color: var(--fg-4);
     letter-spacing: .08em;
@@ -341,32 +206,6 @@ body.home a:focus-visible{
 /* ============================================================
    QUIET PORTAL LINKS — visible without competing with search
    ============================================================ */
-.quick-links{
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: center;
-    gap: .1rem .55rem;
-    margin-top: -.75rem;
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-}
-.quick-links a{
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    padding: 0 .15rem;
-    color: var(--fg-3);
-    text-decoration: underline;
-    text-decoration-color: transparent;
-    text-underline-offset: .25em;
-    transition: color .15s, text-decoration-color .15s;
-}
-.quick-links a:hover{
-    color: var(--net);
-    text-decoration-color: currentColor;
-}
-.quick-links .divider{ color: var(--fg-4); opacity: .65; }
 
 /* ============================================================
    SERVICES DRAWER — pure CSS, driven by sibling checkbox
@@ -380,11 +219,7 @@ body.home a:focus-visible{
                 margin-bottom .3s ease;
     margin-bottom: 0;
 }
-.services-cb:checked ~ #center .services{
-    max-height: 2400px;
-    opacity: 1;
-    margin-bottom: .8rem;
-}
+
 
 .services-panel{
     padding: 1rem;
@@ -476,65 +311,12 @@ body.home a:focus-visible{
    FOOTER STRIP
    ============================================================ */
 .foot-strip{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    padding: .65rem .9rem;
-    background: var(--glass-2);
-    background: color-mix(in srgb, var(--glass-2) 76%, transparent);
-    -webkit-backdrop-filter: var(--glass-blur);
-    backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    border-top-color: var(--glass-edge-2);
-    border-radius: 12px;
-    box-shadow: var(--glass-shadow);
-    font-size: var(--fs-xs);
-    color: var(--fg-3);
-    flex-wrap: wrap;
-}
-
-.svc-toggle{
-    display: inline-flex;
-    align-items: center;
-    gap: .5rem;
-    min-height: 44px;
-    box-sizing: border-box;
-    padding: .45rem .85rem;
-    font: inherit;
-    font-size: var(--fs-xs);
-    color: var(--fg-2);
-    background: var(--glass-1);
-    background: color-mix(in srgb, var(--fg) 4%, transparent);
-    border: 1px solid var(--glass-edge);
-    border-radius: 999px;
-    cursor: pointer;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    user-select: none;
-    transition: color .15s, background .15s, border-color .15s;
-}
-.svc-toggle:hover{
-    color: var(--net);
-    background: var(--glass-1);
-    background: color-mix(in srgb, var(--net) 6%, transparent);
-    border-color: var(--net);
-    border-color: color-mix(in srgb, var(--net) 30%, transparent);
-}
-.svc-toggle:focus-visible{
-    outline: 1px solid var(--net);
-    outline-offset: 2px;
-}
-.svc-toggle .chev{
-    width: 10px; height: 10px;
-    transition: transform .25s ease;
-}
-.services-cb:checked ~ #center .svc-toggle .chev{
-    transform: rotate(180deg);
-}
-.services-cb:focus-visible ~ #center .svc-toggle{
-    outline: 1px solid var(--net);
-    outline-offset: 2px;
+    display:flex;
+    justify-content:center;
+    gap:1rem;
+    padding:.4rem 0;
+    font-size:.875rem;
+    color:var(--fg-3);
 }
 
 .foot-ext{
@@ -556,10 +338,7 @@ body.home a:focus-visible{
    FALLBACKS & MOTION
    ============================================================ */
 @supports not (backdrop-filter: blur(1px)){
-    .btn-icon, .foot-strip, .svc-toggle, .services-panel,
-    .home .searchbox{
-        background: var(--glass-1);
-    }
+    .btn-icon{background:#081319;}
 }
 
 @media (prefers-reduced-motion: no-preference){
@@ -593,7 +372,7 @@ body.home a:focus-visible{
     .foot-strip{ justify-content: center; }
 }
 @media (max-width: 480px){
-    .home .searchbox button .label{ display: none; }
+
     .foot-ext{ justify-content: center; }
 }
 
@@ -604,23 +383,22 @@ body.home a:focus-visible{
     body.home{ background: #fff !important; color: #000 !important; }
     .corner, .foot-strip, audio{ display: none; }
     .services{ max-height: none !important; opacity: 1 !important; overflow: visible !important; }
-    .services-panel, .home .searchbox{
+    .services-panel{
         background: #fff !important;
         backdrop-filter: none !important;
         border: 1px solid #ccc !important;
         box-shadow: none !important;
     }
 }
+
+.services-disclosure{margin:1rem 0;}
+.services-disclosure summary{cursor:pointer;min-height:44px;padding:.7rem;color:var(--fg-2);text-align:center;}
+.services-disclosure[open] .services{max-height:none;opacity:1;overflow:visible;pointer-events:auto;}
 </style>
 </head>
 
 <body class="home">
 
-<!-- Hidden checkbox drives the drawer state. Must come BEFORE #center
-     so the sibling selector .services-cb:checked ~ #center can match.
-     Keyboard support + ARIA are layered on by the script at end of body;
-     with JS disabled the label still toggles it via mouse. -->
-<input type="checkbox" id="services-toggle" class="services-cb">
 <input type="checkbox" id="wallpaper-static" class="wallpaper-toggle">
 <div class="ambient-wallpaper" aria-hidden="true"></div>
 
@@ -630,12 +408,16 @@ body.home a:focus-visible{
     <div class="corner">
         <label for="wallpaper-static" class="wallpaper-control">Still background</label>
         <span class="motion-status">Reduced motion / data</span>
-        <a href="/settings" class="btn-icon" aria-label="Settings" title="Settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-            </svg>
-        </a>
+        <nav class="service-navigation" aria-label="Primary navigation"><a href="https://securityops.co/" rel="noreferrer noopener">Home</a>
+<a href="https://securityops.co/settings" rel="noreferrer noopener">Settings</a>
+<a href="https://invidious.securityops.co/" rel="noreferrer noopener">Vids</a>
+<a href="https://img.securityops.co/" rel="noreferrer noopener">Img</a>
+<a href="https://wiki.securityops.co/" rel="noreferrer noopener">Wiki</a>
+<a href="https://chat.securityops.co/" rel="noreferrer noopener">Chat</a>
+<a href="https://zupt-web.securityops.co/" rel="noreferrer noopener">Zupt</a>
+<a href="https://news.securityops.co/" rel="noreferrer noopener">News</a>
+<a href="https://libre.securityops.co/" rel="noreferrer noopener">Reddit</a>
+<a href="https://securityops.com.br/" rel="noreferrer noopener">BR</a></nav>
     </div>
 
     <!-- HERO -->
@@ -646,33 +428,20 @@ body.home a:focus-visible{
         </h1>
 
         <div class="search-wrap">
-            <form method="GET" action="web" class="searchbox" autocomplete="off" role="search">
-                <input type="text" name="s" placeholder="Search the web privately…" required aria-label="Search query">
-                <button type="submit" aria-label="Run search">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M10 2a8 8 0 105.293 14.707l4.707 4.707 1.414-1.414-4.707-4.707A8 8 0 0010 2z"/>
-                    </svg>
-                    <span class="label">Search</span>
-                </button>
+            <form id="home-search" method="GET" action="/web" class="search-surface" autocomplete="off" role="search">
+                <input type="search" name="s" maxlength="500" placeholder="Search the web privately…" required aria-label="Search query">
+                {%search_actions%}
             </form>
-            <p class="sub-hint">Google by default · No tracking · Brave available</p>
+            <p class="sub-hint">Google by default · No tracking</p>
         </div>
-
-        <nav class="quick-links" aria-label="SecurityOps portals">
-            <a href="https://images.securityops.co/">Images</a>
-            <a href="https://invidious.securityops.co/">Videos</a>
-            <a href="https://pixiv.securityops.co/">Pixiv</a>
-            <a href="https://chat.securityops.co/">Chat</a>
-            <a href="https://news.securityops.co/">News</a>
-            <a href="https://wiki.securityops.co/">Wiki</a>
-            <a href="https://securityops.com.br/">securityops.com.br</a>
-        </nav>
     </main>
 
     <!-- FOOTER -->
     <footer>
 
         <!-- DRAWER -->
+        <details class="services-disclosure">
+            <summary>Explore SecurityOps services</summary>
         <div class="services" id="services">
             <div class="services-panel">
 
@@ -842,7 +611,7 @@ body.home a:focus-visible{
                         <div class="svc-item">
                             <span class="svc-item-name">Repositories</span>
                             <div class="svc-item-links">
-                                <a class="clearnet" href="https://git.securityops.co/cristiancmoises"><span class="tag">→</span>Git</a>
+                                <a class="clearnet" href="https://git.securityops.co/"><span class="tag">→</span>Git</a>
                                 <a class="clearnet" href="https://codeberg.org/berkeley"><span class="tag">→</span>Codeberg</a>
                             </div>
                         </div>
@@ -864,27 +633,20 @@ body.home a:focus-visible{
             </div>
         </div>
 
+        </details>
+
         <!-- STRIP -->
         <div class="foot-strip">
-            <!-- Clicking this label flips the hidden checkbox above. -->
-            <label for="services-toggle" class="svc-toggle" aria-controls="services" aria-expanded="false">
-                <span>Services</span>
-                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <polyline points="6 9 12 15 18 9"/>
-                </svg>
-            </label>
 
             <nav class="foot-ext" aria-label="External">
                 <a href="https://wiki.securityops.co">Wiki</a>
-                <a href="https://git.securityops.co/cristiancmoises">Git</a>
+                <a href="https://git.securityops.co/">Git</a>
             </nav>
         </div>
+    {%trust_footer%}
     </footer>
 
 </div><!-- /center -->
 
-<!-- Progressive enhancement for keyboard/ARIA state; the label still toggles
-     the Services drawer with JavaScript disabled. -->
-<script src="/static/home.js?v{%version%}" defer></script>
 </body>
 </html>

@@ -30,14 +30,29 @@ class frontend{
 		return '<aside class="video-suggestion" aria-label="YouTube alternative">' .
 			'<strong>Looking for YouTube videos?</strong> ' .
 			'<a href="' . htmlspecialchars($url, ENT_QUOTES, 'UTF-8') . '" rel="noreferrer noopener">Search our Invidious instance</a>' .
-			'<small>Your query is sent to Invidious only when you open this link. Playback depends on YouTube availability.</small></aside>';
+			'<small>Selecting Invidious sends this search to our instance. Playback depends on YouTube availability.</small></aside>';
 	}
 	
+	public function image_suggestion(array $get): string {
+        $query = is_string($get['s'] ?? null) ? $get['s'] : '';
+        $direct = 'https://images.securityops.co/search.php?q=' . rawurlencode($query);
+        $local = '/images?s=' . rawurlencode($query) . '&scraper=binternet';
+        $note = ($get['scraper'] ?? '') === 'binternet' ?
+            'Binternet format filtering checks file extensions on each returned page; it may return fewer matches. Safe Search is controlled by that service.' :
+            'Choose Pinterest via Binternet to search our image service. Format support varies by provider.';
+        return '<aside class="video-suggestion" aria-label="Pinterest search"><a href="'.htmlspecialchars($local,ENT_QUOTES).'">Pinterest via Binternet</a> · <a href="'.htmlspecialchars($direct,ENT_QUOTES).'" rel="noreferrer noopener">Open Binternet</a><small>'. $note .'</small></aside>';
+    }
+
 	public function load($template, $replacements = []){
 
 		$replacements["server_name"] = htmlspecialchars(config::SERVER_NAME);
 		$replacements["version"] = config::VERSION;
+        if (in_array($template, ["home.html", "header.html"], true)) {
+            $replacements["search_actions"] = self::template_source("search-actions.html");
+        }
 		$replacements["video_suggestion"] ??= "";
+		$replacements["image_suggestion"] ??= "";
+		$replacements["trust_footer"] = '<div class="trust-footer"><p>In Code We Trust.</p><a href="https://git.securityops.co/" rel="noreferrer noopener">Explore the code</a></div>';
 
 		$theme = config::DEFAULT_THEME;
 		if(isset($_COOKIE["theme"]) && is_string($_COOKIE["theme"])){
@@ -98,24 +113,18 @@ class frontend{
 		return trim($html);
 	}
 	
-	public function loadheader(array $get, array $filters, string $page){
+	public function loadheader(array $get, array $filters, string $page, string $notice=""){
 		// Search pages contain a visitor's query and selected preferences.
 		if(!headers_sent()){ header('Cache-Control: private, no-store'); }
 		$page_styles = [
 			"web" => "web-results.css",
 			"images" => "image-results.css"
 		];
-		$page_scripts = [
-			"images" =>
-				'<script src="/static/images-fallback.js?v' . config::VERSION . '" defer></script>' .
-				'<script src="/static/images-motion.js?v' . config::VERSION . '" defer></script>'
-		];
 		$page_style = "";
 		if(isset($page_styles[$page])){
 
 			$page_style = '<link rel="stylesheet" href="/static/' . $page_styles[$page] . '?v' . config::VERSION . '">';
 		}
-		$page_script = $page_scripts[$page] ?? "";
 		
 		echo
 			$this->load("header.html", [
@@ -126,8 +135,8 @@ class frontend{
 				"tabs" => $this->generatehtmltabs($page, $get["s"]),
 				"filters" => $this->generatehtmlfilters($filters, $get),
 				"page_style" => $page_style,
-				"page_script" => $page_script,
-				"video_suggestion" => $page === "videos" ? $this->video_suggestion($get["s"]) : ""
+				"provider_notice" => $notice==='' ? '' : '<p class="provider-notice" role="status">'.htmlspecialchars($notice,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8').'</p>',
+				"provider_label" => htmlspecialchars($filters['scraper']['option'][$get['scraper']] ?? 'Selected provider')
 			]);
 		
 		$headers_raw = getallheaders();
@@ -187,7 +196,7 @@ class frontend{
 		}
 	}
 	
-	public function drawerror($title, $error, $timetaken = null){
+	public function drawerror($title, $error, $timetaken = null, $showtime = true){
 		
 		if($timetaken === null){
 			
@@ -196,7 +205,7 @@ class frontend{
 		
 		echo
 			$this->load("search.html", [
-				"timetaken" => $timetaken,
+				"timetaken" => $showtime ? $timetaken : null,
 				"class" => " error-view",
 				"right-left" => "",
 				"right-right" => "",
@@ -209,48 +218,48 @@ class frontend{
 		die();
 	}
 	
-	public function drawscrapererror($error, $get, $target, $timetaken = null){
-		// A fast provider rejection is not a successful search or an empty result.
-		if(!headers_sent()){
-			http_response_code(503);
-			header("Cache-Control: no-store");
-			header("Retry-After: 30");
-		}
-		
-		if($timetaken === null){
-			
-			$timetaken = microtime(true);
-		}
-		
-		$target = in_array($target, ["web", "images", "videos", "news", "music"], true) ? $target : "web";
-		$retry_url = "/" . $target . "?" . $this->buildquery($get, false);
-		$actions =
-			'<a href="' . htmlspecialchars($retry_url) . '">Retry search</a>' .
-			'<a href="/settings">Provider settings</a>';
+    public function provider_recovery(string $error, array $get, string $target): array {
+        $target = in_array($target, ['web','images','videos','news','music'], true) ? $target : 'web';
+        $current = is_string($get['scraper'] ?? null) ? $get['scraper'] : '';
+        // A deliberate new search; never replay a continuation or restart a timer.
+        foreach (['npt','frame','flow_action','flow_start','seconds','destination','append'] as $key) { unset($get[$key]); }
+        $limited = str_starts_with($current, 'google') && preg_match('/rate.limit|cooldown|too many|429/i', $error);
+        $title = $limited ? 'Google is temporarily unavailable' : 'Search paused';
+        $message = $limited ? "Google is limiting requests from this instance. Try another provider, or wait at least 30 seconds before retrying." : 'This provider could not complete your search. Choose another provider or retry in a moment.';
+        $alternatives = match ($target) {
+            'images' => ['brave'=>'Try Brave', 'binternet'=>'Search Pinterest'],
+            'web','news' => ['brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
+            'videos' => ['invidious'=>'Search YouTube', 'brave'=>'Try Brave'],
+            default => []
+        };
+        $actions = '';
+        foreach ($alternatives as $provider=>$label) {
+            if ($provider === $current) { continue; }
+            // Only shared image controls travel between providers. Numeric and
+            // provider-specific filters can mean something different elsewhere.
+            $alternate = array_intersect_key($get, array_flip(['s','view','quality','nsfw']));
+            if (in_array($get['format'] ?? '', ['gif','webp','png','jpg','jpeg','avif','apng','svg'], true)) { $alternate['format']=$get['format']; }
+            $alternate['scraper']=$provider;
+            $actions .= '<a href="'.htmlspecialchars('/'.$target.'?'.$this->buildquery($alternate,false), ENT_QUOTES).'">'.$label.'</a>';
+        }
+        $actions .= '<a href="'.htmlspecialchars('/'.$target.'?'.$this->buildquery($get,false), ENT_QUOTES).'">Retry search</a><a href="/settings">Provider settings</a>';
+        return [$title, '<p class="recovery-lead">'.$message.'</p><div class="error-actions">'.$actions.'</div>'.
+            '<p class="error-note">Your search text and display choices are retained. Provider-specific filters may reset. No background retry is running.</p>'.
+            '<details class="provider-details"><summary>Provider details</summary><p>'.htmlspecialchars($error, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8').'</p></details>'];
+    }
 
-		$current_scraper = isset($get["scraper"]) && is_string($get["scraper"]) ? strtolower($get["scraper"]) : "";
-		if(
-			in_array($target, ["web", "images"], true) &&
-			$current_scraper !== "brave"
-		){
+    public function drawscrapererror($error, $get, $target, $timetaken = null){
+        if (!headers_sent()) {
+            http_response_code(503);
+            header('Cache-Control: private, no-store');
+            header('Retry-After: 30');
+            header_remove('Refresh');
+        }
+        [$title, $body] = $this->provider_recovery((string)$error, $get, $target);
+        $this->drawerror($title, $body, $timetaken, false);
+    }
 
-			$alternate = $get;
-			$alternate["scraper"] = "brave";
-			$alternate_url = "/" . $target . "?" . $this->buildquery($alternate, false);
-			$actions .= '<a href="' . htmlspecialchars($alternate_url) . '">Try Brave</a>';
-		}
-
-		$this->drawerror(
-			"Search provider unavailable",
-			'<p>The selected provider could not complete this search.</p>' .
-			'<div class="code">' . htmlspecialchars($error) . '</div>' .
-			'<div class="error-actions">' . $actions . '</div>' .
-			'<p class="error-note">The time below measures this error response, not a completed search. A short cooldown can reject a retry immediately without contacting the provider. Wait about 30 seconds or explicitly select another provider; availability is not guaranteed.</p>',
-			$timetaken
-		);
-	}
-	
-	public function drawtextresult($site, $greentext = null, $duration = null, $keywords, $tabindex = true, $customhtml = null){
+	public function drawtextresult($site, $greentext = null, $duration = null, $keywords = "", $tabindex = true, $customhtml = null){
 		
 		$payload =
 			'<div class="text-result">';
@@ -435,6 +444,7 @@ class frontend{
 	}
 	
 	public function highlighttext($keywords, $text){
+		if(trim((string)$keywords)===''){ return htmlspecialchars((string)$text,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8'); }
 		
 		$text = htmlspecialchars($text);
 		
@@ -973,12 +983,25 @@ class frontend{
 	}
 	
 	public function getscraperfilters($page){
+        // Native submit buttons use a separate name from the Scraper select.
+        // Destination changes always begin a new search with compatible filters.
+        $destination = $_GET['destination'] ?? null;
+        if (($page === 'images' && in_array($destination, ['images','binternet'], true)) || ($page === 'videos' && $destination === 'invidious')) {
+            unset($_GET['npt']);
+            $_GET = array_intersect_key($_GET, array_flip(['s','view','quality','nsfw','format']));
+            if ($destination === 'images') {
+                unset($_GET['scraper']);
+            } else { $_GET['scraper'] = $destination; }
+        }
+
 		
 		$default_scraper = null;
 		if($page === "web"){
 			$default_scraper = config::DEFAULT_SCRAPER_WEB;
 		}elseif($page === "images"){
 			$default_scraper = config::DEFAULT_SCRAPER_IMAGES;
+		}elseif($page === "news"){
+			$default_scraper = config::DEFAULT_SCRAPER_NEWS;
 		}
 
 		$get_scraper =
@@ -1062,7 +1085,8 @@ class frontend{
 						"qwant" => "Qwant",
 						"baidu" => "Baidu",
 						"solofield" => "Solofield",
-						"pinterest" => "Pinterest",
+						"binternet" => "Pinterest via Binternet",
+						"pinterest" => "Pinterest (direct)",
 						"cara" => "Cara",
 						"flickr" => "Flickr",
 						"fivehpx" => "500px",
@@ -1081,7 +1105,8 @@ class frontend{
 				$filters["scraper"] = [
 					"display" => "Scraper",
 					"option" => [
-						"yt" => "YouTube",
+						"invidious" => "YouTube via Invidious",
+						"yt" => "YouTube (direct)",
 						"archiveorg" => "Archive.org",
 						"vimeo" => "Vimeo",
 						//"odysee" => "Odysee",
@@ -1104,6 +1129,7 @@ class frontend{
 				$filters["scraper"] = [
 					"display" => "Scraper",
 					"option" => [
+						"reddit" => "Reddit via Redlib",
 						"ddg" => "DuckDuckGo",
 						"brave" => "Brave",
 						"yahoo_japan" => "Yahoo! JAPAN",
@@ -1159,6 +1185,7 @@ class frontend{
 				"display" => "Quality",
 				"option" => [
 					"preview" => "Fast preview",
+					"high" => "High quality — up to 1280 px",
 					"original" => "Original"
 				]
 			];
@@ -1186,7 +1213,7 @@ class frontend{
 			$scraper_out = $first;
 		}
 		
-		include "scraper/$scraper_out.php";
+		include_once "scraper/$scraper_out.php";
 		$lib = new $scraper_out();
 		
 		// set scraper on $_GET
@@ -1239,7 +1266,7 @@ class frontend{
 				
 				if(!is_string($parameters[$parameter])){
 					
-					$sanitized[$parameter] = null;
+					$sanitized[$parameter] = is_array($value["option"]) ? array_key_first($value["option"]) : ($value["option"] === "_SEARCH" ? "" : false);
 					continue;
 				}
 				
@@ -1300,7 +1327,7 @@ class frontend{
 					
 					case "_SEARCH":
 						// get search string
-						$sanitized["s"] = trim($sanitized[$parameter]);
+						$sanitized["s"] = mb_strcut(trim($sanitized[$parameter]), 0, 500, "UTF-8");
 				}
 			}
 		}

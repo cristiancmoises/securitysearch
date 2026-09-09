@@ -12,11 +12,10 @@
  *
  * Notes on the CSP:
  *   - default-src 'none' is the most restrictive baseline.
- *   - script-src 'self' (no 'unsafe-inline') — all JS lives in /static/.
- *     Templates must NOT contain inline <script>...</script> blocks.
+ *   - Scripts/connections are disabled except on the image search route.
  *   - style-src 'self' 'unsafe-inline' — home.html ships an inline <style>.
  *     If/when that is moved into static/style.css, drop 'unsafe-inline'.
- *   - img-src includes data: and blob: for the image proxy / canvas usage.
+ *   - img-src includes data: for bundled image placeholders.
  *   - media-src 'self' for the home-page intro audio.
  *   - frame-ancestors 'none' is the modern equivalent of X-Frame-Options DENY.
  */
@@ -59,21 +58,23 @@ header("Cross-Origin-Embedder-Policy: unsafe-none"); // require-corp breaks 3rd-
 header("X-Permitted-Cross-Domain-Policies: none");
 
 // Content Security Policy
+$image_enhancement=defined('SECURITYSEARCH_IMAGE_ENHANCEMENT') && SECURITYSEARCH_IMAGE_ENHANCEMENT===true;
 header(
     "Content-Security-Policy: " .
     "default-src 'none'; " .
-    "script-src 'self'; " .
+    ($image_enhancement ? "script-src 'self'; " : "script-src 'none'; ") .
+    "script-src-attr 'none'; " .
     "style-src 'self' 'unsafe-inline'; " .
-    "img-src 'self' data: blob:; " .
+    "img-src 'self' data:; " .
     "media-src 'self'; " .
     "font-src 'self' data:; " .
-    "connect-src 'self'; " .
+    ($image_enhancement ? "connect-src 'self'; " : "connect-src 'none'; ") .
     "form-action 'self'; " .
     "frame-ancestors 'none'; " .
     "base-uri 'self'; " .
     "manifest-src 'self'; " .
     "object-src 'none'; " .
-    "worker-src 'self'; " .
+    "worker-src 'none'; " .
     "upgrade-insecure-requests"
 );
 

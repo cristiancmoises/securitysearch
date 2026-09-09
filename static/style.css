@@ -622,3 +622,47 @@ select:focus-visible{
   .thumb-wrap.square{ width:63px; }
   .web .text-result .title{ font-size:1rem; }
 }
+
+/* Shared service links stay readable as they wrap on narrow screens. */
+.service-navigation,.navigation{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:.35rem .9rem;}
+.service-navigation a,.navigation a{font-size:.875rem;line-height:1.5;padding:.35rem 0;}
+.home .corner{height:auto;min-height:48px;flex-wrap:wrap;}
+.home .service-navigation{margin-left:auto;}
+.trust-footer{text-align:center;margin:2rem auto 1rem;padding:1.4rem 1rem;border-top:1px solid var(--504945,#16434c);max-width:1100px;}
+.trust-footer p{font-family:ui-monospace,monospace;font-size:1.1rem;font-weight:600;letter-spacing:.08em;color:var(--8ec07c,#33f2ff);text-shadow:0 0 16px #00eaff55;margin:0 0 .45rem;}
+.trust-footer a{font-size:.875rem;}
+.video-suggestion{margin:1rem;max-width:1000px;padding:.8rem 1rem;border:1px solid var(--504945,#16434c);border-radius:.5rem;font-size:.9rem;}
+.video-suggestion small{display:block;font-size:.875rem;line-height:1.5;margin-top:.5rem;}
+.home .searchbox{flex-wrap:wrap;}
+@media(max-width:600px){.service-navigation,.navigation{justify-content:center;}.trust-footer p{letter-spacing:.04em;}}
+
+/* Compact native search actions, shared by homepage and result headers. */
+.search-surface{position:relative;display:block;width:100%;max-width:850px;margin:1rem 0 .5rem;}
+.search-surface input[type="search"]{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:.6rem 8.25rem .6rem .85rem;font:inherit;font-size:.94rem;color:var(--ebdbb2);background:var(--282828);border:1px solid var(--504945,#335359);border-radius:10px;}
+.search-actions{position:absolute;right:.35rem;top:.5rem;display:flex;flex-direction:row;gap:.15rem;}
+.search-actions button{position:relative;display:grid;place-items:center;box-sizing:border-box;width:1.75rem;height:1.75rem;min-height:1.75rem;padding:0;cursor:pointer;color:var(--bdae93);background:transparent;border:1px solid transparent;border-radius:6px;text-shadow:none;}
+.search-action-icon{display:block;width:.875rem;height:.875rem;pointer-events:none;}
+.search-actions .search-primary{color:#031416;background:var(--8ec07c,#70ded3);border-color:var(--8ec07c,#70ded3);}
+.search-action-label{position:absolute;right:0;bottom:calc(100% + .4rem);z-index:10;visibility:hidden;opacity:0;pointer-events:auto;padding:.35rem .55rem;border:1px solid #27515c;border-radius:6px;white-space:nowrap;font-family:system-ui,sans-serif;font-size:.75rem;font-weight:500;line-height:1.4;color:#e6fbff;background:#07171e;box-shadow:0 3px 12px #0006;}
+/* Labels open above the toolbar, leaving the query unobstructed. */
+.search-action-label::after{content:"";position:absolute;right:0;top:100%;width:100%;height:.45rem;}
+.search-actions button:focus-visible .search-action-label{visibility:visible;opacity:1;}
+.search-surface :focus-visible{outline:2px solid var(--8ec07c,#70ded3);outline-offset:3px;}
+.search-surface input[type="search"]:focus-visible{outline-offset:2px;}
+.home .search-surface{margin:0 auto;max-width:740px;}
+.home .search-surface input[type="search"]{background:var(--glass-1,#071116);color:var(--fg,#e6fbff);}
+@media(hover:hover){
+  .search-actions button:hover{border-color:var(--8ec07c,#70ded3);box-shadow:0 0 10px #00eaff22;}
+  .search-actions button:hover .search-action-label{visibility:visible;opacity:1;}
+}
+@media(pointer:coarse){
+  .search-actions button{width:2.75rem;height:2.75rem;min-height:2.75rem;}
+  .search-actions{top:.375rem;right:.25rem;gap:0;}
+  .search-surface input[type="search"]{min-height:56px;padding-right:11.5rem;font-size:1rem;}
+}
+@media(forced-colors:active){.search-actions button{border-color:ButtonText;}.search-action-label{background:Canvas;color:CanvasText;border-color:CanvasText;}}
+.provider-details{margin-top:1.5rem;max-width:70ch;overflow-wrap:anywhere;}
+.provider-details summary{cursor:pointer;min-height:44px;}
+.recovery-lead{max-width:60ch;line-height:1.65;}
+
+.provider-notice,.news-context{font-size:.875rem;line-height:1.6;color:var(--bdae93);margin:.5rem 0 1rem;}

@@ -3,17 +3,33 @@
 class brave{
 
 	private const CHALLENGE_ATTEMPTS = 3;
+    private fuckhtml $fuckhtml;
+    private backend $backend;
+    private ?int $request_deadline=null;
+    public function set_request_deadline(int $deadline): void { $this->request_deadline=min($this->request_deadline ?? $deadline,$deadline); }
+    private function remaining_network_ms(): int {
+        $remaining=$this->request_deadline===null ? 20000 : (int)(($this->request_deadline-hrtime(true))/1000000);
+        if ($remaining<100) throw new RuntimeException("Brave search reached its request budget.");
+        return min(20000,$remaining);
+    }
 	
 	public function __construct(){
 		
-		include "lib/fuckhtml.php";
+		include_once "lib/fuckhtml.php";
 		$this->fuckhtml = new fuckhtml();
 		
-		include "lib/backend.php";
+		include_once "lib/backend.php";
 		$this->backend = new backend("brave");
 	}
 	
 	public function getfilters($page){
+        $filters=$this->base_filters($page);
+        if ($page==='images') $filters['format']=['display'=>'Format on this page','option'=>[
+            'any'=>'Any format','jpg'=>'JPEG','png'=>'PNG','gif'=>'GIF','webp'=>'WebP','avif'=>'AVIF','apng'=>'APNG','svg'=>'SVG','bmp'=>'BMP','ico'=>'ICO']];
+        return $filters;
+    }
+
+    private function base_filters($page){
 		
 		switch($page){
 			
@@ -153,7 +169,7 @@ class brave{
 		}
 	}
 	
-	private function get($proxy, $url, $get = [], $nsfw, $country){
+	private function get($proxy, $url, $get, $nsfw, $country){
 		
 		switch($nsfw){
 			
@@ -202,17 +218,27 @@ class brave{
 
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-		$data = curl_exec($curlproc);
-		
-		if(curl_errno($curlproc)){
-			throw new Exception(curl_error($curlproc));
-		}
-		
-		curl_close($curlproc);
-		return $data;
+        $data='';$oversized=false;
+        curl_setopt($curlproc,CURLOPT_PROTOCOLS,CURLPROTO_HTTPS);
+        curl_setopt($curlproc,CURLOPT_FOLLOWLOCATION,false);
+        curl_setopt($curlproc,CURLOPT_WRITEFUNCTION,static function($handle,$chunk) use(&$data,&$oversized){
+            if (strlen($data)+strlen($chunk)>4194304) { $oversized=true;return 0; }
+            $data.=$chunk;return strlen($chunk);
+        });
+        try {
+            $remaining=$this->remaining_network_ms();
+            curl_setopt($curlproc,CURLOPT_CONNECTTIMEOUT_MS,min(5000,$remaining));
+            curl_setopt($curlproc,CURLOPT_TIMEOUT_MS,$remaining);
+            curl_exec($curlproc);
+            if ($oversized) throw new RuntimeException('Brave response exceeded the safe size limit.');
+            if (curl_errno($curlproc)) throw new RuntimeException('Brave transport could not complete this search.');
+            $status=(int)curl_getinfo($curlproc,CURLINFO_RESPONSE_CODE);
+            if ($status<200 || $status>=300) throw new RuntimeException('Brave is temporarily unavailable.');
+            return $data;
+        } finally { curl_close($curlproc); }
 	}
 
-	private function get_search_page(&$proxy, $url, $get = [], $nsfw, $country){
+	private function get_search_page(&$proxy, $url, $get, $nsfw, $country){
 
 		$last_page = "";
 		for($attempt = 0; $attempt < self::CHALLENGE_ATTEMPTS; $attempt++){
@@ -1335,6 +1361,16 @@ class brave{
 			}
 		}
 		
+        $format=$get['format'] ?? 'any';
+        if (isset($this->getfilters('images')['format']['option'][$format]) && $format!=='any') {
+            $out['image']=array_values(array_filter($out['image'],static function($image) use($format){
+                $url=$image['source'][0]['url'] ?? '';
+                $extension=strtolower(pathinfo(parse_url($url,PHP_URL_PATH) ?: '',PATHINFO_EXTENSION));
+                $hint=strtolower($image['motion_format'] ?? '');
+                return $extension===$format || ($format==='jpg' && $extension==='jpeg') || $hint===$format;
+            }));
+        }
+
 		return $out;
 	}
 

@@ -29,7 +29,7 @@ $payload = [
 ];
 
 try{
-	$results = $scraper->video($get);
+	$results = $get['s'] === '' && empty($get['npt']) ? ['video'=>[], 'author'=>[], 'playlist'=>[], 'livestream'=>[], 'reel'=>[], 'npt'=>null] : $scraper->video($get);
 	
 }catch(Exception $error){
 	
@@ -73,7 +73,7 @@ if(count($results["video"]) !== 0){
 	// No results found!
 	echo
 		$frontend->drawerror(
-			"Nobody here but us chickens!",
+			$get['s'] === '' ? 'Search videos' : 'No videos found',
 			'Have you tried:' .
 				'<ul>' .
 					'<li>Using a different scraper</li>' .

@@ -34,6 +34,14 @@ if ! git rev-parse --verify --quiet HEAD >/dev/null; then
     exit 1
 fi
 
+# A release archive must be tied to the annotated tag being published.
+tag="v${version}"
+if [ "$(git cat-file -t "$tag" 2>/dev/null || true)" != tag ] ||
+   [ "$(git rev-parse "$tag^{commit}" 2>/dev/null || true)" != "$(git rev-parse HEAD)" ]; then
+    echo "ERROR: create annotated tag $tag at HEAD before packaging." >&2
+    exit 1
+fi
+
 # A deletion commit is insufficient for explicitly forbidden prompt artifacts:
 # refuse a release while any matching path remains reachable from a local ref.
 if git log --all --format= --name-only |
@@ -90,9 +98,18 @@ archive_listing=$(tar -tzf "$gzip_tmp")
 for required_path in \
     "${archive_prefix}/icons/" \
     "${archive_prefix}/banner/securitysearch.webp" \
-    "${archive_prefix}/static/misc/lain.gifv" \
-    "${archive_prefix}/static/images-fallback.js" \
+    "${archive_prefix}/static/themes/Tron.css" \
+    "${archive_prefix}/template/search-actions.html" \
+    "${archive_prefix}/docs/screenshots/securitysearch-home.jpg" \
+    "${archive_prefix}/docs/RELEASE-${version}.md" \
+    "${archive_prefix}/scripts/publish-release.py" \
+    "${archive_prefix}/scripts/deploy-ionos.fish" \
+    "${archive_prefix}/static/images-infinite.js" \
     "${archive_prefix}/static/images-motion.js" \
+    "${archive_prefix}/lib/image_poster.php" \
+    "${archive_prefix}/lib/search_execution.php" \
+    "${archive_prefix}/scraper/reddit.php" \
+    "${archive_prefix}/static/image-results.css" \
     "${archive_prefix}/lib/animated_preview.php"
 do
     printf '%s\n' "$archive_listing" | grep -Fxq "$required_path" || {
@@ -103,6 +120,12 @@ done
 if printf '%s\n' "$archive_listing" |
    LC_ALL=C grep -Eiq '(data/api_keys/|securitysearch\.zip|Kuruminha\.css|mimi\.jpg|(^|/)[^/]*(prompt|god[-_. ]?tier)[^/]*($|/))'; then
     echo "ERROR: release archive contains forbidden content." >&2
+    exit 1
+fi
+# Only the two image enhancements use runtime JavaScript; Node fixtures stay out of Docker.
+if printf '%s\n' "$archive_listing" | grep -E '\.(js|mjs|cjs)$' |
+   grep -Ev "^${archive_prefix}/(static/images-(infinite|motion)\.js|tests/(infinite|motion)-regression\.cjs)$"; then
+    echo "ERROR: unexpected JavaScript in source archive." >&2
     exit 1
 fi
 mv -f -- "$gzip_tmp" "$archive"

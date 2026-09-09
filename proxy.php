@@ -3,6 +3,7 @@ include_once __DIR__ . "/lib/security_headers_minimal.php";
 include "data/config.php";
 include "lib/curlproxy.php";
 include "lib/animated_preview.php";
+include "lib/image_poster.php";
 $proxy = new proxy();
 
 if(
@@ -19,13 +20,16 @@ if(
 	isset($_GET["s"]) &&
 	(
 		!is_string($_GET["s"]) ||
-		!in_array($_GET["s"], ["original", "animated", "portrait", "landscape", "square", "thumb", "cover"], true)
+		!in_array($_GET["s"], ["original", "poster", "animated", "portrait", "landscape", "square", "thumb", "high", "cover"], true)
 	)
 ){
 
 	header("X-Error: Invalid image size mode");
 	$proxy->do404();
 }
+
+$still_preview=($_GET['s'] ?? null)==='poster';
+if ($still_preview) $_GET['s']=($_GET['quality'] ?? null)==='high' ? 'high' : 'thumb';
 
 try{
 	
@@ -54,6 +58,7 @@ try{
 			die();
 		}
 		$proxy = new proxy(false);
+        $automatic=($_GET['preview'] ?? null)==='1';
 
 		$payload = $proxy->get(
 			$_GET["i"],
@@ -61,7 +66,7 @@ try{
 			true,
 			null,
 			0,
-			33554432,
+			$automatic ? 8388608 : 33554432,
 			null,
 			"image/gif,image/apng,image/png,image/webp;q=0.9,*/*;q=0.1"
 		);
@@ -94,13 +99,13 @@ try{
 
 		if(
 			$frame_count < 2 ||
-			$frame_count > 1000 ||
+			$frame_count > ($automatic ? 500 : 1000) ||
 			$width < 1 ||
 			$height < 1 ||
-			$width > 16384 ||
-			$height > 16384 ||
-			$width * $height > 40000000 ||
-			$width * $height * $frame_count > 250000000
+			$width > ($automatic ? 4096 : 16384) ||
+			$height > ($automatic ? 4096 : 16384) ||
+			$width * $height > ($automatic ? 8000000 : 40000000) ||
+			$width * $height * $frame_count > ($automatic ? 64000000 : 250000000)
 		){
 
 			throw new Exception("Animated preview exceeds the validation limits");
@@ -203,6 +208,7 @@ try{
 			case "landscape": $req = "&w=160&h=90&p=0&qlt=90"; break;
 			case "square": $req = "&w=90&h=90&p=0&qlt=90"; break;
 			case "thumb": $req = "&w=236&h=180&p=0&qlt=90"; break;
+			case "high": $req = "&w=1280&h=1280&p=0&qlt=90"; break;
 			case "cover": $req = "&w=207&h=270&p=0&qlt=90"; break;
 		}
 		
@@ -223,7 +229,7 @@ try{
 	// small JPEG or a structurally validated animation avoids an unnecessary
 	// ImageMagick cycle. Originals used as poster fallbacks must still be resized
 	// so a result page cannot download hundreds of megabytes of large JPEGs.
-	if($_GET["s"] === "thumb" && strlen($payload["body"]) <= 1572864){
+	if(!$still_preview && $_GET["s"] === "thumb" && strlen($payload["body"]) <= 1572864){
 
 		$direct_mime = $resize_mime;
 		$direct_types = [
@@ -343,10 +349,10 @@ try{
 
 			// Ask the JPEG decoder to subsample large originals near thumbnail size
 			// before constructing its pixel cache.
-			$image->setOption("jpeg:size", "512x512");
+			$image->setOption("jpeg:size", $_GET["s"] === "high" ? "1280x1280" : "512x512");
 		}
 
-		$image->readImageBlob($payload["body"]);
+		$image->readImageBlob($still_preview ? image_poster_body($payload["body"]) : $payload["body"]);
 		
 		$image_width = $image->getImageWidth();
 		$image_height = $image->getImageHeight();
@@ -377,6 +383,11 @@ try{
 				$height = 180;
 				break;
 			
+			case "high":
+				$width = 1280;
+				$height = 1280;
+				break;
+
 			case "cover":
 				$width = 207;
 				$height = 270;
@@ -406,7 +417,7 @@ try{
 		$image->setImageCompressionQuality(90);
 		$image->setImageCompression(Imagick::COMPRESSION_JPEG);
 		
-		$image->resizeImage($image_width, $image_height, Imagick::FILTER_LANCZOS, 1);
+		$image->resizeImage(max(1, (int)round($image_width)), max(1, (int)round($image_height)), Imagick::FILTER_LANCZOS, 1);
 		
 		$proxy->getfilenameheader($payload["headers"], $_GET["i"]);
 		
@@ -444,5 +455,12 @@ try{
 	
 	// Do not disclose upstream URLs, resolver details or internal paths.
 	header("X-Error: Image temporarily unavailable or URL rejected");
+	if(($_GET['s'] ?? null)==='animated'){
+		// A decodable error PNG would look like a successful animation load.
+		// Empty failures let the image enhancer reliably restore its poster.
+		http_response_code(422);
+		header('Content-Length: 0');
+		exit;
+	}
 	$proxy->do404();
 }

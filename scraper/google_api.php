@@ -5,6 +5,7 @@ require_once __DIR__ . "/../lib/provider_availability.php";
 // @TODO check for consent.google.com page, if need be
 
 class google_api{
+	private $backend;
 	
 	public function __construct(){
 		

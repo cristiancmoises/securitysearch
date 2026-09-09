@@ -1,7 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers_minimal.php";
 
-if(!isset($_GET["s"])){
+if(!isset($_GET["s"]) || !is_string($_GET["s"]) || strlen($_GET["s"]) > 300){
 	
 	header("X-Error: Missing parameter (s)ite");
 	die();
@@ -13,6 +13,13 @@ new favicon($_GET["s"]);
 class favicon{
 	private $proxy;
 	private $filename;
+    private $budget;
+    private function fetch($url, $type = proxy::req_web, $all = false, $referer = null) {
+        if ($this->budget === null) {
+            $this->budget = (object)['deadline'=>hrtime(true)+8000000000,'remaining_bytes'=>2097152,'remaining_wire_bytes'=>2097152];
+        }
+        return $this->proxy->get($url,$type,$all,$referer,0,2097152,$this->budget);
+    }
 	
 	public function __construct($url){
 		
@@ -54,11 +61,11 @@ class favicon{
 		*/
 		try{
 			
-			$payload = $this->proxy->get($url, $this->proxy::req_web, true);
+			$payload = $this->fetch($url, $this->proxy::req_web, true);
 			
 		}catch(Exception $error){
 			
-			header("X-Error: Could not fetch HTML (" . $error->getMessage() . ")");
+			header("X-Error: Favicon temporarily unavailable");
 			$this->favicon404();
 		}
 		//$payload["body"] = '<link rel="manifest" id="MANIFEST_LINK" href="/data/manifest/" crossorigin="use-credentials" />';
@@ -213,7 +220,7 @@ class favicon{
 		
 		try{
 			$payload =
-				$this->proxy->get(
+				$this->fetch(
 					$href,
 					$this->proxy::req_image,
 					true,
@@ -222,7 +229,7 @@ class favicon{
 				
 		}catch(Exception $error){
 			
-			header("X-Error: Could not fetch the favicon (" . $error->getMessage() . ")");
+			header("X-Error: Favicon temporarily unavailable");
 			$this->favicon404();
 		}
 		
@@ -261,7 +268,7 @@ class favicon{
 			
 		}catch(ImagickException $error){
 			
-			header("X-Error: Could not convert the favicon: (" . $error->getMessage() . ")");
+			header("X-Error: Favicon temporarily unavailable");
 			$this->favicon404();
 		}
 		
@@ -291,7 +298,7 @@ class favicon{
 			
 			try{
 				$json =
-					$this->proxy->get(
+					$this->fetch(
 						$this->proxy->getabsoluteurl($href, $url),
 						$this->proxy::req_web,
 						false,
@@ -340,7 +347,7 @@ class favicon{
 		try{
 			
 			$image =
-				$this->proxy->get(
+				$this->fetch(
 					"https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://{$this->filename}&size=16",
 					$this->proxy::req_image
 				);
@@ -349,10 +356,18 @@ class favicon{
 			$this->defaulticon();
 		}
 		
-		// write favicon from google
-		$handle = fopen("icons/" . $this->filename . ".png", "w");
-		fwrite($handle, $image["body"], strlen($image["body"]));
-		fclose($handle);
+        // Only complete small PNGs may enter the shared favicon cache.
+        $dims = @getimagesizefromstring($image['body']);
+        if (!is_array($dims) || ($dims['mime'] ?? '') !== 'image/png' ||
+            $dims[0] > 256 || $dims[1] > 256 || strlen($image['body']) > 131072) {
+            $this->defaulticon();
+        }
+        $path = 'icons/'.$this->filename.'.png';
+        $tmp = tempnam('icons', '.icon-');
+        if ($tmp !== false) {
+            if (file_put_contents($tmp,$image['body']) !== false) { rename($tmp,$path); }
+            if (is_file($tmp)) { unlink($tmp); }
+        }
 		
 		echo $image["body"];
 		die();

@@ -1,8 +1,0 @@
-# Specify API keys for the Google API in the following format:
-# <key>
-#
-# Generate keys here:
-# https://developers.google.com/custom-search/v1/overview
-# Follow Google's current quota and credential-isolation guidance when
-# provisioning keys. Never commit live credentials to this file.
-#

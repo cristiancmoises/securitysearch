@@ -7,7 +7,6 @@
 		<link rel="stylesheet" href="/static/style.css?v{%version%}">
 		{%style%}
 		{%page_style%}
-		{%page_script%}
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<meta name="robots" content="{%index%}index,{%index%}follow">
 		<link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -15,25 +14,24 @@
 	</head>
 	<body>
 		<nav class="navigation" aria-label="Primary navigation">
-			<a href="/">Home</a>
-			<a href="/settings">Settings</a>
-			<a href="https://images.securityops.co/" target="_blank" rel="noreferrer">Images</a>
-			<a href="https://invidious.securityops.co/" target="_blank" rel="noreferrer">Videos</a>
-			<a href="https://pixiv.securityops.co/" target="_blank" rel="noreferrer">Pixiv</a>
-			<a href="https://chat.securityops.co/" target="_blank" rel="noreferrer">Chat</a>
-			<a href="https://news.securityops.co/" target="_blank" rel="noreferrer">News</a>
-			<a href="https://wiki.securityops.co/" target="_blank" rel="noreferrer">Wiki</a>
-			<a href="https://securityops.com.br/" target="_blank" rel="noreferrer">Brasil</a>
-		</nav>
+<a href="https://securityops.co/" rel="noreferrer noopener">Home</a>
+<a href="https://securityops.co/settings" rel="noreferrer noopener">Settings</a>
+<a href="https://invidious.securityops.co/" rel="noreferrer noopener">Vids</a>
+<a href="https://img.securityops.co/" rel="noreferrer noopener">Img</a>
+<a href="https://wiki.securityops.co/" rel="noreferrer noopener">Wiki</a>
+<a href="https://chat.securityops.co/" rel="noreferrer noopener">Chat</a>
+<a href="https://zupt-web.securityops.co/" rel="noreferrer noopener">Zupt</a>
+<a href="https://news.securityops.co/" rel="noreferrer noopener">News</a>
+<a href="https://libre.securityops.co/" rel="noreferrer noopener">Reddit</a>
+<a href="https://securityops.com.br/" rel="noreferrer noopener">BR</a>
+</nav>
 		<form method="GET" autocomplete="off" role="search" aria-label="Search Security Search">
-			<div class="searchbox">
-				<input type="submit" value="Search" tabindex="-1">
-				<div class="wrapper">
-					<input type="text" value="{%search%}" maxlength="500" name="s" placeholder="Search with Google by default…" required enterkeyhint="search" aria-label="Search query">
-				</div>
-				<div class="autocomplete"></div>
-			</div>
-			<p class="provider-status">Google default <span aria-hidden="true">·</span> Brave available in Scraper</p>
+            <div class="search-surface">
+                <input type="search" value="{%search%}" maxlength="500" name="s" placeholder="Search privately…" required enterkeyhint="search" aria-label="Search query">
+                {%search_actions%}
+            </div>
+            <p class="provider-status">{%provider_label%} <span aria-hidden="true">·</span> Change provider in Scraper</p>
+			{%provider_notice%}
 			<nav class="tabs" aria-label="Search types">
 				{%tabs%}
 			</nav>
@@ -41,4 +39,3 @@
 				{%filters%}
 			</div>
 		</form>
-		{%video_suggestion%}

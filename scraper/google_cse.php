@@ -416,7 +416,9 @@ class google_cse{
 								"png" => "PNG",
 								"bmp" => "BMP",
 								"svg" => "SVG",
-								"webp" => "WEBP",
+								"webp" => "WebP",
+								"avif" => "AVIF",
+								"apng" => "APNG",
 								"ico" => "ICO",
 								"craw" => "RAW"
 							]
@@ -427,9 +429,11 @@ class google_cse{
 		}
 	}
 	
+	public function set_request_deadline(int $deadline): void { $this->request_deadline=min($this->request_deadline,$deadline); }
+
 	private function remaining_network_ms(){
 		$remaining = (int)(($this->request_deadline - hrtime(true)) / 1000000);
-		if($remaining < 100){ throw new Exception("Google search reached its 25-second request budget. Please retry later or choose another provider."); }
+		if($remaining < 100){ throw new Exception("Google search reached its request budget. Please retry later or choose another provider."); }
 		return min(20000, $remaining);
 	}
 
@@ -520,6 +524,9 @@ class google_cse{
 			$data .= $chunk;
 			return strlen($chunk);
 		});
+		$remaining=$this->remaining_network_ms();
+		curl_setopt($curlproc,CURLOPT_CONNECTTIMEOUT_MS,min(5000,$remaining));
+		curl_setopt($curlproc,CURLOPT_TIMEOUT_MS,$remaining);
 		curl_exec($curlproc);
 		$curl_errno = curl_errno($curlproc);
 		$status = (int)curl_getinfo($curlproc, CURLINFO_RESPONSE_CODE);

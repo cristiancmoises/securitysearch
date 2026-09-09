@@ -15,7 +15,7 @@ foreach(['<script>', ['gallery']] as $view){
  check(!in_array($get['view'], ['<script>', ['gallery']], true), 'Invalid view rejected');
 }
 $header = $frontend->load('header.html');
-foreach(['Images'=>'images', 'Videos'=>'invidious', 'Pixiv'=>'pixiv', 'Chat'=>'chat', 'News'=>'news', 'Wiki'=>'wiki'] as $label=>$host){
+foreach(['Img'=>'img', 'Vids'=>'invidious', 'Chat'=>'chat', 'News'=>'news', 'Wiki'=>'wiki', 'Zupt'=>'zupt-web', 'Reddit'=>'libre'] as $label=>$host){
  foreach(['header.html','home.html'] as $template){
   check(preg_match('#href="https://'.preg_quote($host, '#').'\.securityops\.co/"[^>]*>'.preg_quote($label, '#').'</a>#', $frontend->load($template))===1, 'Correct external navigation: '.$template.' '.$label);
  }
@@ -43,15 +43,15 @@ $resolve = (new ReflectionClass('proxy'))->getMethod('resolvepublictarget');
 foreach(['http://user:secret@8.8.8.8/a.png','https://user@8.8.8.8/a.png','file:///etc/passwd','http://127.0.0.1/','http://[::1]/'] as $unsafe){
  check($resolve->invoke(new proxy(false), $unsafe)===false, 'Image proxy rejects credentials and private/non-HTTP targets');
 }
-check(str_contains($header, '/static/themes/Lain.css?v'.config::VERSION), 'Lain default');
-preg_match_all('/url\("(\/static\/[^"?]+)(?:\?[^" ]*)?"\)/', file_get_contents('static/themes/Lain.css'), $assets);
+check(str_contains($header, '/static/themes/Tron.css?v'.config::VERSION), 'Tron default');
+preg_match_all('/url\("(\/static\/[^"?]+)(?:\?[^" ]*)?"\)/', file_get_contents('static/themes/Tron.css'), $assets);
 foreach($assets[1] as $asset){
- check(is_file(ltrim($asset, '/')), 'Lain referenced asset exists: '.$asset);
+ check(is_file(ltrim($asset, '/')), 'Tron referenced asset exists: '.$asset);
 }
-$_COOKIE['theme'] = 'Tron';
-check(str_contains($frontend->load('header.html'), '/static/themes/Tron.css'), 'Saved theme preserved');
+$_COOKIE['theme'] = 'Lain';
+check(str_contains($frontend->load('header.html'), '/static/themes/Lain.css'), 'Saved theme preserved');
 $_COOKIE['theme'] = '../../etc/passwd';
-check(str_contains($frontend->load('header.html'), '/static/themes/Lain.css'), 'Traversal theme rejected');
+check(str_contains($frontend->load('header.html'), '/static/themes/Tron.css'), 'Traversal theme rejected');
 $r = new ReflectionClass('google_cse');
 $provider = (new ReflectionClass('google'))->getProperty('delegate')->getValue($provider);
 $decode = $r->getMethod('decode_response');
