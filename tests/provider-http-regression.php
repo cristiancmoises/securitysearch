@@ -1,12 +1,32 @@
 <?php
-// Run with curl_setopt,curl_exec,curl_share_init,curl_share_setopt disabled.
+// Offline doubles only. Keep declarations conditional so plain `php -l` is
+// valid with ext-curl loaded; the runtime guard must run before any test work.
+// Run through scripts/test.sh, which disables these four functions for this
+// test process only. Never change php.ini or the production cURL configuration.
+$mockedFunctions = ['curl_setopt', 'curl_exec', 'curl_share_init', 'curl_share_setopt'];
+foreach ($mockedFunctions as $function) {
+    if (function_exists($function)) {
+        fwrite(STDERR, 'Offline cURL mocks are not isolated: ' . $function . " is still defined.\n"
+            . 'Run: php -d disable_functions=' . implode(',', $mockedFunctions)
+            . " tests/provider-http-regression.php\n");
+        exit(2);
+    }
+}
+if (!function_exists('curl_setopt')) {
+    function curl_setopt($h, $key, $value) { global $ops; $ops[$key] = $value; return true; }
+}
+if (!function_exists('curl_exec')) {
+    function curl_exec($h) { global $calls; $calls++; return 'unchanged response'; }
+}
+if (!function_exists('curl_share_init')) {
+    function curl_share_init() { return (object)['fixture' => true]; }
+}
+if (!function_exists('curl_share_setopt')) {
+    function curl_share_setopt($h, $key, $value) { global $shares; $shares[] = $value; return true; }
+}
 require 'data/config.php'; require 'lib/provider_http.php';
 foreach (['CURLOPT_CONNECTTIMEOUT_MS','CURLOPT_TIMEOUT_MS','CURLOPT_NOSIGNAL','CURLOPT_TCP_KEEPALIVE','CURLOPT_SHARE','CURLSHOPT_SHARE','CURL_LOCK_DATA_DNS','CURL_LOCK_DATA_SSL_SESSION'] as $i=>$key) { if (!defined($key)) define($key,20000+$i); }
 $ops=[];$shares=[];$calls=0;
-function curl_setopt($h,$key,$value){global $ops;$ops[$key]=$value;return true;}
-function curl_exec($h){global $calls;$calls++;return 'unchanged response';}
-function curl_share_init(){return (object)['fixture'=>true];}
-function curl_share_setopt($h,$key,$value){global $shares;$shares[]=$value;return true;}
 function check($v,$label){if(!$v)throw new RuntimeException($label);}
 $h=(object)[];
 check(provider_http::exec($h)==='unchanged response','Return contract preserved');

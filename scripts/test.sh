@@ -2,6 +2,7 @@
 set -eu
 cd "$(dirname "$0")/.."
 python3 scripts/release-audit.py --syntax-only
+python3 tests/provider-http-harness-regression.py
 php -d apc.enable_cli=1 tests/regression.php
 php -d apc.enable_cli=1 tests/services-regression.php
 php tests/binternet-contract-regression.php
