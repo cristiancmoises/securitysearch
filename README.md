@@ -12,6 +12,23 @@ A PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get), maintaine
 searches and bundled themes. Local pictures and image enhancements use optional,
 same-origin scripts. External providers can refuse or rate-limit requests.
 
+## External Redlib operators — attribution correction
+
+The external Redlib instances used or linked by SecuritySearch are provided and
+operated by independent third-party individuals or organizations, **not by Security Ops**.
+Security Ops maintains the SecuritySearch integration; it does not operate those
+external instances. Their operators control their policies and availability. Queries
+sent through the Reddit provider reach the selected instance, and enabled fallback
+may send them to another external instance after a failure. The SecuritySearch
+no-tracking statement must not be read as a guarantee about those services.
+News RSS (Google/Bing) remains a separate provider; routing and privacy controls
+are unchanged by this attribution-only patch.
+
+The `redlib-attribution-1` correction is a normal commit **after** the published
+v0.9.24 tag; it does not retarget that tag or replace its archives. Apply and deploy
+with the matching `securitysearch-attribution-fix-1` kit. Publishing its `main`
+commit does not rewrite already-published release files. [Details](docs/REDLIB-ATTRIBUTION.md).
+
 ## News that does not require Redlib
 
 **News RSS** is the new default, with Google News RSS followed by Bing News RSS on
@@ -85,8 +102,8 @@ optional ctype. Numeric/header bounds and all live acceptance checks remain.
 
 ## Install this update
 
-For an already-applied v0.9.24 checkout, use the complete extracted
-`securitysearch-update-0.9.24-r1` repair kit on your computer:
+For the exact, clean v0.9.24-r1 checkout, use the complete extracted
+`securitysearch-attribution-fix-1` kit on your computer:
 
 ```fish
 fish ./apply-securitysearch.fish ~/securitysearch
@@ -95,9 +112,9 @@ and fish ./deploy-securitysearch.fish ~/securitysearch \
     --rank-refresh
 ```
 
-The r1 helper accepts exact clean v0.9.24 source (or the already repaired tree).
-Apply the original v0.9.24 update first when starting from v0.9.23. It creates a
-normal commit and refuses uncommitted/conflicting work. SSH is `root@securityops.co`, port
+The attribution helper accepts the exact v0.9.24-r1 source or the already corrected
+source. It creates a normal commit, preserves the published v0.9.24 tag, and refuses
+uncommitted/conflicting work. SSH is `root@securityops.co`, port
 5119. Deployment preserves the existing `172.17.0.1:5140 → 80` binding, networks and
 compatible private settings without recreating Nginx Proxy Manager. Reuse the theme
 pack; do not commit it. Keep backups: a running container can mount their snapshots.
@@ -106,20 +123,25 @@ The full isolated offline audit, candidate readiness, real RSS news check and re
 Binternet gate must pass. Rollback remains available. Do not use old manifest-based
 launchers with new source, bypass tests or delete the printed rollback directories.
 
-## Publish the source release
+## Publish the attribution commit
 
 ```fish
-fish ./publish-securitysearch.fish ~/securitysearch
-# Retry only this host, including release attachments:
-fish ./publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+fish ./push-code.fish ~/securitysearch
+# Retry only this host; update main, not release attachments:
+fish ./push-code.fish ~/securitysearch --host git.securityops.com.br
 ```
 
-The annotated tag is **v0.9.24**. Source assets are `securitysearch-v0.9.24.tar.gz`
-and `.tar.gz.sha256`, generated from the real tagged commit, not test history.
-Publication uses private token prompts, non-force pushes, verified drafts and
-multipart Forgejo uploads. Matching partial releases resume; conflicting tags,
-notes and assets are never replaced. Only the private `-deploy.tar.gz` can contain
-operator artwork. Publishing does not deploy the VPS.
+The included publisher changes **main only**, using private token prompts and
+fast-forward pushes. It checks outgoing history for restricted artwork and does
+not call any release API. Existing tags and released tarballs/checksums are not
+replaced. Publishing code does not deploy the VPS.
+
+### Previously published source release
+
+The existing **v0.9.24** release and its source archive remain historical snapshots
+from before this attribution commit. Do not retarget that tag or run the old release
+publisher on the new commit. A future source release must use a new version.
+Only the private `-deploy.tar.gz` can contain the external operator-theme pack.
 
 [Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.24) ·
 [GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.24) ·
@@ -135,7 +157,7 @@ precompiled executable or Docker image. Checksums are not cryptographic signatur
 sh scripts/test.sh --keep-going
 ```
 
-All **56** command entries remain mandatory. PHP curl/DOM/XML/mbstring/APCu/Imagick,
+All **57** command entries remain mandatory. PHP curl/DOM/XML/mbstring/APCu/Imagick,
 Python, Node, Git and fish are needed for the full suite. A local missing dependency
 is not a passing audit. [Audit](docs/AUDIT-0.9.24.md) distinguishes executed tests,
 fixtures, missing native dependencies and unperformed live operations.

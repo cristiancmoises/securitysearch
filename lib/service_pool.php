@@ -1,6 +1,7 @@
 <?php
 /** Fixed Redlib inventory, not a user-supplied URL list. No query/result history. */
 require_once __DIR__.'/news_failure.php';
+require_once __DIR__.'/redlib_attribution.php';
 final class service_pool {
     public const PRIMARY='https://redlib.privacyredirect.com';
     public const FALLBACKS=['https://redlib.nadeko.net','https://redlib.privadency.com'];
@@ -20,7 +21,7 @@ final class service_pool {
     }
     public static function disclosure(): string {
         $hosts=array_map(static fn($url)=>parse_url($url,PHP_URL_HOST),self::origins());
-        return 'Reddit news uses '.$hosts[0].'. '.(count($hosts)>1 ?
+        return redlib_attribution::NOTICE.' Reddit news uses '.$hosts[0].'. '.(count($hosts)>1 ?
             'After a failure, '.implode(' or ',array_slice($hosts,1)).' may receive the query. No background retry runs.' :
             'External instance fallback is disabled.');
     }

@@ -1,6 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
 include_once __DIR__ . "/lib/provider_availability.php";
+require_once __DIR__ . "/lib/redlib_attribution.php";
 
 include "data/config.php";
 require_once __DIR__ . '/lib/theme_picker.php';
@@ -352,10 +353,10 @@ $settings = [
 				]
 			],
 			[
-				"description" => "News",
+				"description" => "News<br><small>" . htmlspecialchars(redlib_attribution::SHORT, ENT_QUOTES | ENT_SUBSTITUTE, "UTF-8") . "</small>",
 				"parameter" => "scraper_news",
 				"options" => [
-                    ["value" => "reddit", "text" => "Reddit via Redlib"],
+                    ["value" => "reddit", "text" => "Reddit via Redlib (third-party)"],
 					[
 						"value" => "ddg",
 						"text" => "DuckDuckGo"

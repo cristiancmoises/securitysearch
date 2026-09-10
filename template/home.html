@@ -436,7 +436,7 @@ body.home a:focus-visible{
 <a href="https://chat.securityops.co/" rel="noreferrer noopener">Chat</a>
 <a href="https://zupt-web.securityops.co/" rel="noreferrer noopener">Zupt</a>
 <a href="https://news.securityops.co/" rel="noreferrer noopener">News</a>
-<a href="{%redlib_origin%}/" rel="noreferrer noopener">Reddit</a>
+<a href="{%redlib_origin%}/" rel="noreferrer noopener" title="Third-party Redlib instance; not operated by Security Ops">Reddit</a>
 <a href="https://securityops.com.br/" rel="noreferrer noopener">BR</a></nav>
     </div>
 
@@ -462,7 +462,7 @@ body.home a:focus-visible{
 
         <!-- DRAWER -->
         <details class="services-disclosure">
-            <summary>Explore SecurityOps services</summary>
+            <summary>Explore services and external providers</summary>
         <div class="services" id="services">
             <div class="services-panel">
 
@@ -492,12 +492,6 @@ body.home a:focus-visible{
                             </div>
                         </div>
                         <div class="svc-item">
-                            <span class="svc-item-name">Redlib · Reddit alternative</span>
-                            <div class="svc-item-links">
-                                <a class="clearnet" href="{%redlib_origin%}"><span class="tag">NET</span>{%redlib_host%}</a>
-                            </div>
-                        </div>
-                        <div class="svc-item">
                             <span class="svc-item-name">Binternet</span>
                             <div class="svc-item-links">
                                 <a class="clearnet" href="https://img.securityops.co"><span class="tag">NET</span>img.securityops.co</a>
@@ -512,6 +506,18 @@ body.home a:focus-visible{
                             </div>
                         </div>
                     </div>
+
+                    <section class="svc-group external-providers" aria-labelledby="external-redlib-heading">
+                        <h2 id="external-redlib-heading">External providers</h2>
+                        <div class="svc-item">
+                            <span class="svc-item-name">Redlib · third-party Reddit frontend</span>
+                            <div class="svc-item-links">
+                                <a class="clearnet" href="{%redlib_origin%}" rel="noreferrer noopener"><span class="tag">EXTERNAL</span>{%redlib_host%}</a>
+                            </div>
+                            <p class="provider-notice">{%redlib_attribution%}</p>
+                            <a href="/about#external-redlib">About external Redlib operators</a>
+                        </div>
+                    </section>
 
                     <div class="svc-group">
                         <h2>Communication &amp; Storage</h2>

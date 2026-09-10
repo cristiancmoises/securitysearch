@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../lib/service_search.php';
 require_once __DIR__ . '/../lib/service_pool.php';
 
-/** News/community links from the operator's Redlib frontend, never direct Reddit. */
+/** News/community links via independent third-party Redlib instances, not Security Ops hosting. */
 class reddit extends service_search {
     protected const ORIGIN=service_pool::PRIMARY;
     private const FEED='/r/news+worldnews/new';

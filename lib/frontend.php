@@ -56,6 +56,7 @@ class frontend{
 		$replacements["video_suggestion"] ??= "";
 		$replacements["image_suggestion"] ??= "";
         $replacements["trust_footer"] = securitysearch_footer();
+        $replacements["redlib_attribution"] = htmlspecialchars(redlib_attribution::NOTICE,ENT_QUOTES|ENT_SUBSTITUTE,"UTF-8");
         $replacements["redlib_origin"] = htmlspecialchars(service_pool::primary(),ENT_QUOTES|ENT_SUBSTITUTE,"UTF-8");
         $replacements["redlib_host"] = htmlspecialchars(parse_url(service_pool::primary(),PHP_URL_HOST),ENT_QUOTES|ENT_SUBSTITUTE,"UTF-8");
         $theme = securitysearch_selected_theme();
@@ -1124,7 +1125,7 @@ class frontend{
 					"display" => "Scraper",
 					"option" => [
 						"newswire" => "News RSS · Google / Bing",
-                        "reddit" => "Reddit via Redlib (optional)",
+                        "reddit" => "Reddit via Redlib (third-party; optional)",
 						"ddg" => "DuckDuckGo",
 						"brave" => "Brave",
 						"yahoo_japan" => "Yahoo! JAPAN",

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/tranco.php';
+require_once __DIR__.'/redlib_attribution.php';
 /** Onion address already published in this project's service directory.
  * A link advertises an address, not a successful reachability test. */
 function securitysearch_footer(): string {
@@ -14,5 +15,7 @@ function securitysearch_footer(): string {
     return '<div class="trust-footer" role="group" aria-label="Site information">'.
         '<a class="footer-onion" href="'.$onion.'" rel="noreferrer noopener" title="Open our onion address in Tor Browser">Onion · Tor</a>'.
         '<p class="footer-motto">In Code We Trust.</p>'.
-        '<a class="footer-rank" href="https://tranco-list.eu/" rel="noreferrer noopener" title="Domain popularity list; not a search-quality rating">'.$e($rank).($date!=='' ? '<small>'.$e($date).'</small>' : '').'</a></div>';
+        '<a class="footer-rank" href="https://tranco-list.eu/" rel="noreferrer noopener" title="Domain popularity list; not a search-quality rating">'.$e($rank).($date!=='' ? '<small>'.$e($date).'</small>' : '').'</a></div>'.
+        '<p class="provider-notice redlib-attribution" data-attribution-revision="'.redlib_attribution::REVISION.'"><small>'.
+        $e(redlib_attribution::SHORT).' <a href="/about#external-redlib">Provider details</a></small></p>';
 }
