@@ -13,6 +13,14 @@ maintained for [SecurityOps](https://securityops.co/). External search providers
 refuse requests, rate-limit servers or change their pages. This release does not
 claim that every provider is available or that every search is faster.
 
+## Maintenance repair r2
+
+Includes the r1 archive-layout repair and the r2 optional-theme deployment import
+fix. The Docker audit collects every suite failure before returning nonzero;
+no failed test allows cutover. Use the matching **0.9.22-r2 kit** for an already
+applied v0.9.22 or v0.9.22-r1 checkout. Application version and asset marker stay
+unchanged. [Repair and validation boundaries](docs/AUDITFIX-0.9.22-r2.md).
+
 ## v0.9.22 repair and operator-only historical themes
 
 The offline news fixture now intercepts every Redlib fallback origin; test-only
@@ -111,16 +119,16 @@ search-ranking guarantees are added.
 
 ## Install/update and release
 
-For the existing IONOS installation, use the matching **securitysearch-update-0.9.22**
+For the existing IONOS installation, use the matching **securitysearch-update-0.9.22-r2**
 kit; the previous exact-hash launchers intentionally reject these changed files.
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.22/apply-securitysearch.fish ~/securitysearch
-fish ~/Downloads/securitysearch-update-0.9.22/deploy-securitysearch.fish ~/securitysearch --rank-refresh
-fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22-r2/apply-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22-r2/deploy-securitysearch.fish ~/securitysearch --rank-refresh
+fish ~/Downloads/securitysearch-update-0.9.22-r2/publish-securitysearch.fish ~/securitysearch
 ```
 
-These are three separate operations. Applying accepts the clean exact v0.9.21 or published v0.9.20
+These are three separate operations. The r2 repair accepts the clean exact applied v0.9.22 or v0.9.22-r1
 main tree and creates a normal local commit. Deployment preserves SSH **5119**,
 **root@securityops.co**, Docker networks and **172.17.0.1:5140 → 80**; unsupported
 layouts are refused. The isolated full offline suite, candidate readiness and live
@@ -135,7 +143,7 @@ multipart attachments. Tokens are privately prompted, not put into command
 arguments, files or URLs. A single-host retry includes the release files:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+fish ~/Downloads/securitysearch-update-0.9.22-r2/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
 ```
 
 Completed releases provide **securitysearch-v0.9.22.tar.gz** (tagged PHP source,

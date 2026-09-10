@@ -5,6 +5,12 @@ search, privacy, UI, rank, onion and deployment features.
 
 ## English
 
+Includes maintenance repairs r1 and r2: archive-independent operator-theme tests,
+explicit sibling-helper loading for private-theme deployment, and complete
+failure reporting in the Docker audit. Every failing command still blocks cutover.
+No provider behavior, production cURL settings or artwork restrictions are changed
+by these maintenance repairs. See `docs/AUDITFIX-0.9.22-r2.md`.
+
 Fix the offline HTTP news-test timeout: its primary-only `fetch_path` mock did not
 intercept the new Redlib fallback transport. The fixture now owns every
 `fetch_redlib` origin. Test-child DNS/socket/cURL tripwires reject an accidental
@@ -40,6 +46,11 @@ not an AI detector and does not remove already-existing historical objects or
 rewrite published history. Follow the hosting service's requirements separately.
 
 ## Português do Brasil
+
+Inclui as correções r1 e r2: testes sem dependência de `.git`, carregamento explícito
+do helper de temas e relatório completo das falhas da auditoria. Qualquer falha
+continua impedindo a troca. As correções não alteram os provedores, o cURL de
+produção nem as restrições das imagens. Veja `docs/AUDITFIX-0.9.22-r2.md`.
 
 Corrige o timeout da auditoria HTTP de notícias: o mock antigo interceptava apenas
 a instância principal, deixando os fallbacks escaparem para a rede real. Agora

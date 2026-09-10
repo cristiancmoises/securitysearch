@@ -6,6 +6,7 @@ import copy
 import datetime
 import fcntl
 import http.client
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -176,7 +177,7 @@ def offline_audit(image, backup):
         (context/'Dockerfile').write_text('FROM '+image+'\nRUN apk add --no-cache python3 nodejs git fish\n')
         run('docker','build','-t',audit_image,str(context))
     cid = run('docker','create','--network','none','--entrypoint','/bin/sh',
-              '--workdir',APP,audit_image,'-c','sh scripts/test.sh',capture=True).strip()
+              '--workdir',APP,audit_image,'-c','sh scripts/test.sh --keep-going',capture=True).strip()
     if not re.fullmatch(r'[a-f0-9]{64}',cid):
         raise RuntimeError('The isolated audit container could not be created.')
     try:
@@ -212,12 +213,32 @@ def live_binternet_gate(cid, backup):
     print('Binternet returned real results from the VPS candidate; available pagination checked.',flush=True)
 
 
+def validate_operator_pack(directory):
+    """Load only the sibling validator, even when this script is imported by path.
+
+    Do not modify sys.path or import a same-named module from the caller's CWD,
+    PYTHONPATH or sys.modules. A missing/unsafe helper fails before Docker work.
+    """
+    helper = Path(__file__).resolve().with_name('operator_themes.py')
+    if helper.is_symlink() or not helper.is_file():
+        raise RuntimeError('Required deployment helper is missing or unsafe: scripts/operator_themes.py')
+    spec = importlib.util.spec_from_file_location('_securitysearch_deploy_operator_themes', helper)
+    if spec is None or spec.loader is None:
+        raise RuntimeError('Cannot load the bundled operator-theme validator.')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    validator = getattr(module, 'validate', None)
+    if not callable(validator):
+        raise RuntimeError('Bundled operator-theme validator has no validate function.')
+    return validator(directory)
+
+
 def main():
     if os.geteuid() != 0:
         raise RuntimeError('Run this updater as root on the IONOS Docker host.')
-    if (ROOT/'static/operator-themes').exists():
-        from operator_themes import validate
-        validate(ROOT/'static/operator-themes')
+    operator_pack = ROOT/'static/operator-themes'
+    if operator_pack.is_symlink() or operator_pack.exists():
+        validate_operator_pack(operator_pack)
     for program in ('docker','curl','flock'):
         if shutil.which(program) is None:
             raise RuntimeError('Required host program is missing: '+program)

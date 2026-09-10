@@ -13,6 +13,14 @@ Buscador proxy PHP baseado no [4get](https://git.lolcat.ca/lolcat/4get), mantido
 limitar ou alterar respostas. Não há garantia de disponibilidade ou ganho de
 velocidade em todos os provedores.
 
+## Correção de manutenção r2
+
+Inclui a correção r1 para arquivos-fonte sem `.git` e a r2 para carregar o helper
+de temas pelo caminho explícito. A auditoria Docker reúne todas as falhas e
+continua recusando a troca caso qualquer teste falhe. Use o kit **0.9.22-r2** sobre
+um checkout exato já atualizado para v0.9.22 ou v0.9.22-r1; a versão da aplicação
+e o marcador 26 permanecem. [Detalhes](docs/AUDITFIX-0.9.22-r2.md).
+
 ## Correção v0.9.22 e temas históricos separados
 
 A fixture de notícias intercepta todas as origens Redlib; bloqueios de rede dos
@@ -101,16 +109,16 @@ popularidade, posição no Google ou avaliações falsas.
 
 ## Atualizar, implantar e publicar
 
-Use o kit correspondente **securitysearch-update-0.9.22**, não os lançadores
+Use o kit correspondente **securitysearch-update-0.9.22-r2**, não os lançadores
 antigos com hashes diferentes:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.22/apply-securitysearch.fish ~/securitysearch
-fish ~/Downloads/securitysearch-update-0.9.22/deploy-securitysearch.fish ~/securitysearch --rank-refresh
-fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22-r2/apply-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22-r2/deploy-securitysearch.fish ~/securitysearch --rank-refresh
+fish ~/Downloads/securitysearch-update-0.9.22-r2/publish-securitysearch.fish ~/securitysearch
 ```
 
-São operações separadas. Aplicar aceita a árvore exata v0.9.21 ou publicada v0.9.20 limpa
+São operações separadas. Aplicar a r2 aceita a árvore exata e limpa de v0.9.22 ou v0.9.22-r1 já aplicada
 e cria um commit local normal. O deploy preserva SSH **5119**, **root@securityops.co**,
 redes e **172.17.0.1:5140 → 80**; não recria Nginx Proxy Manager. Antes da troca,
 a suíte offline completa, prontidão e teste real Binternet devem passar. Guarde
@@ -124,7 +132,7 @@ solicitados de forma privada, sem aparecer em argumentos, URLs ou arquivos.
 Para retomar somente o host .co, **incluindo os anexos da release**:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+fish ~/Downloads/securitysearch-update-0.9.22-r2/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
 ```
 
 Cada release concluída contém `securitysearch-v0.9.22.tar.gz` e
