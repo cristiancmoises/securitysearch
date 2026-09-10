@@ -17,7 +17,7 @@ foreach(['https://evil.example/?after=t3_x','//evil.example/?after=t3_x','?after
 }
 class reddit_fixture extends reddit {
  public array $seen=[];
- protected function fetch_path(string $path,array $params): string {$this->seen[]=[$path,$params];return file_get_contents('tests/fixtures/redlib-news.html');}
+ protected function fetch_redlib(string $origin,string $path,array $params,int $deadline): string {$this->seen[]=[$path,$params];return file_get_contents('tests/fixtures/redlib-news.html');}
 }
 $fixture=new reddit_fixture();$one=$fixture->news(['s'=>'GNU Guix','sort'=>'relevance','time'=>'week']);
 $fixture->news(['s'=>'tampered','npt'=>$one['npt'],'sort'=>'new']);

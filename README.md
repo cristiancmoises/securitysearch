@@ -1,17 +1,35 @@
-# Security Search v0.9.21
+# Security Search v0.9.22
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
 ![Security Search — pure black](docs/screenshots/securitysearch-0.9.21-home-black.png)
 
-**Local release rendering, not a production-VPS screenshot.** The actual PHP
+**Historical v0.9.21 local rendering, not a new production-VPS screenshot.** The actual PHP
 controller generated this HTML; Chromium rendered it with bundled resources
-embedded and scripts disabled. Asset version: **25**.
+embedded and scripts disabled. Capture asset version: **25**; this release uses **26**.
 
 Security Search is a PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get),
 maintained for [SecurityOps](https://securityops.co/). External search providers can
 refuse requests, rate-limit servers or change their pages. This release does not
 claim that every provider is available or that every search is faster.
+
+## v0.9.22 repair and operator-only historical themes
+
+The offline news fixture now intercepts every Redlib fallback origin; test-only
+DNS/socket/cURL tripwires catch leaks instead of waiting for external transport.
+The client timeout is unchanged. Production cURL and deployment gates remain on.
+Fixed service/CDN DNS answers can be reused for at most 15 seconds after public-IP
+validation; arbitrary hosts are request-local only. No query/results are cached by
+this DNS helper. First synchronous DNS resolution can exceed cURL timeouts; this
+is reduced repeated work, not a measured live speed guarantee.
+
+Tron matches the specified historical commit. Lain/SecOps originals are optional
+**operator-only** assets: a pinned, verified restorer prepares animations, stills
+and previews outside Git, then `--theme-assets` adds them only to the private VPS
+archive. Their originals and derivatives do not enter any public source release,
+including Codeberg. Existing historical objects are not rewritten. The public
+palette/Matrix fallbacks remain usable without the pack. See the
+[complete commands and policy](docs/OPERATIONS-0.9.22.md).
 
 ## Search and news
 
@@ -56,7 +74,7 @@ Native settings and image-filter selects use black backgrounds and the theme's
 accent, including cyan on Tron and SecOps.
 
 Tron restores its bundled motion in optimized animated WebP (about 527 KB).
-SecOps uses the existing Matrix animation (about 1.37 MB) with a cyan palette;
+Without the optional operator pack, SecOps uses the existing Matrix animation (about 1.37 MB) with a cyan palette;
 it is **not** the deliberately removed historical SecOps artwork. Their still
 switch and reduced-motion/data alternatives require no JavaScript. Browser
 wallpaper loading occurs only for the selected theme.
@@ -93,16 +111,16 @@ search-ranking guarantees are added.
 
 ## Install/update and release
 
-For the existing IONOS installation, use the matching **securitysearch-update-0.9.21**
+For the existing IONOS installation, use the matching **securitysearch-update-0.9.22**
 kit; the previous exact-hash launchers intentionally reject these changed files.
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.21/apply-securitysearch.fish ~/securitysearch
-fish ~/Downloads/securitysearch-update-0.9.21/deploy-securitysearch.fish ~/securitysearch --rank-refresh
-fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22/apply-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.22/deploy-securitysearch.fish ~/securitysearch --rank-refresh
+fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch
 ```
 
-These are three separate operations. Applying requires the clean published v0.9.20
+These are three separate operations. Applying accepts the clean exact v0.9.21 or published v0.9.20
 main tree and creates a normal local commit. Deployment preserves SSH **5119**,
 **root@securityops.co**, Docker networks and **172.17.0.1:5140 → 80**; unsupported
 layouts are refused. The isolated full offline suite, candidate readiness and live
@@ -110,24 +128,24 @@ Binternet check must pass before cutover. Keep all printed backup/rollback paths
 The optional rank timer is installed only after successful deployment and never
 rolls back the application merely because metadata is unavailable.
 
-Publication creates/reuses an annotated **v0.9.21**, packages that exact real
+Publication creates/reuses an annotated **v0.9.22**, packages that exact real
 commit, then preflights selected repositories before any write. Matching drafts
 and assets resume; conflicting tags, notes and assets are preserved. Forgejo uses
 multipart attachments. Tokens are privately prompted, not put into command
 arguments, files or URLs. A single-host retry includes the release files:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+fish ~/Downloads/securitysearch-update-0.9.22/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
 ```
 
-Completed releases provide **securitysearch-v0.9.21.tar.gz** (tagged PHP source,
-not prebuilt binaries/Docker) and **securitysearch-v0.9.21.tar.gz.sha256**. A local
+Completed releases provide **securitysearch-v0.9.22.tar.gz** (tagged PHP source,
+not prebuilt binaries/Docker) and **securitysearch-v0.9.22.tar.gz.sha256**. A local
 incremental recovery bundle requires published v0.9.20. Publication never deploys.
 
-[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.21) ·
-[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
-[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
-[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.21)
+[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.22) ·
+[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.22) ·
+[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.22) ·
+[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.22)
 
 Links become available only after each host's publication succeeds. SHA-256 checks
 integrity; an annotated tag is not automatically a cryptographic signature.
@@ -140,14 +158,14 @@ sh scripts/test.sh
 
 The full gate requires PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node,
 Git and fish. The authoring environment could not run the complete native suite;
-see [audit](docs/AUDIT-0.9.21.md) for exact passes and blockers. No live provider
+see [audit](docs/AUDIT-0.9.22.md) for exact passes and blockers. No live provider
 speedup, VPS deployment, onion reachability or authenticated release upload is
 inferred from mock tests. An optional real-browser suite is in
 `tests/browser-experience.py`; browser navigation was policy-blocked during
 authoring, separately from the successfully rendered local screenshots.
 
-[Release notes](docs/RELEASE-0.9.21.md) · [Operations and publication](docs/OPERATIONS-0.9.21.md) ·
-[Operação/publicação](docs/OPERATIONS-0.9.21.pt-BR.md) · [r1 repair retained](docs/AUDITFIX-0.9.20-r1.md)
+[Release notes](docs/RELEASE-0.9.22.md) · [Operations and publication](docs/OPERATIONS-0.9.22.md) ·
+[Operação/publicação](docs/OPERATIONS-0.9.22.pt-BR.md) · [r1 repair retained](docs/AUDITFIX-0.9.20-r1.md)
 
 License: [AGPL-3.0](license.txt). Existing search actions, service directory,
 Invidious integration, API and **In Code We Trust.** footer are retained.

@@ -1,3 +1,12 @@
+## v0.9.22
+
+Repair the offline Redlib transport fixture and add fail-fast test-only network
+tripwires. Add bounded positive DNS metadata caching with public-IP validation.
+Support verified operator-only historical Lain/SecOps packs outside shared source
+history/releases; preserve historical Tron. Asset marker 26. No history rewrite,
+production cURL disable, test bypass or claimed live speedup.
+[Operations](docs/OPERATIONS-0.9.22.md) · [Release](docs/RELEASE-0.9.22.md).
+
 ## v0.9.21
 
 Bounded Redlib failover, poster-preserving motion, local-only pictures, corrected themes/select colors, cached rank/onion footer and truthful metadata. Asset 25. [Release notes](docs/RELEASE-0.9.21.md) · [Operations](docs/OPERATIONS-0.9.21.md). Native full-runtime/VPS gates remain mandatory.

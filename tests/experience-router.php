@@ -19,4 +19,4 @@ $filters=['scraper'=>['display'=>'Scraper','option'=>['binternet'=>'Pinterest vi
 $f->loadheader($get,$filters,'images');
 $items=[];for($i=0;$i<8;$i++)$items[]=['title'=>'Offline animated preview '.($i+1),'url'=>'https://example.invalid/fixture','source'=>[['url'=>'https://example.invalid/two.gif?id='.$i,'width'=>360,'height'=>240]]];
 [$html,$count]=image_results::render($f,$get,['image'=>$items]);
-echo $f->load('images.html',['images'=>$html,'image_classes'=>' class="images-view-grid images-quality-preview"','image_view_help'=>'<p class="image-view-note">Local renderer fixture. Bundled animation, no search provider call.</p>','image_script'=>'<script defer src="/static/images-motion.js?v25"></script>','timetaken'=>null,'nextpage'=>'']);return true;
+echo $f->load('images.html',['images'=>$html,'image_classes'=>' class="images-view-grid images-quality-preview"','image_view_help'=>'<p class="image-view-note">Local renderer fixture. Bundled animation, no search provider call.</p>','image_script'=>'<script defer src="/static/images-motion.js?v26"></script>','timetaken'=>null,'nextpage'=>'']);return true;

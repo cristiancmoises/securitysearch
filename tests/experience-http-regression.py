@@ -25,15 +25,15 @@ def main():
    ok('/sitemap"'in b and 'social-card.png'in b,'Sitemap and social metadata')
    for theme in ['Tron','SecOps','Gentoo','Art','Lain','Stop','Dark','Wine','The Birthday Massacre']:
     c,h,b=req(cookie='theme='+theme);expected='Black'if theme in ['Dark','Wine','The Birthday Massacre']else theme
-    ok(c==200 and '/themes/'+expected+'.css?v25'in b and '<script'not in b,'Native theme '+theme)
+    ok(c==200 and '/themes/'+expected+'.css?v26'in b and '<script'not in b,'Native theme '+theme)
    c,h,b=req(cookie='theme=Custom');ok(c==200 and "script-src 'self'"in h['Content-Security-Policy']and "connect-src 'none'"in h['Content-Security-Policy'],'Custom CSP')
    ok(b.count('local-background.js')==1 and 'id="background-file"'in b and 'name="background-file"'not in b,'One local script and unnamed input')
    ok(b.index('</form>',b.index('class="appearance-form"'))<b.index('id="background-file"'),'File picker outside form')
    c,h,b=req('/settings',cookie='theme=Custom');ok(c==200 and h['X-Robots-Tag']=='noindex, nofollow'and 'private, no-store'in h['Cache-Control'],'Settings private/noindex')
    ok('value="Tron"'in b and 'value="Custom"'in b and 'value="Dark"'not in b,'Settings whitelist')
    c,h,b=req(data=b'appearance=1&theme=Tron',headers={'Content-Type':'application/x-www-form-urlencoded','Sec-Fetch-Site':'cross-site'});ok(c==403,'Cross-site theme change blocked')
-   c,h,b=req('/fixture-images',cookie='theme=Tron');ok(c==200 and 'data-motion='in b and 'images-motion.js?v25'in b,'Actual image renderer / fixture transport')
-   ok('experience.css?v25'in b and "connect-src 'self'"in h['Content-Security-Policy'],'Image CSS and scoped policy')
+   c,h,b=req('/fixture-images',cookie='theme=Tron');ok(c==200 and 'data-motion='in b and 'images-motion.js?v26'in b,'Actual image renderer / fixture transport')
+   ok('experience.css?v26'in b and "connect-src 'self'"in h['Content-Security-Policy'],'Image CSS and scoped policy')
    print('PASS:',len(checks),'actual localhost PHP checks: '+', '.join(checks))
   finally:proc.terminate();proc.wait(timeout=5)
 if __name__=='__main__':main()

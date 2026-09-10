@@ -1,6 +1,9 @@
 <?php
+require_once __DIR__."/operator_themes.php";
 /** Native appearance form. Paths and names come only from bundled CSS files. */
 function securitysearch_theme_catalog(): array {
+    static $catalog=null;
+    if ($catalog!==null) return $catalog;
     $out=[];
     $names=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',
         'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];
@@ -9,7 +12,7 @@ function securitysearch_theme_catalog(): array {
         $preview='/static/theme-previews/'.rawurlencode($name).'.webp';
         $out[$name]=is_file(dirname(__DIR__).'/static/theme-previews/'.$name.'.webp') ? $preview : null;
     }
-    return $out;
+    return $catalog=array_replace($out,operator_themes::catalog());
 }
 
 function securitysearch_theme_choice($value): ?string {
@@ -40,6 +43,7 @@ function securitysearch_theme_picker(string $selected): string {
         '<fieldset><legend>Background theme</legend><div class="appearance-grid">';
     foreach (securitysearch_theme_catalog() as $name=>$preview) {
         $label=['Black'=>'Pure black','Custom'=>'My picture','Stop'=>'Stop · palette','Lain'=>'Lain · palette'][$name] ?? $name;
+        if ($name==='Lain' && operator_themes::available('Lain')) $label='Lain';
         $html.='<label class="appearance-choice"><input type="radio" name="theme" value="'.$escape($name).'"'.($name===$selected ? ' checked' : '').'>';
         if ($preview!==null) {
             $html.='<img src="'.$escape($preview).'?v'.config::VERSION.'" width="240" height="135" alt="" loading="lazy" decoding="async">';

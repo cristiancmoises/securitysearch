@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__."/provider_dns.php";
 
 class proxy{
 	
@@ -235,30 +236,7 @@ class proxy{
 				return false;
 			}
 
-			$addresses = [];
-			$records = @dns_get_record($lookup_host, DNS_A | DNS_AAAA);
-			if(is_array($records)){
-
-				foreach($records as $record){
-
-					if(isset($record["ip"])){
-
-						$addresses[] = $record["ip"];
-					}elseif(isset($record["ipv6"])){
-
-						$addresses[] = $record["ipv6"];
-					}
-				}
-			}
-
-			if($addresses === []){
-
-				$fallback = @gethostbynamel($lookup_host . ".");
-				if(is_array($fallback)){
-
-					$addresses = $fallback;
-				}
-			}
+			$addresses = provider_dns::lookup($lookup_host);
 		}
 
 		$addresses = array_values(array_unique($addresses));
@@ -333,7 +311,11 @@ class proxy{
 			throw new Exception("Encountered imgur 404");
 		}
 		
-		// sanitize URL
+		// Check the shared deadline before starting DNS, not only after it.
+        if ($request_budget->deadline <= hrtime(true)) {
+            throw new Exception("Remote request exceeded the configured time limit");
+        }
+        // sanitize URL
 		$target = $this->resolvepublictarget($url);
 		if($target === false){
 			
@@ -442,7 +424,8 @@ class proxy{
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, $remaining_milliseconds);
+		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $remaining_milliseconds));
+        curl_setopt($curl, CURLOPT_NOSIGNAL, true);
 		curl_setopt($curl, CURLOPT_TIMEOUT_MS, $remaining_milliseconds);
 		
 		// limit size of payloads
@@ -746,7 +729,8 @@ class proxy{
 		curl_setopt($curl, CURLOPT_HTTPHEADER, $stream_headers);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
-		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, $remaining_milliseconds);
+		curl_setopt($curl, CURLOPT_CONNECTTIMEOUT_MS, min(3000, $remaining_milliseconds));
+        curl_setopt($curl, CURLOPT_NOSIGNAL, true);
 		curl_setopt($curl, CURLOPT_TIMEOUT_MS, $remaining_milliseconds);
 
 		$status = null;

@@ -62,14 +62,9 @@ class brave {
 }
 ''')
         source=(ROOT/'scraper/reddit.php').read_text().replace('class reddit extends','class reddit_adapter extends')
-        (root/'scraper/reddit.php').write_text(source+'''
-class reddit extends reddit_adapter {
- protected function fetch_path(string $path,array $params): string {
-  if (($params['q'] ?? '')==='failure') return '<div id="error">Blocked</div>';
-  return file_get_contents('redlib-fixture.html');
- }
-}
-''')
+        fixture=(ROOT/'tests/fixtures/reddit-http.php').read_text()
+        (root/'scraper/reddit.php').write_text(source+'\n'+fixture.split('<?php',1)[1])
+        shutil.copy2(ROOT/'tests/fixtures/offline-network.php',root/'offline-network.php')
         shutil.copy2(ROOT/'tests/fixtures/redlib-news.html',root/'redlib-fixture.html')
         # Isolated media controller with fixed local bytes; no resolver/transport bypass in production.
         media=root/'media';(media/'lib').mkdir(parents=True);(media/'data').mkdir()
@@ -91,9 +86,10 @@ class proxy {
 }
 ''')
         (root/'router.php').write_text('''<?php
+require __DIR__.'/offline-network.php';
 $path=parse_url($_SERVER['REQUEST_URI'],PHP_URL_PATH);
 if ($path==='/fixture-reset') {apcu_clear_cache();apcu_add('fixture-calls',0);echo 'reset';return true;}
-if ($path==='/fixture-stats') {header('Content-Type: application/json');echo json_encode(['calls'=>apcu_fetch('fixture-calls')]);return true;}
+if ($path==='/fixture-stats') {header('Content-Type: application/json');echo json_encode(['calls'=>apcu_fetch('fixture-calls'),'redlib'=>apcu_fetch('fixture-redlib-calls') ?: []]);return true;}
 if ($path==='/') {require 'index.php';return true;}
 if ($path==='/images') {require 'images.php';return true;}
 if ($path==='/news') {require 'news.php';return true;}
@@ -106,7 +102,7 @@ http_response_code(404);return true;
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
         env=dict(os.environ,PHP_CLI_SERVER_WORKERS='4')
         with (root/'server.log').open('w+') as log:
-            server=subprocess.Popen(['php','-d','apc.enable_cli=1','-d','display_errors=0','-d','log_errors=1','-d','error_log=/dev/stderr','-d','error_reporting=-1','-S',f'127.0.0.1:{port}','router.php'],cwd=root,env=env,stdout=log,stderr=log,start_new_session=True)
+            server=subprocess.Popen(['php','-d','disable_functions=curl_exec,curl_multi_exec,dns_get_record,gethostbynamel,gethostbyname,fsockopen,pfsockopen,stream_socket_client,socket_connect','-d','allow_url_fopen=0','-d','apc.enable_cli=1','-d','display_errors=0','-d','log_errors=1','-d','error_log=/dev/stderr','-d','error_reporting=-1','-S',f'127.0.0.1:{port}','router.php'],cwd=root,env=env,stdout=log,stderr=log,start_new_session=True)
             base=f'http://127.0.0.1:{port}'
             def request(path, cookie=None, raw=False):
                 req=urllib.request.Request(base+path,headers={'User-Agent':'Mozilla/5.0 SecuritySearch-local-tests', **({'Cookie':cookie} if cookie else {})})
@@ -133,18 +129,18 @@ http_response_code(404);return true;
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
-                assert '/static/themes/Black.css?v25' in html and html.count('class="search-action-icon"')==4
+                assert '/static/themes/Black.css?v26' in html and html.count('class="search-action-icon"')==4
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v25' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v26' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']
                 headers,html,url=search(cookie='image_infinite=no; image_motion=no; theme=Lain')
-                assert '<script' not in html and url and '/static/themes/Lain.css?v25' in html
+                assert '<script' not in html and url and '/static/themes/Lain.css?v26' in html
                 reset();headers,html,url=search()
                 for number in range(2,16):
                     data=append(url)
@@ -190,8 +186,22 @@ http_response_code(404);return true;
                 assert code==200 and 'Reddit via Redlib' in html
                 code,headers,html=request('/news?s=GNU+Guix')
                 assert code==200 and 'Related posts' in html and 'libre.securityops.co/r/news/comments' in html
+                reset();started=time.monotonic()
                 code,headers,html=request('/news?s=failure')
-                assert code==503 and 'Took ' not in html
+                elapsed=time.monotonic()-started
+                assert code==503 and 'Took ' not in html and elapsed<3, ('offline failure latency',elapsed)
+                attempts=json.loads(request('/fixture-stats')[2])['redlib']
+                assert attempts==['https://libre.securityops.co','https://redlib.nadeko.net','https://redlib.privacyredirect.com'],attempts
+                # A second failed query is skipped by the origin-only cooldown.
+                code,headers,html=request('/news?s=failure')
+                assert code==503 and json.loads(request('/fixture-stats')[2])['redlib']==attempts
+                reset();code,headers,html=request('/news?s=fallback+news')
+                assert code==200 and 'redlib.nadeko.net/r/news/comments' in html
+                next_news=Links(html).next;assert next_news
+                code,headers,html=request('/'+next_news.lstrip('/'))
+                assert code==200 and json.loads(request('/fixture-stats')[2])['redlib']==[
+                    'https://libre.securityops.co','https://redlib.nadeko.net','https://redlib.nadeko.net']
+                print('PASS: all Redlib origins are fixture-owned; 503/cooldown/fallback/pagination need no external DNS or HTTP.')
                 for file,mime in [('two.gif','image/gif'),('two.webp','image/webp'),('two.png','image/png')]:
                     path='/proxy-fixture?i=https%3A%2F%2Fexample.org%2F'+file
                     code,headers,body=request(path+'&s=animated&preview=1',raw=True)
@@ -204,10 +214,10 @@ http_response_code(404);return true;
                 reset()
                 subprocess.run(['python3',str(ROOT/'scripts/benchmark-http.py'),'--url',base+'/','--requests','50','--concurrency','4'],check=True)
                 log.flush();log.seek(0);errors=log.read()
-                assert not any(marker in errors for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error']), 'PHP runtime diagnostic in controller tests'
+                assert not any(marker in errors for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error','OFFLINE_NETWORK_ATTEMPT']), 'PHP runtime diagnostic in controller tests'
             finally:
                 log.flush();log.seek(0)
-                diagnostics=[line for line in log.read().splitlines() if any(marker in line for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error'])]
+                diagnostics=[line for line in log.read().splitlines() if any(marker in line for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error','OFFLINE_NETWORK_ATTEMPT'])]
                 if diagnostics:print('\n'.join(diagnostics))
                 os.killpg(server.pid,signal.SIGTERM)
                 server.wait(timeout=10)

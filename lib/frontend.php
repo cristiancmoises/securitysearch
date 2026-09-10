@@ -60,6 +60,8 @@ class frontend{
         $replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">' .
             '<link rel="stylesheet" href="/static/experience.css?v' . config::VERSION . '">';
         // A script is emitted only for the explicitly selected browser-local picture.
+        if ($theme === 'SecOps' && !operator_themes::available('SecOps')) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/SecOps-motion.css?v' . config::VERSION . '">';
+        if (operator_themes::available($theme)) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '">';
         if ($theme === 'Custom') $replacements["style"] .= '<script defer src="/static/local-background.js?v' . config::VERSION . '"></script>';
 
 		if(isset($_COOKIE["scraper_ac"])){

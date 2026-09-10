@@ -2,3 +2,7 @@
 *.bak export-ignore
 *.bak.* export-ignore
 data/api_keys/ export-ignore
+
+static/operator-themes/** export-ignore
+static/misc/secops.gif export-ignore
+static/misc/lain.gifv export-ignore

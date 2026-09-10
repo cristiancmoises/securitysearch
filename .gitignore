@@ -43,3 +43,8 @@ prompts/
 *.pyc
 
 !banner/social-card.png
+
+# Historical AI-designated artwork is operator-only, including all derivatives.
+/static/operator-themes/
+/static/misc/secops.gif
+/static/misc/lain.gifv
