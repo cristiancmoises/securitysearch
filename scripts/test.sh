@@ -11,6 +11,8 @@ printf '\n=== OFFLINE TEST: php tests/provider-dns-regression.php ===\n'
 php tests/provider-dns-regression.php
 printf '\n=== OFFLINE TEST: python3 tests/operator-themes-regression.py ===\n'
 python3 tests/operator-themes-regression.py
+printf '\n=== OFFLINE TEST: python3 tests/operator-archive-regression.py ===\n'
+python3 tests/operator-archive-regression.py
 printf '\n=== OFFLINE TEST: python3 tests/provider-http-harness-regression.py ===\n'
 python3 tests/provider-http-harness-regression.py
 printf '\n=== OFFLINE TEST: php -d apc.enable_cli=1 tests/regression.php ===\n'

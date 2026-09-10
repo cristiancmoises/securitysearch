@@ -48,7 +48,27 @@ class Assets(unittest.TestCase):
         with Image.open(self.root/'lain.webp') as result:self.assertEqual(result.n_frames,2)
         with Image.open(self.root/'Lain-preview.webp') as preview:self.assertEqual(preview.size,(240,135))
     def test_prepare_refuses_repository_destination(self):
-        with self.assertRaises(RuntimeError):m.prepare(ROOT,ROOT/'static/operator-themes')
+        # A deployment/source archive intentionally has no .git metadata. Test the
+        # destination policy against our own real, disposable checkout, not ROOT.
+        repo = self.root / 'checkout'
+        repo.mkdir()
+        env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+        env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
+                   GIT_TERMINAL_PROMPT='0')
+        with patch.dict(os.environ, env, clear=True):
+            subprocess.run(['git', 'init', '--quiet', '--template=', str(repo)],
+                           check=True, capture_output=True, text=True, timeout=10)
+            # Pin the intended RuntimeError message: an unrelated failure must not
+            # count as a pass. Neither downloads nor conversion may be reached.
+            with patch.object(m, 'load_original', side_effect=AssertionError('Unexpected asset read/download')) as load, \
+                 patch.object(m, 'convert', side_effect=AssertionError('Unexpected conversion')) as convert:
+                for output in (repo, repo / 'static/operator-themes'):
+                    with self.subTest(output=output.name):
+                        with self.assertRaisesRegex(RuntimeError, 'Keep operator assets OUTSIDE the Git checkout'):
+                            m.prepare(repo, output)
+                load.assert_not_called()
+                convert.assert_not_called()
+            self.assertFalse((repo / 'static').exists())
 class History(unittest.TestCase):
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=Path(self.tmp.name)
