@@ -21,7 +21,7 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.22'
+VERSION = '0.9.23'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -135,11 +135,11 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '26|Black':
+            if marker.strip() != '27|Black':
                 raise RuntimeError('New source/config version is masked by an old setting or mount.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
-            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v26' not in html:
+            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v27' not in html:
                 raise RuntimeError('New home page failed its content check.')
             headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                           'http://127.0.0.1/',capture=True).lower()
@@ -150,11 +150,11 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v26',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v27',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v26',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v27',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',
@@ -211,6 +211,44 @@ def live_binternet_gate(cid, backup):
     if report.get('status') != 'ok' or report.get('first_count',0) < 1:
         raise RuntimeError('Live Binternet gate failed; production is unchanged. Inspect '+str(backup/'binternet-live.json'))
     print('Binternet returned real results from the VPS candidate; available pagination checked.',flush=True)
+
+
+# These match service_pool::allowed(). A failed live check never stops production.
+REDLIB_ORIGINS = ('https://redlib.privacyredirect.com', 'https://redlib.nadeko.net',
+                  'https://redlib.privadency.com')
+
+def set_redlib_primary(old, origin):
+    if origin not in REDLIB_ORIGINS:
+        raise RuntimeError('Refused an unapproved Redlib destination.')
+    env = dict(x.split('=', 1) for x in old['Config'].get('Env', []) if '=' in x)
+    env['FOURGET_REDLIB_PRIMARY'] = origin
+    old['Config']['Env'] = [k+'='+v for k,v in env.items()]
+
+def live_redlib_gate(cid, backup):
+    """Select only an origin returning nonempty parsed feed AND keyword results."""
+    run('docker','cp',str(ROOT/'scripts/redlib-probe.php'),cid+':/tmp/securitysearch-redlib-probe.php')
+    try:
+        raw = run('docker','exec','--workdir',APP,cid,'timeout','40','php','-d','apc.enable_cli=1',
+                  '/tmp/securitysearch-redlib-probe.php',capture=True)
+        report = json.loads(raw)
+    except Exception:
+        report = {'status':'unavailable','reason':'probe_execution_failed'}
+    (backup/'redlib-live.json').write_text(json.dumps(report, indent=2))
+    origin = report.get('origin') if isinstance(report,dict) else None
+    rows = report.get('attempts',[]) if isinstance(report,dict) else []
+    row = rows[-1] if isinstance(rows,list) and rows and isinstance(rows[-1],dict) else {}
+    if (not isinstance(report,dict) or report.get('status') != 'ok' or origin not in REDLIB_ORIGINS
+        or row.get('origin') != origin or row.get('status') != 'ok'
+        or any(type(row.get(k)) is not int or not 1 <= row[k] <= 25 for k in ('feed_count','search_count'))):
+        raise RuntimeError('No approved Redlib instance passed both feed and keyword search; production is unchanged. Inspect '+str(backup/'redlib-live.json'))
+    print('Verified Redlib feed and keyword search from candidate: '+origin,flush=True)
+    return origin
+
+def verify_redlib_config(cid, origin):
+    effective = run('docker','exec','--workdir',APP,cid,'php','-r',
+                    'require "data/config.php"; require "lib/service_pool.php"; echo service_pool::primary();',capture=True).strip()
+    if effective != origin:
+        raise RuntimeError('The replacement did not retain the verified Redlib primary.')
 
 
 def validate_operator_pack(directory):
@@ -305,6 +343,8 @@ def main():
     env['FOURGET_DEFAULT_THEME'] = 'Black'
     env.pop('FOURGET_VERSION',None)
     old['Config']['Env'] = [k+'='+v for k,v in env.items()]
+    # Migrate away from the failed self-hosted default before candidate startup.
+    set_redlib_primary(old, env.get('FOURGET_REDLIB_PRIMARY') if env.get('FOURGET_REDLIB_PRIMARY') in REDLIB_ORIGINS else REDLIB_ORIGINS[0])
     (backup/'effective-config.json').write_text(raw)
     old['_private_binds'] = []
     for directory in ('api_keys','proxies','captcha'):
@@ -331,6 +371,8 @@ def main():
         candidate = api('POST','/containers/create?name='+candidate_name,create_payload(old,image,True))['Id']
         api('POST','/containers/'+candidate+'/start')
         healthy(candidate)
+        selected_redlib = live_redlib_gate(candidate,backup)
+        set_redlib_primary(old, selected_redlib)
         live_binternet_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')
         candidate = None
@@ -364,10 +406,11 @@ def main():
         replacement = api('POST','/containers/create?name='+urllib.parse.quote(name,safe=''),create_payload(old,image))['Id']
         api('POST','/containers/'+replacement+'/start')
         healthy(replacement)
+        verify_redlib_config(replacement, selected_redlib)
         # Verify the preserved host binding, beyond container-internal health.
         run('curl','-fsS','--max-time','10','-o','/dev/null','http://172.17.0.1:5140/')
         committed = True
-        (backup/'release.json').write_text(json.dumps({'image':image,'container':replacement,'rollback_container':rollback_name},indent=2))
+        (backup/'release.json').write_text(json.dumps({'image':image,'container':replacement,'rollback_container':rollback_name,'redlib_primary':selected_redlib},indent=2))
         print('Deployment healthy at 172.17.0.1:5140. NPM upstream remains unchanged.')
         print('Rollback: bash '+str(rollback))
         print('Retain '+str(backup)+'; the running service may mount its private data snapshots.')

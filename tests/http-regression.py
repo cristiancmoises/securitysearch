@@ -129,18 +129,18 @@ http_response_code(404);return true;
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
-                assert '/static/themes/Black.css?v26' in html and html.count('class="search-action-icon"')==4
+                assert '/static/themes/Black.css?v27' in html and html.count('class="search-action-icon"')==4
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v26' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v27' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']
                 headers,html,url=search(cookie='image_infinite=no; image_motion=no; theme=Lain')
-                assert '<script' not in html and url and '/static/themes/Lain.css?v26' in html
+                assert '<script' not in html and url and '/static/themes/Lain.css?v27' in html
                 reset();headers,html,url=search()
                 for number in range(2,16):
                     data=append(url)
@@ -185,13 +185,13 @@ http_response_code(404);return true;
                 code,headers,html=request('/'+more.lstrip('/'))
                 assert code==200 and 'Reddit via Redlib' in html
                 code,headers,html=request('/news?s=GNU+Guix')
-                assert code==200 and 'Related posts' in html and 'libre.securityops.co/r/news/comments' in html
+                assert code==200 and 'Related posts' in html and 'redlib.privacyredirect.com/r/news/comments' in html
                 reset();started=time.monotonic()
                 code,headers,html=request('/news?s=failure')
                 elapsed=time.monotonic()-started
                 assert code==503 and 'Took ' not in html and elapsed<3, ('offline failure latency',elapsed)
                 attempts=json.loads(request('/fixture-stats')[2])['redlib']
-                assert attempts==['https://libre.securityops.co','https://redlib.nadeko.net','https://redlib.privacyredirect.com'],attempts
+                assert attempts==['https://redlib.privacyredirect.com','https://redlib.nadeko.net','https://redlib.privacyredirect.com'],attempts
                 # A second failed query is skipped by the origin-only cooldown.
                 code,headers,html=request('/news?s=failure')
                 assert code==503 and json.loads(request('/fixture-stats')[2])['redlib']==attempts
@@ -200,7 +200,7 @@ http_response_code(404);return true;
                 next_news=Links(html).next;assert next_news
                 code,headers,html=request('/'+next_news.lstrip('/'))
                 assert code==200 and json.loads(request('/fixture-stats')[2])['redlib']==[
-                    'https://libre.securityops.co','https://redlib.nadeko.net','https://redlib.nadeko.net']
+                    'https://redlib.privacyredirect.com','https://redlib.nadeko.net','https://redlib.nadeko.net']
                 print('PASS: all Redlib origins are fixture-owned; 503/cooldown/fallback/pagination need no external DNS or HTTP.')
                 for file,mime in [('two.gif','image/gif'),('two.webp','image/webp'),('two.png','image/png')]:
                     path='/proxy-fixture?i=https%3A%2F%2Fexample.org%2F'+file

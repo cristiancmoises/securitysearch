@@ -1,12 +1,27 @@
 <?php
 /** Fixed Redlib inventory, not a user-supplied URL list. No query/result history. */
 final class service_pool {
-    public const PRIMARY='https://libre.securityops.co';
-    public const FALLBACKS=['https://redlib.nadeko.net','https://redlib.privacyredirect.com'];
+    public const PRIMARY='https://redlib.privacyredirect.com';
+    public const FALLBACKS=['https://redlib.nadeko.net','https://redlib.privadency.com'];
 
+    /** Curated inventory, not an arbitrary operator/user-supplied URL. */
+    public static function allowed(): array { return array_merge([self::PRIMARY],self::FALLBACKS); }
+    public static function primary(): string {
+        $origin=defined('config::REDLIB_PRIMARY') ? config::REDLIB_PRIMARY : self::PRIMARY;
+        if (!is_string($origin) || !in_array($origin,self::allowed(),true))
+            throw new RuntimeException('REDLIB_PRIMARY must be one of the approved external Redlib instances.');
+        return $origin;
+    }
     public static function origins(): array {
+        $primary=self::primary();
         $enabled=!defined('config::REDLIB_FALLBACKS') || config::REDLIB_FALLBACKS===true;
-        return $enabled ? array_merge([self::PRIMARY],self::FALLBACKS) : [self::PRIMARY];
+        return $enabled ? array_values(array_unique(array_merge([$primary],self::allowed()))) : [$primary];
+    }
+    public static function disclosure(): string {
+        $hosts=array_map(static fn($url)=>parse_url($url,PHP_URL_HOST),self::origins());
+        return 'Reddit news uses '.$hosts[0].'. '.(count($hosts)>1 ?
+            'After a failure, '.implode(' or ',array_slice($hosts,1)).' may receive the query. No background retry runs.' :
+            'External instance fallback is disabled.');
     }
     public static function read(string $key) {
         return function_exists('apcu_enabled') && apcu_enabled() ? apcu_fetch($key) : false;

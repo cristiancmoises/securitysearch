@@ -33,12 +33,15 @@ function securitysearch_theme_post(): void {
         'expires'=>time()+34560000,'path'=>'/','samesite'=>'Lax','httponly'=>true,
         'secure'=>(isset($_SERVER['HTTPS']) && $_SERVER['HTTPS']!=='off') || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')==='https'
     ]);
-    header('Location: /',true,303); exit;
+    header('Location: '.($choice==='Custom' ? '/#appearance' : '/'),true,303); exit;
 }
 
 function securitysearch_theme_picker(string $selected): string {
     $escape=static fn($s)=>htmlspecialchars($s,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
-    $html='<details class="appearance-picker" id="appearance"><summary>Choose appearance <span>Black or your image themes</span></summary>' .
+    $entry=$selected==='Custom' ? '' : '<form method="post" action="/" class="local-picture-entry">'.
+        '<input type="hidden" name="appearance" value="1"><input type="hidden" name="theme" value="Custom">'.
+        '<button type="submit">Use a picture from this device</button><small>Browser only · optional JavaScript · no upload</small></form>';
+    $html=$entry.'<details class="appearance-picker" id="appearance"'.($selected==='Custom' ? ' open' : '').'><summary>Choose appearance <span>Black or your image themes</span></summary>' . ($selected==='Custom' ? securitysearch_background_controls() : '') .
         '<form method="post" action="/" class="appearance-form"><input type="hidden" name="appearance" value="1">' .
         '<fieldset><legend>Background theme</legend><div class="appearance-grid">';
     foreach (securitysearch_theme_catalog() as $name=>$preview) {
@@ -54,19 +57,22 @@ function securitysearch_theme_picker(string $selected): string {
         $html.='<span class="appearance-label">'.$escape($label).'</span></label>';
     }
     return $html.'</div></fieldset><div class="appearance-actions"><button type="submit">Save appearance</button><a href="/settings">All settings</a></div>' .
-        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form>'.($selected==='Custom' ? securitysearch_background_controls() : '<p class="local-picture-hint">Select My picture and save to choose a file locally. Optional JavaScript; no image upload.</p>').'</details>';
+        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form>'.($selected==='Custom' ? '' : '<p class="local-picture-hint">Use the button above to open the local picture chooser. Nothing is uploaded.</p>').'</details>';
 }
 
 /** File input is deliberately outside every form and has no name attribute. */
 function securitysearch_background_controls(): string {
-    return '<section class="local-background-controls" aria-labelledby="local-background-title">'.
-        '<h2 id="local-background-title">Your picture, only in your browser</h2>'.
-        '<label for="background-file">JPEG, PNG or WebP (up to 8 MiB)</label> '.
-        '<input id="background-file" type="file" accept="image/jpeg,image/png,image/webp">'.
-        '<label><input id="background-remember" type="checkbox"> Remember on this device (local storage)</label>'.
-        '<button id="background-remove" type="button">Remove my picture</button>'.
-        '<p id="background-status" role="status" aria-live="polite">Nothing is uploaded. By default the picture stays only in this tab session.</p>'.
-        '<noscript><p>Local picture selection needs optional JavaScript. Search and bundled themes work without it.</p></noscript></section>';
+    return '<section class="local-background-controls" id="local-background-editor" aria-labelledby="local-background-title">'.
+        '<h2 id="local-background-title">Your picture, only on this device</h2>'.
+        '<p>No upload. Choose a file below; it is applied automatically on this page.</p>'.
+        '<label for="background-file">Choose image · JPEG, PNG, WebP or GIF (up to 16 MiB)</label>'.
+        '<input id="background-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" aria-describedby="background-status" disabled>'.
+        '<img id="background-preview" alt="Your local background preview" hidden decoding="async">'.
+        '<label><input id="background-remember" type="checkbox" disabled> Remember on this device (local storage)</label>'.
+        '<button id="background-remove" type="button" disabled>Remove my picture</button>'.
+        '<p id="background-status" role="status" aria-live="polite">The chooser needs optional JavaScript. If it stays disabled, allow this site’s local script and reload. Pictures are never sent to the server.</p>'.
+        '<small>Up to 48 megapixels, resized locally to 1920 pixels. Animated inputs use a still frame. HEIC/HEIF and SVG are not supported.</small>'.
+        '<noscript><p>JavaScript is disabled. Enable it for this local feature or choose a bundled theme; ordinary search works without it.</p></noscript></section>';
 }
 
 function securitysearch_selected_theme(): string {

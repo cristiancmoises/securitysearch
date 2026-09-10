@@ -3,6 +3,7 @@
 require_once __DIR__ . "/provider_availability.php";
 require_once __DIR__ . "/theme_picker.php";
 require_once __DIR__ . "/site_metadata.php";
+require_once __DIR__ . "/service_pool.php";
 
 class frontend{
 	// Cache only bundled, unrendered templates. Never store queries, cookies or
@@ -55,6 +56,8 @@ class frontend{
 		$replacements["video_suggestion"] ??= "";
 		$replacements["image_suggestion"] ??= "";
         $replacements["trust_footer"] = securitysearch_footer();
+        $replacements["redlib_origin"] = htmlspecialchars(service_pool::primary(),ENT_QUOTES|ENT_SUBSTITUTE,"UTF-8");
+        $replacements["redlib_host"] = htmlspecialchars(parse_url(service_pool::primary(),PHP_URL_HOST),ENT_QUOTES|ENT_SUBSTITUTE,"UTF-8");
         $theme = securitysearch_selected_theme();
         if ($template === 'home.html') $replacements['theme_picker'] = securitysearch_theme_picker($theme);
         $replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">' .
@@ -105,9 +108,7 @@ class frontend{
 		$page_style = "";
         if ($page==='news' && ($get['scraper'] ?? '')==='reddit') {
             require_once __DIR__.'/service_pool.php';
-            $notice= count(service_pool::origins())>1
-                ? 'Reddit news tries libre.securityops.co first. If it fails, redlib.nadeko.net or redlib.privacyredirect.com may receive this query.'
-                : 'Reddit news uses libre.securityops.co; external instance fallback is disabled.';
+            $notice=service_pool::disclosure();
         }
 		if(isset($page_styles[$page])){
 

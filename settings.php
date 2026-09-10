@@ -543,6 +543,7 @@ foreach($loop as $key => $value){
 	);
 }
 
+securitysearch_content_security_policy();
 include "lib/frontend.php";
 $frontend = new frontend();
 
@@ -933,6 +934,8 @@ $left .=
 		'<span class="code-inline">key=value</span> cookie in your browser. ' .
 		'Selecting a default value removes that parameter from your cookies.' .
 	'</div>';
+
+if (securitysearch_selected_theme()==='Custom') $left .= securitysearch_background_controls();
 
 /* COOKIE INSPECTOR */
 $c = count($_COOKIE);

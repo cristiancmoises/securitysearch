@@ -33,3 +33,17 @@ select:focus-visible,button:focus-visible,summary:focus-visible,input:focus-visi
 .thumb .motion-layer{position:absolute!important;inset:0;display:block;width:100%!important;height:100%!important;z-index:1;pointer-events:none;}
 .thumb .motion-layer[hidden]{display:none!important;}
 .motion-toggle{z-index:3;}.motion-toggle:disabled{opacity:.55;cursor:default;}
+
+/* A native entry point; file data never belongs to a form. */
+.local-picture-entry{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:center;justify-content:center;margin:1rem 0;}
+.local-picture-entry button{background:#000;color:var(--8ec07c,#3de2f4);border:1px solid var(--504945,#294048);border-radius:.5rem;padding:.65rem 1rem;cursor:pointer;min-height:44px;}
+.local-picture-entry small{font-size:.7rem;color:var(--928374,#84979f);}
+.local-background-controls{margin:.75rem 0;border:1px solid var(--504945,#294048);border-radius:.7rem;background:var(--282828,#0b0e10);scroll-margin-top:1rem;}
+.local-background-controls input[type=file]{display:block;width:100%;padding:.6rem;border:1px solid var(--control-accent);border-radius:.4rem;background:#000;min-height:44px;box-sizing:border-box;}
+.local-background-controls input::file-selector-button{background:var(--control-accent);color:#000;border:0;border-radius:.3rem;padding:.5rem .75rem;margin-right:.65rem;cursor:pointer;}
+.local-background-controls :disabled{opacity:.6;cursor:not-allowed;}
+.local-background-controls small{display:block;font-size:.72rem;color:var(--928374,#84979f);}
+#background-preview{display:block;max-width:100%;max-height:170px;border-radius:.5rem;object-fit:contain;margin:.8rem auto;}
+#background-preview[hidden]{display:none;}
+#background-status{line-height:1.6;overflow-wrap:anywhere;}
+.local-picture-entry button:focus-visible,.local-background-controls :focus-visible{outline:2px solid var(--control-accent);outline-offset:3px;}

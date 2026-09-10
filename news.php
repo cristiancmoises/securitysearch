@@ -40,8 +40,8 @@ try{
 	Populate links
 */
 if($get['scraper']==='reddit') {
-    $origin=$results['_service'] ?? service_pool::PRIMARY;
-    if(!in_array($origin,service_pool::origins(),true)) $origin=service_pool::PRIMARY;
+    $origin=$results['_service'] ?? service_pool::primary();
+    if(!in_array($origin,service_pool::origins(),true)) $origin=service_pool::primary();
     $payload['left']='<p class="news-context">'.($get['s']==='' ? 'Latest posts' : 'Related posts').' from r/news and r/worldnews · <a href="'.htmlspecialchars($origin,ENT_QUOTES).'/r/news+worldnews/new" rel="noreferrer noopener">Open Reddit</a><small>Source: '.htmlspecialchars(parse_url($origin,PHP_URL_HOST),ENT_QUOTES).(!empty($results['_cached']) ? ' · public feed cache (up to 60 seconds)' : '').'. '.(count(service_pool::origins())>1 ? 'A fallback Redlib instance may receive this query after a failure.' : 'External Redlib fallback is disabled.').'</small></p>';
 }
 if(count($results['news'])===0) {

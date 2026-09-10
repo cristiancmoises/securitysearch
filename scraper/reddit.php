@@ -4,7 +4,7 @@ require_once __DIR__ . '/../lib/service_pool.php';
 
 /** News/community links from the operator's Redlib frontend, never direct Reddit. */
 class reddit extends service_search {
-    protected const ORIGIN='https://libre.securityops.co';
+    protected const ORIGIN=service_pool::PRIMARY;
     private const FEED='/r/news+worldnews/new';
     private const SEARCH='/r/news+worldnews/search';
 
@@ -54,7 +54,7 @@ class reddit extends service_search {
     }
 
     protected function fetch_redlib(string $origin,string $path,array $params,int $deadline): string {
-        if (!in_array($origin,service_pool::origins(),true) || !in_array($path,[self::FEED,self::SEARCH],true)) throw new InvalidArgumentException('Unapproved service route.');
+        if (!in_array($origin,service_pool::allowed(),true) || !in_array($path,[self::FEED,self::SEARCH],true)) throw new InvalidArgumentException('Unapproved service route.');
         if ($origin===self::ORIGIN) {
             $this->service_deadline=$deadline;
             try {return $this->fetch_path($path,$params);} finally {$this->service_deadline=null;}
@@ -77,7 +77,7 @@ class reddit extends service_search {
     }
 
     public function decode(string $body,string $origin=self::ORIGIN): array {
-        if (!in_array($origin,service_pool::origins(),true)) throw new InvalidArgumentException("Unapproved Redlib origin.");
+        if (!in_array($origin,service_pool::allowed(),true)) throw new InvalidArgumentException("Unapproved Redlib origin.");
         $previous=libxml_use_internal_errors(true);
         try {
             $doc=new DOMDocument();

@@ -59,8 +59,10 @@ header("Cross-Origin-Embedder-Policy: unsafe-none"); // require-corp breaks 3rd-
 header("X-Permitted-Cross-Domain-Policies: none");
 
 // Content Security Policy
+function securitysearch_content_security_policy(): void {
+    if (headers_sent()) return;
 $image_enhancement=defined('SECURITYSEARCH_IMAGE_ENHANCEMENT') && SECURITYSEARCH_IMAGE_ENHANCEMENT===true;
-$local_picture=($_COOKIE['theme'] ?? null)==='Custom' && in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''),
+$local_picture=($_COOKIE['theme'] ?? (defined('config::DEFAULT_THEME') ? config::DEFAULT_THEME : null))==='Custom' && in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''),
     ['index.php','web.php','images.php','videos.php','news.php','music.php','settings.php','about.php','instances.php'],true);
 header(
     "Content-Security-Policy: " .
@@ -80,6 +82,9 @@ header(
     "worker-src 'none'; " .
     "upgrade-insecure-requests"
 );
+
+}
+securitysearch_content_security_policy();
 
 // Hide PHP version
 header_remove("X-Powered-By");

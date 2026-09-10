@@ -14,12 +14,12 @@ $now=1015;$lookup('images.securityops.co');check($calls===2,'expiration resolves
 $before=[$calls,$writes];$lookup('example.org');$lookup('example.org');check($calls===$before[0]+2&&$writes===$before[1],'arbitrary hosts not shared');
 $bad=['127.0.0.1','10.0.0.1','192.168.1.1','169.254.169.254','0.0.0.0','224.0.0.1','::1','::ffff:127.0.0.1','fc00::1','ff00::1','64:ff9b::a00:1','2002:7f00:1::'];
 foreach($bad as $ip)check(!provider_dns::public_ip($ip),'private or transition address '.$ip);
-foreach($bad as $ip){$result=provider_dns::lookup('libre.securityops.co',fn()=>['ips'=>['1.1.1.1',$ip],'ttl'=>15],fn()=>false,$write,$clock);check($result===[],'mixed answer refused');}
+foreach($bad as $ip){$result=provider_dns::lookup('redlib.privacyredirect.com',fn()=>['ips'=>['1.1.1.1',$ip],'ttl'=>15],fn()=>false,$write,$clock);check($result===[],'mixed answer refused');}
 check(provider_dns::lookup('https://example.org/path',$resolver,$read,$write,$clock)===[],'URL not accepted as host');
 $key='securitysearch-dns-v1-'.hash('sha256','images.securityops.co');$store[$key]=['ips'=>['127.0.0.1'],'until'=>$now+15];
 $before=$calls;check($lookup('images.securityops.co')[0]==='1.1.1.1' && $calls===$before+1,'poisoned shared data revalidated');
 $store[$key]=['ips'=>['1.1.1.1'],'until'=>$now+1000];$before=$calls;$lookup('images.securityops.co');check($calls===$before+1,'implausible expiration rejected');
-$writesBefore=$writes;provider_dns::lookup('libre.securityops.co',fn()=>['ips'=>['1.1.1.1'],'ttl'=>0],fn()=>false,$write,$clock);check($writes===$writesBefore,'TTL zero not persisted');
-provider_dns::lookup('libre.securityops.co',fn()=>['ips'=>[],'ttl'=>15],fn()=>false,$write,$clock);check($writes===$writesBefore,'failures not shared');
+$writesBefore=$writes;provider_dns::lookup('redlib.privacyredirect.com',fn()=>['ips'=>['1.1.1.1'],'ttl'=>0],fn()=>false,$write,$clock);check($writes===$writesBefore,'TTL zero not persisted');
+provider_dns::lookup('redlib.privacyredirect.com',fn()=>['ips'=>[],'ttl'=>15],fn()=>false,$write,$clock);check($writes===$writesBefore,'failures not shared');
 check($lookup('IMAGES.SECURITYOPS.CO.')[0]==='1.1.1.1','canonical host key');
 echo "PASS: $n DNS metadata assertions; 30 fixed-host reads used one resolver callback (fixture, not live latency).\n";

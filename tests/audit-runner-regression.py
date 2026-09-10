@@ -63,11 +63,13 @@ class Runner(unittest.TestCase):
 
     def test_real_suite_and_docker_acceptance_are_not_shortened(self):
         commands = [line for line in BODY.splitlines() if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 43)
+        self.assertEqual(len(commands), 47)
         self.assertEqual(len(set(commands)), len(commands))
         for name in ['native-runtime.php', 'operator-archive-regression.py',
                      'deploy-import-regression.py', 'deploy-regression.py', 'http-regression.py',
-                     'redlib-failover-regression.php', 'publication-v0.9.22-regression.py']:
+                     'redlib-failover-regression.php', 'publication-v0.9.22-regression.py',
+                     'news-primary-regression.php','news-deploy-regression.py',
+                     'picture-http-regression.py','publication-v0.9.23-regression.py']:
             self.assertTrue(any(name in command for command in commands), name)
         deploy = (ROOT / 'scripts/deploy-ionos.py').read_text()
         self.assertIn('sh scripts/test.sh --keep-going', deploy)

@@ -1,3 +1,12 @@
+## v0.9.23
+
+Retire the failed self-hosted news default. Require a real candidate feed AND
+keyword search before selecting an external Redlib primary. Repair local-picture
+Settings CSP ordering and missing/collapsed editor; add a clear native entry,
+byte-signature detection, GIF stills, preview and honest storage feedback. Asset 27.
+All r1/r2 gates and private-artwork exclusions remain.
+[Operations](docs/OPERATIONS-0.9.23.md) · [Release](docs/RELEASE-0.9.23.md).
+
 ## v0.9.22
 
 Repair the offline Redlib transport fixture and add fail-fast test-only network

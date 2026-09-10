@@ -3,7 +3,7 @@ require 'data/config.php';require 'lib/frontend.php';require 'scraper/reddit.php
 function verify($value,$label){if(!$value)throw new RuntimeException($label);}
 $provider=new reddit();$body=file_get_contents('tests/fixtures/redlib-news.html');$result=$provider->decode($body);
 verify(count($result['news'])===2,'Recognized and bounded Reddit permalinks');
-verify($result['news'][0]['url']==='https://libre.securityops.co/r/news/comments/abc123/gnu_guix_release/','Source stays in Redlib');
+verify($result['news'][0]['url']==='https://redlib.privacyredirect.com/r/news/comments/abc123/gnu_guix_release/','Source stays in Redlib');
 verify($result['news'][0]['title']==='GNU Guix & privacy <script>' && $result['news'][0]['author']==='r/news · u/A&B','Decoded text, no flair-as-title');
 verify($result['news'][0]['date']===strtotime('2026-09-09 01:23:45 UTC') && $result['news'][1]['date']===null,'Strict UTC date parsing');
 verify($result['after']==='t3_next123','Formatted next link decoded');

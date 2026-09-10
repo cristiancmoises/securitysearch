@@ -69,6 +69,10 @@ run_test python3 tests/rank-timer-regression.py
 run_test node tests/local-picture-regression.cjs
 run_test python3 tests/experience-http-regression.py
 run_test python3 tests/publication-v0.9.22-regression.py
+run_test php tests/news-primary-regression.php
+run_test python3 tests/news-deploy-regression.py
+run_test python3 tests/picture-http-regression.py
+run_test python3 tests/publication-v0.9.23-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

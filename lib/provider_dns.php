@@ -4,7 +4,7 @@
  * Other names are memoized only within one PHP request. Connections remain pinned.
  */
 final class provider_dns {
-    private const SHARED = ['libre.securityops.co','redlib.nadeko.net',
+    private const SHARED = ['redlib.privadency.com','redlib.nadeko.net',
         'redlib.privacyredirect.com','images.securityops.co','invidious.securityops.co',
         'i.pinimg.com','pinimg.com'];
     private static array $local = [];
