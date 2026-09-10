@@ -1,3 +1,13 @@
+## v0.9.20 — release publication and r1 audit repair
+
+Binternet legacy/modern markup compatibility, bounded legacy provider waits and
+pure-black homepage with native theme previews. Includes the r1 cURL test-isolation
+repair. Application 0.9.20, assets 24. Annotated tag and exact source-package
+publication now have a dedicated four-host workflow; no deployment is performed
+by publication. [Release notes](docs/RELEASE-0.9.20.md) ·
+[Publishing](docs/PUBLISHING-0.9.20.md) ·
+[Publicação](docs/PUBLISHING-0.9.20.pt-BR.md).
+
 ## v0.9.19
 
 Complete v0.9.18 improvements integrated on Codeberg commit `0751f14`, preserving the removed Lain animation. Adds annotated release packaging, a fast-forward Git bundle for existing checkouts, four-host token publication, real homepage capture in English/pt-BR READMEs and matching release notes. Asset marker 23. [Release notes](docs/RELEASE-0.9.19.md) · [Publication](docs/PUBLISHING.md).

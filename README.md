@@ -26,23 +26,75 @@ The four search actions remain inside the search bar: Search, Search Image, Sear
 
 Google stays the default web/image provider. A failed first Google search can try Brave once with a visible notice; continuation requests do not silently change provider. Reddit uses the configured Redlib service and YouTube uses Invidious. Their availability has not been established by this patch.
 
-## Apply, deploy and publish
+## Release v0.9.20
 
-Use the `securitysearch-update-0.9.20` patch kit, not the old v0.9.19 publication launcher:
+This release includes the **r1 offline-audit repair** and keeps application version
+**0.9.20** / asset version **24**. The four cURL test doubles are conditionally
+registered, partially configured isolation is rejected, and deployment prints a
+bounded audit-failure tail while retaining the complete log. Production cURL is
+not disabled. [Repair details](docs/AUDITFIX-0.9.20-r1.md).
 
-```fish
-fish ./apply-securitysearch.fish ~/securitysearch
-fish ./deploy-securitysearch.fish ~/securitysearch
-fish ./push-securitysearch.fish ~/securitysearch
+### Packages
+
+[Codeberg release](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.20) ·
+[GitHub release](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
+[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
+[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.20)
+
+Each completed release provides **`securitysearch-v0.9.20.tar.gz`** and its
+**`.tar.gz.sha256`** checksum. The package is the complete tagged PHP source,
+including documentation, tests and bundled assets—not a prebuilt Docker image or
+native executable. A release link is available only after that host's publication
+has completed.
+
+```sh
+sha256sum -c securitysearch-v0.9.20.tar.gz.sha256
+tar -xzf securitysearch-v0.9.20.tar.gz
 ```
 
-The first command requires a clean `main`, verifies every touched baseline file, applies only the patch and creates one local commit with your configured Git identity. It never resets, stashes or overwrites unrelated work. Deployment archives that verified commit and uploads over SSH **5119** to **root@securityops.co**. The updater retains the existing **172.17.0.1:5140 → 80** binding and Docker networks; it refuses unsupported mount/port layouts instead of changing Nginx Proxy Manager.
+### Update an existing installation
 
-Before cutover, deployment must pass the full offline suite in a disposable, network-disabled audit container, candidate readiness, and a real neutral Binternet search from the VPS. Available Binternet pagination is checked too. Failed pre-cutover gates leave production running. A failed replacement readiness restores the retained old container. The printed backup directory may hold mounted private-data snapshots: do not prune it.
+Apply/deploy the repaired **`securitysearch-update-0.9.20-r1`** kit before using the
+publication kit. Do not use the original, unrepaired v0.9.20 kit or the old v0.9.19
+publication launcher.
 
-Publishing prompts privately for four separate tokens and preflights all four HTTPS repositories. Only fast-forward `main` pushes are allowed. Existing remote configuration, tags and release objects are untouched. Separate servers cannot be updated atomically; partial publication is reported and can be reconciled by rerunning.
+Deployment uploads committed source over SSH **5119** to **root@securityops.co**.
+The updater retains the existing **172.17.0.1:5140 → 80** binding and Docker
+networks; unsupported layouts are refused instead of changing Nginx Proxy Manager.
+The full isolated offline suite, candidate readiness and a real Binternet check
+must pass before cutover. Retain the printed backup directory: it may hold
+private-data snapshots mounted by the new container.
 
-[Operation details](docs/UPDATE-0.9.20.md) · [Detalhes em português](docs/UPDATE-0.9.20.pt-BR.md) · [Audit limitations](docs/AUDIT-0.9.20.md)
+### Maintainer publication
+
+From the extracted **`securitysearch-publication-0.9.20`** kit:
+
+```fish
+fish ./publish-securitysearch-v0.9.20.fish ~/securitysearch
+```
+
+The launcher verifies the exact r1 baseline, updates the English/pt-BR READMEs and
+release documentation, commits only those intended changes, runs the publication
+regressions, creates an annotated **`v0.9.20`** tag and packages that exact commit.
+It then asks for four private tokens and preflights every repository before the
+first remote write. On each host, `main` and the tag are pushed atomically without
+force. Release assets are uploaded to a draft, verified, and then published.
+
+A repeat run resumes matching drafts and missing hosts. Conflicting tags, notes or
+assets are never replaced. Publication across four servers is not atomic. A local
+incremental Git bundle is also produced for recovery; it requires the published
+v0.9.19 baseline. Tokens are not stored in files, URLs or command arguments.
+
+**Publication does not deploy the VPS.** After this documentation commit, the old
+r1 launcher's exact README hashes no longer match; use the matching
+`deploy-securitysearch.fish` in the publication kit for any subsequent deployment.
+
+[Release notes / Notas da versão](docs/RELEASE-0.9.20.md) ·
+[Publishing guide](docs/PUBLISHING-0.9.20.md) ·
+[Publicação em português](docs/PUBLISHING-0.9.20.pt-BR.md) ·
+[Operation details](docs/UPDATE-0.9.20.md) ·
+[Detalhes em português](docs/UPDATE-0.9.20.pt-BR.md) ·
+[Audit limitations](docs/AUDIT-0.9.20.md)
 
 ## Tests
 
@@ -54,6 +106,6 @@ Requires PHP with curl, DOM/XML, mbstring, APCu, sodium, fileinfo and Imagick, p
 
 For a separate, explicit live provider matrix after deployment, run `fish ./audit-providers.fish` from the patch kit. It makes one neutral `teste` search per enabled provider/page combination, sequentially. An unavailable or empty provider is not counted as a successful search. Results, credentials and pagination tokens are not dumped into the JSON report.
 
-Local authoring did **not** execute Docker, the extension-dependent PHP suites, or live VPS/provider requests. See the audit report for passes versus dependency blockers. Historical release tools and documents remain under `scripts/` and `docs/` for v0.9.19; they are not the v0.9.20 publishing path.
+Local authoring did **not** execute Docker, the extension-dependent PHP suites, or live VPS/provider requests. See the audit report for passes versus dependency blockers. Historical v0.9.19 tools remain available for that release. The v0.9.20 publishing tools are `scripts/package-v0.9.20.py` and `scripts/publish-v0.9.20.py`; the publication kit coordinates them.
 
 License: [AGPL-3.0](license.txt).
