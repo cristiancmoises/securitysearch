@@ -77,9 +77,16 @@ Codeberg. Tron retains its bundled optimized animation. Without the private pack
 Lain keeps its palette and SecOps its public Matrix alternative. Onion and dated
 Tranco information remain; no rank is invented when metadata is unavailable.
 
+## Maintenance revision r1
+
+Fixes the Reddit test object overwrite and the RSS Retry-After dependency on
+optional ctype. Numeric/header bounds and all live acceptance checks remain.
+[Repair details](docs/AUDITFIX-0.9.24-r1.md). Version 0.9.24 / assets 28 are unchanged.
+
 ## Install this update
 
-From the complete extracted `securitysearch-update-0.9.24` kit on your computer:
+For an already-applied v0.9.24 checkout, use the complete extracted
+`securitysearch-update-0.9.24-r1` repair kit on your computer:
 
 ```fish
 fish ./apply-securitysearch.fish ~/securitysearch
@@ -88,8 +95,9 @@ and fish ./deploy-securitysearch.fish ~/securitysearch \
     --rank-refresh
 ```
 
-The apply helper accepts exact clean v0.9.23-r1 or v0.9.23 source. It creates a normal
-commit and refuses uncommitted/conflicting work. SSH is `root@securityops.co`, port
+The r1 helper accepts exact clean v0.9.24 source (or the already repaired tree).
+Apply the original v0.9.24 update first when starting from v0.9.23. It creates a
+normal commit and refuses uncommitted/conflicting work. SSH is `root@securityops.co`, port
 5119. Deployment preserves the existing `172.17.0.1:5140 → 80` binding, networks and
 compatible private settings without recreating Nginx Proxy Manager. Reuse the theme
 pack; do not commit it. Keep backups: a running container can mount their snapshots.
@@ -127,7 +135,7 @@ precompiled executable or Docker image. Checksums are not cryptographic signatur
 sh scripts/test.sh --keep-going
 ```
 
-All **55** command entries remain mandatory. PHP curl/DOM/XML/mbstring/APCu/Imagick,
+All **56** command entries remain mandatory. PHP curl/DOM/XML/mbstring/APCu/Imagick,
 Python, Node, Git and fish are needed for the full suite. A local missing dependency
 is not a passing audit. [Audit](docs/AUDIT-0.9.24.md) distinguishes executed tests,
 fixtures, missing native dependencies and unperformed live operations.

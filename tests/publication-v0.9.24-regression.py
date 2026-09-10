@@ -410,6 +410,7 @@ class PackageTests(unittest.TestCase):
         self.builder.package(self.repo, self.output)
         self.assertEqual(before, {f.name:f.read_bytes() for f in self.output.iterdir()})
         manifest=json.loads((self.output/"release-manifest.json").read_text())
+        self.assertEqual(manifest['asset_version'],28)
         self.assertEqual(manifest['commit'],self.g('rev-parse','HEAD').decode().strip())
         self.g('bundle','verify',str(self.output/'securitysearch-v0.9.24.bundle'))
         p.prepare(self.repo,self.output,self.repo/'docs/RELEASE-0.9.24.md')

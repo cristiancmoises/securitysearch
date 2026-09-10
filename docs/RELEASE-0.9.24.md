@@ -4,6 +4,11 @@ Application **0.9.24** · asset marker **28**. Includes all v0.9.23-r1 repairs.
 
 ## English
 
+Maintenance revision r1 includes the separate Reddit test fixture, a core-PHP
+Retry-After numeric check that works without ctype, ordered audit error output,
+and correct asset-28 package metadata. All deployment gates remain mandatory.
+[Repair details](AUDITFIX-0.9.24-r1.md).
+
 News no longer depends on a Redlib instance accepting automated requests. The
 new default **News RSS** adapter tries Google News RSS, then Bing News RSS on
 failure. This is publisher-headline search, **not Reddit content**. The optional
@@ -57,6 +62,10 @@ No force push, changed old tag, replacement of conflicting assets, production
 restart or remote publication occurred during preparation of this kit.
 
 ## Português do Brasil
+
+A revisão r1 separa o objeto do teste Reddit, trata Retry-After sem depender de
+ctype, ordena os logs da auditoria e corrige o manifesto do pacote para assets 28.
+Todos os critérios de implantação continuam obrigatórios.
 
 Notícias deixam de depender de uma instância Redlib que aceite as requisições.
 O novo padrão **News RSS** consulta Google News RSS e, se falhar, Bing News RSS.

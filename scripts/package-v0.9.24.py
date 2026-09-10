@@ -172,7 +172,7 @@ def package(repo, outdir):
              bundle_path.name: bundle,
              bundle_path.name + '.sha256': (digest(bundle) + '  ' + bundle_path.name + '\n').encode(),
              'RELEASE-0.9.24.md': git(repo, 'show', commit + ':docs/RELEASE-0.9.24.md')}
-    manifest = {'schema': 1, 'version': VERSION, 'asset_version': 26, 'commit': commit,
+    manifest = {'schema': 1, 'version': VERSION, 'asset_version': 28, 'commit': commit,
                 'tag': TAG, 'tag_object': tag_object, 'bundle_requires_commit': BASE,
                 'artifacts': {name: {'sha256': digest(data), 'size': len(data)} for name, data in files.items()},
                 'published_assets': [archive_name, archive_name + '.sha256'],

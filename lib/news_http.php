@@ -28,7 +28,8 @@ final class news_http {
     }
     public static function retry_after(string $value): int {
         if(strlen($value)>80) return 0;
-        if(ctype_digit($value)) return min(3600,(int)$value);
+        // Retry-After delta-seconds are ASCII digits; do not require ext-ctype.
+        if(preg_match('/\A[0-9]+\z/',$value)===1) return min(3600,(int)$value);
         if(!preg_match('/\A(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4} \d{2}:\d{2}:\d{2} GMT\z/',$value)) return 0;
         $t=strtotime($value);return $t===false?0:max(0,min(3600,$t-time()));
     }

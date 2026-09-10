@@ -210,7 +210,7 @@ def offline_audit(image, backup):
         (context/'Dockerfile').write_text('FROM '+image+'\nRUN apk add --no-cache python3 nodejs git fish\n')
         run('docker','build','-t',audit_image,str(context))
     cid = run('docker','create','--network','none','--entrypoint','/bin/sh',
-              '--workdir',APP,audit_image,'-c','sh scripts/test.sh --keep-going',capture=True).strip()
+              '--workdir',APP,audit_image,'-c','exec 2>&1; sh scripts/test.sh --keep-going',capture=True).strip()
     if not re.fullmatch(r'[a-f0-9]{64}',cid):
         raise RuntimeError('The isolated audit container could not be created.')
     try:

@@ -81,6 +81,7 @@ run_test php tests/newswire-regression.php
 run_test python3 tests/news-rss-http-regression.py
 run_test python3 tests/news-rss-deploy-regression.py
 run_test python3 tests/publication-v0.9.24-regression.py
+run_test python3 tests/news-audit-runtime-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

@@ -68,9 +68,16 @@ inclusive Codeberg. Reutilize o pacote externo somente no deploy. Sem ele, Lain
 mantém a paleta e SecOps a alternativa Matrix. Tron conserva sua animação otimizada.
 Onion/Tranco são preservados, sem inventar ranking quando não houver metadados.
 
+## Revisão de manutenção r1
+
+Corrige a sobrescrita do objeto no teste Reddit e a dependência opcional de ctype
+no Retry-After. Mantém limites e verificações reais de implantação.
+[Detalhes](docs/AUDITFIX-0.9.24-r1.md). Versão 0.9.24 / assets 28 não mudam.
+
 ## Aplicar e implantar
 
-Na pasta completa extraída `securitysearch-update-0.9.24`, no computador local:
+Para um checkout com a v0.9.24 já aplicada, use a pasta completa extraída
+`securitysearch-update-0.9.24-r1`, no computador local:
 
 ```fish
 fish ./apply-securitysearch.fish ~/securitysearch
@@ -79,7 +86,8 @@ and fish ./deploy-securitysearch.fish ~/securitysearch \
     --rank-refresh
 ```
 
-Aceita a árvore exata e limpa v0.9.23-r1 ou v0.9.23; cria commit normal e recusa
+Aceita a árvore exata e limpa v0.9.24, ou a revisão r1 já aplicada. Partindo de
+v0.9.23, aplique primeiro o kit original v0.9.24. Cria commit normal e recusa
 alterações conflitantes. SSH `root@securityops.co`, porta **5119**. Preserva bind
 `172.17.0.1:5140 → 80`, redes e configurações privadas compatíveis. Não recria NPM.
 A suíte offline, prontidão do candidato e verificações reais RSS/Binternet continuam
@@ -110,7 +118,7 @@ host: [Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.
 sh scripts/test.sh --keep-going
 ```
 
-Todos os **55** comandos são obrigatórios. A suíte completa precisa das extensões
+Todos os **56** comandos são obrigatórios. A suíte completa precisa das extensões
 PHP curl/DOM/XML/mbstring/APCu/Imagick, Python, Node, Git e fish. Dependência ausente
 não equivale a teste aprovado. [Auditoria](docs/AUDIT-0.9.24.md) registra limitações;
 [notas bilíngues](docs/RELEASE-0.9.24.md) detalham a mudança.
