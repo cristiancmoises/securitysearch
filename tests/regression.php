@@ -15,11 +15,8 @@ foreach(['<script>', ['gallery']] as $view){
  check(!in_array($get['view'], ['<script>', ['gallery']], true), 'Invalid view rejected');
 }
 $header = $frontend->load('header.html');
-foreach(['Img'=>'img', 'Vids'=>'invidious', 'Chat'=>'chat', 'News'=>'news', 'Wiki'=>'wiki', 'Zupt'=>'zupt-web', 'Reddit'=>'libre'] as $label=>$host){
- foreach(['header.html','home.html'] as $template){
-  check(preg_match('#href="https://'.preg_quote($host, '#').'\.securityops\.co/"[^>]*>'.preg_quote($label, '#').'</a>#', $frontend->load($template))===1, 'Correct external navigation: '.$template.' '.$label);
- }
-}
+require_once __DIR__ . '/navigation-assertions.php';
+assert_external_navigation($frontend);
 $query = 'Guix & "privacy" <script> ação';
 $suggestion = $frontend->video_suggestion($query);
 check(str_contains($suggestion, 'https://invidious.securityops.co/search?q='.rawurlencode($query)), 'Invidious query encoded');

@@ -1,5 +1,7 @@
 # Security Search v0.9.23
 
+**Correção de auditoria r1:** ajusta expectativas antigas do link Redlib e do terceiro fallback e mostra trechos dos testes que falharam no deploy. Aplicação 0.9.23 / asset 27 permanecem. [Correção e limites da validação](docs/AUDITFIX-0.9.23-r1.md).
+
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
 Buscador proxy PHP para [SecurityOps](https://securityops.co/), baseado no
@@ -71,13 +73,12 @@ O histórico antigo não é reescrito. Todas as correções r1/r2 permanecem.
 
 ## Atualizar e publicar
 
-Use **securitysearch-update-0.9.23** em um checkout main exato da v0.9.22-r2, r1 ou
-original, limpo. Alterações desconhecidas, tags e arquivos conflitantes são
-preservados. [Guia completo](docs/OPERATIONS-0.9.23.pt-BR.md).
+Use **securitysearch-update-0.9.23-r1** em um checkout main limpo com a v0.9.23 já aplicada. Alterações desconhecidas, tags e arquivos conflitantes são
+preservados. [Instruções r1](docs/AUDITFIX-0.9.23-r1.md); o guia de operações anterior descreve o upgrade original, não este reparo.
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/apply-securitysearch.fish ~/securitysearch
-and fish ~/Downloads/securitysearch-update-0.9.23/deploy-securitysearch.fish \
+fish ~/Downloads/securitysearch-update-0.9.23-r1/apply-securitysearch.fish ~/securitysearch
+and fish ~/Downloads/securitysearch-update-0.9.23-r1/deploy-securitysearch.fish \
     ~/securitysearch --theme-assets ~/.local/share/securitysearch/operator-themes-v1 --rank-refresh
 ```
 
@@ -88,13 +89,13 @@ precisam passar antes da troca. Preserve backups e comandos de rollback.
 Depois do deploy aprovado:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/publish-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish ~/securitysearch
 ```
 
 Retomada de somente um host, incluindo release e anexos:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/publish-securitysearch.fish \
+fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish \
     ~/securitysearch --host git.securityops.co
 ```
 
@@ -118,7 +119,7 @@ Os links só funcionam após a publicação em cada host.
 sh scripts/test.sh --keep-going
 ```
 
-Os **47** comandos continuam obrigatórios; qualquer erro impede o deploy.
+Os **48** comandos continuam obrigatórios; qualquer erro impede o deploy.
 PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node, Git e fish são necessários.
 [Auditoria](docs/AUDIT-0.9.23.md) separa testes PHP HTTP reais, fixtures do navegador,
 mocks de Docker/API e dependências ausentes. Nenhum deploy, push ou sucesso de

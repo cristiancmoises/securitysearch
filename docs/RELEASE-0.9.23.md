@@ -1,5 +1,7 @@
 # SecuritySearch v0.9.23
 
+Includes the r1 audit-contract repair: current-primary navigation, three distinct fallback expectations, and bounded failing-suite excerpts. No application behavior or acceptance gate is changed. Full native validation remains required.
+
 Application 0.9.23 · asset marker 27 · retains v0.9.22-r1/r2 safeguards.
 
 ## English

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Offline, actual selection-report checks; no Docker engine or external network."""
-import copy, importlib.util, json, tempfile, unittest, subprocess
+import contextlib, copy, importlib.util, io, json, tempfile, unittest, subprocess
 from pathlib import Path
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
@@ -11,7 +11,8 @@ def good(origin=None):
  return {'status':'ok','origin':origin,'attempts':[{'origin':origin,'status':'ok','feed_count':5,'search_count':3}]}
 class NewsGate(unittest.TestCase):
  def call(self,report):
-  with tempfile.TemporaryDirectory()as t,patch.object(m,'run',side_effect=['',json.dumps(report)]):
+  # The transport is mocked. Do not print a simulated live-verification claim.
+  with tempfile.TemporaryDirectory()as t,patch.object(m,'run',side_effect=['',json.dumps(report)]),contextlib.redirect_stdout(io.StringIO()):
    try:return m.live_redlib_gate('fixture',Path(t))
    finally:self.assertTrue((Path(t)/'redlib-live.json').exists())
  def test_runtime_allowlist_matches_deployment(self):

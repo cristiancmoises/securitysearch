@@ -1,5 +1,7 @@
 # Security Search v0.9.23
 
+**Audit repair r1:** corrected retired-Redlib navigation and third-fallback test expectations; failed suites are now excerpted in deployment output. Runtime version 0.9.23 / asset 27 is unchanged. [Repair and validation limits](docs/AUDITFIX-0.9.23-r1.md).
+
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
 PHP search proxy maintained for [SecurityOps](https://securityops.co/), based on
@@ -77,15 +79,15 @@ is not purged. The earlier r1/r2 import/archive fixes and all audit gates remain
 
 ## Apply, deploy, publish
 
-Use the complete matching **securitysearch-update-0.9.23** kit, not an old manifest.
-See [English operations](docs/OPERATIONS-0.9.23.md) and
-[Portuguese operations](docs/OPERATIONS-0.9.23.pt-BR.md) for verification and commands.
-The kit supports clean exact v0.9.22-r2/r1/original main trees. It creates a normal
+Use the matching **securitysearch-update-0.9.23-r1** repair kit, not an old manifest.
+See [r1 repair instructions](docs/AUDITFIX-0.9.23-r1.md). The earlier operations
+guides describe the original v0.9.23 upgrade, not this repair.
+This kit supports an exact clean already-applied v0.9.23 main tree. It creates a normal
 commit; dirty or unexpected work, existing conflicting tags and assets are preserved.
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/apply-securitysearch.fish ~/securitysearch
-and fish ~/Downloads/securitysearch-update-0.9.23/deploy-securitysearch.fish \
+fish ~/Downloads/securitysearch-update-0.9.23-r1/apply-securitysearch.fish ~/securitysearch
+and fish ~/Downloads/securitysearch-update-0.9.23-r1/deploy-securitysearch.fish \
     ~/securitysearch --theme-assets ~/.local/share/securitysearch/operator-themes-v1 --rank-refresh
 ```
 
@@ -97,13 +99,13 @@ must pass before cutover. Keep printed backups and rollback paths.
 After successful deployment:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/publish-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish ~/securitysearch
 ```
 
 Or retry only the previously failing host, including release files:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23/publish-securitysearch.fish \
+fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish \
     ~/securitysearch --host git.securityops.co
 ```
 
@@ -127,7 +129,7 @@ Each link works only after its host's publication succeeds. Publication never de
 sh scripts/test.sh --keep-going
 ```
 
-All **47** commands are mandatory; a nonzero exit still blocks deployment.
+All **48** commands are mandatory; a nonzero exit still blocks deployment.
 PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node, Git and fish are required
 for the full suite. See [audit and limitations](docs/AUDIT-0.9.23.md); incomplete
 native dependencies are not counted as passing tests. Browser fixtures, mock

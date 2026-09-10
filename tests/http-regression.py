@@ -191,7 +191,7 @@ http_response_code(404);return true;
                 elapsed=time.monotonic()-started
                 assert code==503 and 'Took ' not in html and elapsed<3, ('offline failure latency',elapsed)
                 attempts=json.loads(request('/fixture-stats')[2])['redlib']
-                assert attempts==['https://redlib.privacyredirect.com','https://redlib.nadeko.net','https://redlib.privacyredirect.com'],attempts
+                assert attempts==['https://redlib.privacyredirect.com','https://redlib.nadeko.net','https://redlib.privadency.com'],attempts
                 # A second failed query is skipped by the origin-only cooldown.
                 code,headers,html=request('/news?s=failure')
                 assert code==503 and json.loads(request('/fixture-stats')[2])['redlib']==attempts

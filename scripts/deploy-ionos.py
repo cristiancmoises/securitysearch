@@ -165,6 +165,39 @@ def healthy(cid):
         time.sleep(2)
     raise RuntimeError('New container did not become healthy within 100 seconds.')
 
+def audit_failure_excerpt(output):
+    """Show bounded failing-command sections; never discard the complete log.
+
+    The shell runner prints FAILED markers even if a child exits without a
+    traceback. Passing test output must not obscure an earlier failing suite.
+    Only offline audit output is accepted here; live provider logs are separate.
+    """
+    output = output or ''
+    headers = list(re.finditer(r'^=== OFFLINE TEST: .+ ===$', output, re.M))
+    summary = output.rfind('=== OFFLINE AUDIT SUMMARY ===')
+    failed = []
+    for index, header in enumerate(headers):
+        end = headers[index + 1].start() if index + 1 < len(headers) else len(output)
+        if summary >= header.end():
+            end = min(end, summary)
+        section = output[header.start():end].strip()
+        if re.search(r'^FAILED \(exit [1-9][0-9]*\): ', section, re.M):
+            lines = section.splitlines()
+            if len(lines) > 72:
+                section = '\n'.join(lines[:12] + ['[... middle of test output omitted ...]'] + lines[-60:])
+            if len(section) > 3400:
+                section = section[:350] + '\n[... output truncated ...]\n' + section[-2900:]
+            failed.append(section)
+    if not failed:
+        return '\n'.join(output.splitlines()[-120:])[-24000:] or '[The audit container produced no output.]'
+    pieces = failed[:6]
+    if len(failed) > 6:
+        pieces.append(str(len(failed) - 6) + ' additional failures; read the complete offline-audit.log.')
+    if summary >= 0:
+        pieces.append(output[summary:][-1800:])
+    return '\n\n'.join(pieces)[:24000]
+
+
 def offline_audit(image, backup):
     """Run every checked-in suite in an isolated disposable container.
 
@@ -189,12 +222,10 @@ def offline_audit(image, backup):
         (backup/'offline-audit.log').write_text(result.stdout or '')
         code = inspect(cid)['State'].get('ExitCode',1)
         if result.returncode != 0 or code != 0:
-            # This isolated suite has no production environment or private data.
-            # Preserve the complete log, but also show a bounded failure tail so
-            # the SSH launcher does not hide the actual assertion or PHP error.
-            tail = '\n'.join((result.stdout or '').splitlines()[-120:])[-24000:]
-            print('\n--- Offline audit failure: last 120 lines (max 24,000 characters) ---', file=sys.stderr, flush=True)
-            print(tail or '[The audit container produced no output.]', file=sys.stderr, flush=True)
+            # The complete log above is retained regardless of output truncation.
+            excerpt = audit_failure_excerpt(result.stdout)
+            print('\n--- Offline audit failure: failing commands (max 24,000 characters; tail if unstructured) ---', file=sys.stderr, flush=True)
+            print(excerpt, file=sys.stderr, flush=True)
             raise RuntimeError('Offline audit failed; production is unchanged. Inspect '+str(backup/'offline-audit.log'))
         print('All offline release suites passed in the isolated runtime.',flush=True)
     finally:
