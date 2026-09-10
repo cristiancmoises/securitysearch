@@ -1,12 +1,12 @@
 <?php
 /** Public-IP-only DNS metadata cache. No paths, queries, cookies or results.
- * Shared entries are limited to seven fixed service/CDN names, for at most 15 s.
+ * Shared entries are limited to nine fixed service/CDN names, for at most 15 s.
  * Other names are memoized only within one PHP request. Connections remain pinned.
  */
 final class provider_dns {
     private const SHARED = ['redlib.privadency.com','redlib.nadeko.net',
         'redlib.privacyredirect.com','images.securityops.co','invidious.securityops.co',
-        'i.pinimg.com','pinimg.com'];
+        'i.pinimg.com','pinimg.com','news.google.com','www.bing.com'];
     private static array $local = [];
 
     public static function public_ip(string $address): bool {

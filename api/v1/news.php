@@ -2,6 +2,9 @@
 
 chdir("../../");
 header("Content-Type: application/json");
+header("Cache-Control: private, no-store");
+header("X-Content-Type-Options: nosniff");
+header("X-Robots-Tag: noindex, nofollow");
 
 include "data/config.php";
 if(config::API_ENABLED === false){

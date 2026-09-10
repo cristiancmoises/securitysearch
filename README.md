@@ -1,127 +1,125 @@
-# Security Search v0.9.23
-
-**Audit repair r1:** corrected retired-Redlib navigation and third-fallback test expectations; failed suites are now excerpted in deployment output. Runtime version 0.9.23 / asset 27 is unchanged. [Repair and validation limits](docs/AUDITFIX-0.9.23-r1.md).
+# Security Search v0.9.24
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-PHP search proxy maintained for [SecurityOps](https://securityops.co/), based on
-[4get](https://git.lolcat.ca/lolcat/4get). Application **0.9.23**, asset marker **27**.
-External providers can fail or rate-limit requests; this release does not promise
-universal availability or measured all-provider speedups.
+![SecuritySearch black homepage](docs/screenshots/securitysearch-0.9.21-home-black.png)
 
-## News: verify the instance, not just its homepage
+Earlier local release rendering, not a current production capture. The appearance
+is retained; this release uses asset **28**.
 
-libre.securityops.co is no longer the active news default. The compiled first
-choice is **redlib.privacyredirect.com**, with **redlib.nadeko.net** and
-**redlib.privadency.com** as fixed sequential alternatives. They are in the official
-Redlib inventory; membership is not evidence of working search.
+A PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get), maintained for
+[SecurityOps](https://securityops.co). **Works without JavaScript** for normal
+searches and bundled themes. Local pictures and image enhancements use optional,
+same-origin scripts. External providers can refuse or rate-limit requests.
 
-The guarded deployer tests the actual feed AND a neutral keyword search on the
-VPS candidate before cutover. The same instance must return nonempty parsed news
-for both. Its URL becomes the replacement's effective **FOURGET_REDLIB_PRIMARY**.
-If no candidate qualifies, the existing service stays running and the backup
-contains `redlib-live.json`. This was not live-verified from the authoring environment.
+## News that does not require Redlib
 
-Runtime fallbacks remain sequential, up to three bounded attempts. Queries are
-not broadcast in parallel. Pagination stays with the responding origin; retired
-origin continuations must be restarted. The displayed origin and direct Reddit
-link follow the configured primary. An external Redlib operator receives the
-server IP and query; visitor cookies are not forwarded. Only the initial public,
-query-free feed can be cached, not keyword searches. **FOURGET_REDLIB_FALLBACKS=false**
-retains the selected primary but disables visitor-request fallbacks.
+**News RSS** is the new default, with Google News RSS followed by Bing News RSS on
+failure. Select a single source to disable fallback. US English and Brazilian
+Portuguese editions are supported. This is publisher-headline search, not Reddit.
+The Reddit provider remains available explicitly and can still be unavailable.
+Previously saved provider preferences are not overwritten: choose **News RSS** in
+the news provider selector, or open `/news?scraper=newswire`.
 
-## My picture: device-only selection that is visible and usable
+The supplied VPS diagnostic found HTTP-200 pages with no Redlib results and
+challenge indicators at two configured instances, plus HTTP 418 from Nadeko.
+Increasing timeouts or removing parser checks would not make those pages news.
+No challenge solver, identity spoofing or proxy rotation is introduced.
 
-![Local picture editor](docs/screenshots/securitysearch-0.9.23-local-picture-desktop.png)
+The new deployment gate requires fresh nonempty headlines and a neutral keyword
+search from one RSS source on the VPS. It saves safe per-stage evidence to
+`news-live.json`, persists the successful source/edition and verifies it after
+cutover. If neither works, the running service is not replaced. The RSS endpoints
+are best-effort external feeds, not a guaranteed API; local fixtures cannot prove
+live availability.
 
-**Local browser fixture, not a VPS screenshot.** Actual PHP HTML and bundled
-resources were embedded for the managed authoring browser; the picture is a test
-pattern. FileChooser, FileReader, decoding, canvas and CSS display were exercised.
-Direct browser navigation was policy-blocked; no native navigation pass is claimed.
+## Performance and security boundaries
 
-Click **Use a picture from this device**, then **Choose File**. The editor opens
-before the theme grid and applies the file automatically. Settings also displays
-the editor for My picture. The Settings response now recalculates its CSP after
-the theme preference, fixing a local-script/`script-src 'none'` mismatch.
+Only public query-free headlines can enter the cache: 120 seconds fresh and up to
+600 seconds as visibly dated stale fallback. No keyword-query/result cache. Source
+and edition have separate keys. A short refresh lock suppresses redundant public
+work without waiting or a background task. Refused/challenged sources cool down
+for ten minutes; rate-limited sources wait at least five minutes, respecting a
+bounded Retry-After header. Real empty searches do not trigger a second provider.
 
-JPEG, PNG, WebP and GIF are recognized from bytes even with an empty OS MIME label.
-Animated input becomes one still. Input <=16 MiB, <=48 megapixels after browser
-decode, output <=1920px and <=2 MiB normalized data URL. HEIC/HEIF and SVG are not
-supported. The browser may allocate decode memory before the dimension check.
+News requests use fixed HTTPS destinations, the existing public-IP validation and
+DNS pinning, certificate checks, no redirects and a 1 MiB response limit. At most
+two RSS sources are tried sequentially, 4.5 seconds per attempt within a nine-second
+adapter deadline. Initial synchronous DNS can exceed cURL time limits; this is not
+an absolute all-provider latency guarantee or a measured speedup.
 
-The unnamed file input is outside all forms. The controller has no upload, fetch,
-beacon, WebSocket or cookie write. It re-encodes locally; no filename or EXIF is
-transmitted. Default storage is this tab's sessionStorage (browser session restore
-can restore it). **Remember on this device** explicitly opts into localStorage.
-**Remove my picture** clears both when permitted; failures are reported. Storage
-blocked/full? The picture still displays on this page with an explanation. This
-is not encrypted storage; same-origin scripts and shared-device users can read it.
+The RSS parser rejects DTDs, entities, XInclude, malformed XML/UTF-8 and excess
+structure. It returns at most forty headlines with publisher/date/source links.
+Descriptions, scripts and remote thumbnails are not rendered or fetched. RSS has
+no authoritative next-page token: no invented pagination is presented. Search pages
+stay private/no-store and noindex. No successful response is fabricated on failure.
 
-Without JavaScript, the chooser is disabled with instructions. **Works without
-JavaScript** applies to ordinary searches and bundled themes, not this optional
-local-picture feature or optional image scrolling/animation. The Black homepage
-still emits no executable script; Custom keeps `connect-src 'none'` on its homepage.
+## Existing search and appearance features
 
-## Existing features retained
+Web, images, video, music and optional Reddit remain separate providers. Google
+web/image search retains its one labelled Brave fallback. Binternet retains modern
+and legacy gallery parsing, bounded cursors and actual smaller previews. Images
+retain six views, quality/format choices, ordinary pagination, optional infinite
+scrolling and limited visible animation playback with still posters and controls.
 
-Google/Brave bounded search behavior, Binternet legacy/modern parsing, six image
-layouts, actual smaller previews, manual pagination, optional infinite scrolling,
-and poster-preserving GIF/WebP/APNG playback remain. Motion keeps two loading/four
-active limits, pause controls and reduced-motion/Save-Data handling. Pure black,
-native theme previews, black/accent-color selects, onion link, cached Tranco footer,
-private-query noindex and honest metadata remain.
+Pure black remains the default. Choose appearance offers bundled image/palette
+previews; settings/filter controls use black backgrounds and the theme accent.
+**My picture** opens a local file chooser outside every form. JPEG/PNG/WebP/GIF are
+recognized from bytes; GIF becomes a still image. Files are limited to 16 MiB and
+48 megapixels after decode; normalized output is at most 1920 pixels/2 MiB. No
+file, filename or EXIF metadata is uploaded. Storage defaults to this tab session;
+Remember on this device opts into persistent browser storage. Removal clears both
+when the browser permits it. A blocked/full store allows page-only display.
 
-Historical Tron stays bundled. Lain/SecOps private historical artwork remains in
-an **external operator pack**, never in new Git commits, source releases or their
-derivatives on any forge including Codeberg. Pass --theme-assets during private
-VPS deployment; without it use palette/Matrix alternatives. Existing old history
-is not purged. The earlier r1/r2 import/archive fixes and all audit gates remain.
+Historical Lain/SecOps images are optional operator assets outside the Git checkout.
+They and their derivatives remain excluded from all new source releases, including
+Codeberg. Tron retains its bundled optimized animation. Without the private pack,
+Lain keeps its palette and SecOps its public Matrix alternative. Onion and dated
+Tranco information remain; no rank is invented when metadata is unavailable.
 
-## Apply, deploy, publish
+## Install this update
 
-Use the matching **securitysearch-update-0.9.23-r1** repair kit, not an old manifest.
-See [r1 repair instructions](docs/AUDITFIX-0.9.23-r1.md). The earlier operations
-guides describe the original v0.9.23 upgrade, not this repair.
-This kit supports an exact clean already-applied v0.9.23 main tree. It creates a normal
-commit; dirty or unexpected work, existing conflicting tags and assets are preserved.
+From the complete extracted `securitysearch-update-0.9.24` kit on your computer:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/apply-securitysearch.fish ~/securitysearch
-and fish ~/Downloads/securitysearch-update-0.9.23-r1/deploy-securitysearch.fish \
-    ~/securitysearch --theme-assets ~/.local/share/securitysearch/operator-themes-v1 --rank-refresh
+fish ./apply-securitysearch.fish ~/securitysearch
+and fish ./deploy-securitysearch.fish ~/securitysearch \
+    --theme-assets ~/.local/share/securitysearch/operator-themes-v1 \
+    --rank-refresh
 ```
 
-Deployment retains SSH **5119**, **root@securityops.co**, Docker networks and
-**172.17.0.1:5140 -> 80**, without reconfiguring NPM. The full isolated offline suite,
-candidate readiness, new Redlib feed+search gate and existing live Binternet gate
-must pass before cutover. Keep printed backups and rollback paths.
+The apply helper accepts exact clean v0.9.23-r1 or v0.9.23 source. It creates a normal
+commit and refuses uncommitted/conflicting work. SSH is `root@securityops.co`, port
+5119. Deployment preserves the existing `172.17.0.1:5140 → 80` binding, networks and
+compatible private settings without recreating Nginx Proxy Manager. Reuse the theme
+pack; do not commit it. Keep backups: a running container can mount their snapshots.
 
-After successful deployment:
+The full isolated offline audit, candidate readiness, real RSS news check and real
+Binternet gate must pass. Rollback remains available. Do not use old manifest-based
+launchers with new source, bypass tests or delete the printed rollback directories.
+
+## Publish the source release
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish ~/securitysearch
+fish ./publish-securitysearch.fish ~/securitysearch
+# Retry only this host, including release attachments:
+fish ./publish-securitysearch.fish ~/securitysearch --host git.securityops.co
 ```
 
-Or retry only the previously failing host, including release files:
+The annotated tag is **v0.9.24**. Source assets are `securitysearch-v0.9.24.tar.gz`
+and `.tar.gz.sha256`, generated from the real tagged commit, not test history.
+Publication uses private token prompts, non-force pushes, verified drafts and
+multipart Forgejo uploads. Matching partial releases resume; conflicting tags,
+notes and assets are never replaced. Only the private `-deploy.tar.gz` can contain
+operator artwork. Publishing does not deploy the VPS.
 
-```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish \
-    ~/securitysearch --host git.securityops.co
-```
+[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.24) ·
+[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.24) ·
+[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.24) ·
+[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.24)
 
-Each completed release contains **securitysearch-v0.9.23.tar.gz** and its
-**.tar.gz.sha256**, generated from the real annotated tag. This is PHP source,
-not a Docker image. Local artifacts are under `~/securitysearch-release-v0.9.23/`.
-The incremental bundle requires published v0.9.20. Tokens are privately prompted;
-matching drafts resume, conflicting assets/tags are not replaced. SHA-256 is an
-integrity check, and an annotated tag is not automatically a signed tag.
-
-[Codeberg release](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.23) ·
-[GitHub release](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.23) ·
-[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.23) ·
-[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.23)
-
-Each link works only after its host's publication succeeds. Publication never deploys.
+Release links work only after publication to that host. Source is PHP, not a
+precompiled executable or Docker image. Checksums are not cryptographic signatures.
 
 ## Validation
 
@@ -129,12 +127,10 @@ Each link works only after its host's publication succeeds. Publication never de
 sh scripts/test.sh --keep-going
 ```
 
-All **48** commands are mandatory; a nonzero exit still blocks deployment.
-PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node, Git and fish are required
-for the full suite. See [audit and limitations](docs/AUDIT-0.9.23.md); incomplete
-native dependencies are not counted as passing tests. Browser fixtures, mock
-Docker/API operations and real PHP HTTP tests are reported separately. No VPS
-push/deployment or external-provider success is claimed during kit preparation.
+All **55** command entries remain mandatory. PHP curl/DOM/XML/mbstring/APCu/Imagick,
+Python, Node, Git and fish are needed for the full suite. A local missing dependency
+is not a passing audit. [Audit](docs/AUDIT-0.9.24.md) distinguishes executed tests,
+fixtures, missing native dependencies and unperformed live operations.
+[Release notes / Notas da versão](docs/RELEASE-0.9.24.md).
 
-[Release notes](docs/RELEASE-0.9.23.md) · [License: AGPL-3.0](license.txt).
-**In Code We Trust.**
+License: [AGPL-3.0](license.txt). **In Code We Trust.**

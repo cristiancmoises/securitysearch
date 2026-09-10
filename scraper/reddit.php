@@ -78,6 +78,7 @@ class reddit extends service_search {
 
     public function decode(string $body,string $origin=self::ORIGIN): array {
         if (!in_array($origin,service_pool::allowed(),true)) throw new InvalidArgumentException("Unapproved Redlib origin.");
+        if (!preg_match('/id\s*=\s*["\x27]column_one["\x27]/i',$body) && news_failure::challenge($body)) throw new news_failure('challenge',200);
         $previous=libxml_use_internal_errors(true);
         try {
             $doc=new DOMDocument();

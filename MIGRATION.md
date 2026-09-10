@@ -1,3 +1,10 @@
+## v0.9.24 — independent RSS news and refusal-aware transport
+
+News RSS replaces the unavailable Redlib-only default; real headlines + keyword
+verification remains mandatory before cutover. Public-feed-only cache, source/edition
+isolation, bounded XML and detailed errors. Asset 28; private artwork/pictures preserved.
+[Release notes](docs/RELEASE-0.9.24.md) · [Audit](docs/AUDIT-0.9.24.md).
+
 ## v0.9.23
 
 Retire the failed self-hosted news default. Require a real candidate feed AND

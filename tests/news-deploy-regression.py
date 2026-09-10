@@ -43,6 +43,6 @@ class NewsGate(unittest.TestCase):
   with patch.object(m,'run',return_value=m.REDLIB_ORIGINS[0]),self.assertRaises(RuntimeError):m.verify_redlib_config('fixture',m.REDLIB_ORIGINS[1])
  def test_required_transaction_calls(self):
   s=(ROOT/'scripts/deploy-ionos.py').read_text()
-  self.assertLess(s.index('selected_redlib = live_redlib_gate'),s.index('stopped = True'))
-  self.assertLess(s.index('verify_redlib_config(replacement'),s.index('committed = True'))
+  self.assertLess(s.index('selected_news, selected_market = live_news_gate'),s.index('stopped = True'))
+  self.assertLess(s.index('verify_news_config(replacement'),s.index('committed = True'))
 if __name__=='__main__':unittest.main(verbosity=2)

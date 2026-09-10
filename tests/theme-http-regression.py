@@ -18,12 +18,12 @@ def main():
    except (urllib.error.URLError,TimeoutError):time.sleep(.1)
   jar=http.cookiejar.CookieJar();client=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
   response=client.open(base);html=response.read().decode()
-  assert response.status==200 and '/static/themes/Black.css?v27' in html
+  assert response.status==200 and '/static/themes/Black.css?v28' in html
   assert "script-src 'none'" in response.headers['Content-Security-Policy']
   assert response.headers['Cache-Control']=='private, no-store'
   assert '<script' not in html and '{%theme_picker%}' not in html
   response=client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode({'appearance':'1','theme':'Art'}).encode()))
-  assert '/static/themes/Art.css?v27' in response.read().decode()
+  assert '/static/themes/Art.css?v28' in response.read().decode()
   assert any(c.name=='theme' and c.value=='Art' and c.has_nonstandard_attr('HttpOnly') and c.get_nonstandard_attr('SameSite')=='Lax' for c in jar)
   for form,headers,expected in [({'appearance':'1','theme':'../../etc/passwd'},{},400),({'appearance':'1','theme':'Black'},{'Sec-Fetch-Site':'cross-site'},403),({'appearance':'1','theme[]':'Art'},{},400)]:
    try:client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode(form).encode(),headers=headers));raise AssertionError('Invalid appearance accepted')

@@ -2,7 +2,7 @@
 require 'data/config.php';require 'lib/frontend.php';
 $n=0;function check($v,$label){global $n;$n++;if(!$v)throw new RuntimeException($label);}
 $f=new frontend();$_COOKIE=[];$html=$f->load('home.html');
-check(config::DEFAULT_THEME==='Black' && str_contains($html,'/static/themes/Black.css?v27'),'Default pure-black theme');
+check(config::DEFAULT_THEME==='Black' && str_contains($html,'/static/themes/Black.css?v28'),'Default pure-black theme');
 check(str_contains($html,'Choose appearance') && str_contains($html,'method="post" action="/"'),'Native form is present');
 check(!str_contains($html,'<script') && !str_contains($html,'{%theme_picker%}'),'No script or leftover placeholder');
 foreach (securitysearch_theme_catalog() as $name=>$preview) {

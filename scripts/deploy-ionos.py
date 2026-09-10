@@ -21,7 +21,7 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.23'
+VERSION = '0.9.24'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -135,11 +135,11 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '27|Black':
+            if marker.strip() != '28|Black':
                 raise RuntimeError('New source/config version is masked by an old setting or mount.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
-            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v27' not in html:
+            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v28' not in html:
                 raise RuntimeError('New home page failed its content check.')
             headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                           'http://127.0.0.1/',capture=True).lower()
@@ -150,15 +150,15 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v27',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v28',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v27',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v28',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',
-                           'require "data/config.php"; require "lib/frontend.php"; require "lib/search_execution.php"; require "lib/image_poster.php"; require "scraper/reddit.php"; require "scraper/binternet.php"; echo class_exists("reddit") && class_exists("provider_http") && class_exists("binternet") && function_exists("securitysearch_theme_picker") && function_exists("image_poster_body") ? "ready" : "missing";',capture=True)
+                           'require "data/config.php"; require "lib/frontend.php"; require "lib/search_execution.php"; require "lib/image_poster.php"; require "scraper/reddit.php"; require "scraper/binternet.php"; require "scraper/newswire.php"; echo class_exists("newswire") && class_exists("news_sources") && class_exists("reddit") && class_exists("provider_http") && class_exists("binternet") && function_exists("securitysearch_theme_picker") && function_exists("image_poster_body") ? "ready" : "missing";',capture=True)
             if adapters.strip() != 'ready':
                 raise RuntimeError('New provider/media helpers are missing or masked.')
             return
@@ -282,6 +282,65 @@ def verify_redlib_config(cid, origin):
         raise RuntimeError('The replacement did not retain the verified Redlib primary.')
 
 
+# The default news product is RSS, not Reddit. Redlib remains an optional scraper.
+NEWS_SOURCES = ('google', 'bing')
+NEWS_MARKETS = ('en-US', 'pt-BR')
+
+def set_news_primary(old, source, market):
+    if source not in NEWS_SOURCES or market not in NEWS_MARKETS:
+        raise RuntimeError('Refused an unapproved news source or edition.')
+    env = dict(x.split('=',1) for x in old['Config'].get('Env',[]) if '=' in x)
+    env.update(FOURGET_DEFAULT_SCRAPER_NEWS='newswire', FOURGET_NEWS_RSS_PRIMARY=source,
+               FOURGET_NEWS_RSS_MARKET=market)
+    old['Config']['Env'] = [k+'='+v for k,v in env.items()]
+
+def live_news_gate(cid, backup):
+    """Require a real headline feed AND keyword results; no Redlib gate bypass."""
+    run('docker','cp',str(ROOT/'scripts/news-rss-probe.php'),cid+':/tmp/securitysearch-news-rss-probe.php')
+    try:
+        raw = run('docker','exec','--workdir',APP,cid,'timeout','30','php','-d','apc.enable_cli=1',
+                  '/tmp/securitysearch-news-rss-probe.php',capture=True)
+        report = json.loads(raw)
+    except Exception:
+        report = {'status':'unavailable','reason':'probe_execution_failed'}
+    # The probe emits only identifiers, counts, statuses and timings, never article/query bodies.
+    (backup/'news-live.json').write_text(json.dumps(report, indent=2))
+    source = report.get('source') if isinstance(report,dict) else None
+    market = report.get('market') if isinstance(report,dict) else None
+    rows = report.get('attempts',[]) if isinstance(report,dict) else []
+    row = rows[-1] if isinstance(rows,list) and rows and isinstance(rows[-1],dict) else {}
+    stages = row.get('stages',{})
+    valid = (isinstance(report,dict) and report.get('status')=='ok' and report.get('provider')=='newswire'
+             and source in NEWS_SOURCES and market in NEWS_MARKETS and row.get('source')==source
+             and row.get('status')=='ok' and isinstance(stages,dict)
+             and all(type(row.get(k)) is int and 1<=row[k]<=40 for k in ('feed_count','search_count')))
+    if valid:
+        valid = all(isinstance(stages.get(k),dict) and stages[k].get('status')=='ok'
+                    and type(stages[k].get('count')) is int and stages[k]['count']==row[k+'_count']
+                    for k in ('feed','search'))
+    if not valid:
+        # Print the bounded safe per-stage evidence immediately; preserve the complete report.
+        for attempt in rows[:2] if isinstance(rows,list) else []:
+            if not isinstance(attempt,dict) or attempt.get('source') not in NEWS_SOURCES: continue
+            evidence=attempt.get('stages',{})
+            if not isinstance(evidence,dict): continue
+            for kind in ('feed','search'):
+                stage=evidence.get(kind,{})
+                if not isinstance(stage,dict): continue
+                safe={k:v for k,v in stage.items() if k in ('status','count','reason','http_status','curl_errno','milliseconds')
+                      and isinstance(v,(str,int,float,type(None))) and len(str(v))<=100}
+                print('News probe '+attempt['source']+' '+kind+': '+json.dumps(safe),flush=True)
+        raise RuntimeError('No RSS source passed both headlines and keyword search; production is unchanged. Inspect '+str(backup/'news-live.json'))
+    print('Verified RSS headlines and keyword search from candidate: '+source+' / '+market,flush=True)
+    return source, market
+
+def verify_news_config(cid, source, market):
+    effective = run('docker','exec','--workdir',APP,cid,'php','-r',
+                    'require "data/config.php"; require "lib/news_sources.php"; echo config::DEFAULT_SCRAPER_NEWS."|".news_sources::primary()."|".news_sources::market();',capture=True).strip()
+    if effective != 'newswire|'+source+'|'+market:
+        raise RuntimeError('The replacement did not retain the verified RSS news configuration.')
+
+
 def validate_operator_pack(directory):
     """Load only the sibling validator, even when this script is imported by path.
 
@@ -376,6 +435,7 @@ def main():
     old['Config']['Env'] = [k+'='+v for k,v in env.items()]
     # Migrate away from the failed self-hosted default before candidate startup.
     set_redlib_primary(old, env.get('FOURGET_REDLIB_PRIMARY') if env.get('FOURGET_REDLIB_PRIMARY') in REDLIB_ORIGINS else REDLIB_ORIGINS[0])
+    set_news_primary(old, env.get('FOURGET_NEWS_RSS_PRIMARY') if env.get('FOURGET_NEWS_RSS_PRIMARY') in NEWS_SOURCES else NEWS_SOURCES[0], env.get('FOURGET_NEWS_RSS_MARKET') if env.get('FOURGET_NEWS_RSS_MARKET') in NEWS_MARKETS else NEWS_MARKETS[0])
     (backup/'effective-config.json').write_text(raw)
     old['_private_binds'] = []
     for directory in ('api_keys','proxies','captcha'):
@@ -402,8 +462,8 @@ def main():
         candidate = api('POST','/containers/create?name='+candidate_name,create_payload(old,image,True))['Id']
         api('POST','/containers/'+candidate+'/start')
         healthy(candidate)
-        selected_redlib = live_redlib_gate(candidate,backup)
-        set_redlib_primary(old, selected_redlib)
+        selected_news, selected_market = live_news_gate(candidate,backup)
+        set_news_primary(old, selected_news, selected_market)
         live_binternet_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')
         candidate = None
@@ -437,11 +497,11 @@ def main():
         replacement = api('POST','/containers/create?name='+urllib.parse.quote(name,safe=''),create_payload(old,image))['Id']
         api('POST','/containers/'+replacement+'/start')
         healthy(replacement)
-        verify_redlib_config(replacement, selected_redlib)
+        verify_news_config(replacement, selected_news, selected_market)
         # Verify the preserved host binding, beyond container-internal health.
         run('curl','-fsS','--max-time','10','-o','/dev/null','http://172.17.0.1:5140/')
         committed = True
-        (backup/'release.json').write_text(json.dumps({'image':image,'container':replacement,'rollback_container':rollback_name,'redlib_primary':selected_redlib},indent=2))
+        (backup/'release.json').write_text(json.dumps({'image':image,'container':replacement,'rollback_container':rollback_name,'news_source':selected_news,'news_market':selected_market},indent=2))
         print('Deployment healthy at 172.17.0.1:5140. NPM upstream remains unchanged.')
         print('Rollback: bash '+str(rollback))
         print('Retain '+str(backup)+'; the running service may mount its private data snapshots.')

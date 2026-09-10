@@ -106,6 +106,10 @@ class frontend{
 			"images" => "image-results.css"
 		];
 		$page_style = "";
+        if ($page==='news' && ($get['scraper'] ?? '')==='newswire') {
+            require_once __DIR__.'/news_sources.php';
+            $notice=news_sources::disclosure(in_array($get['source']??'auto',['auto','google','bing'],true)?($get['source']??'auto'):'auto');
+        }
         if ($page==='news' && ($get['scraper'] ?? '')==='reddit') {
             require_once __DIR__.'/service_pool.php';
             $notice=service_pool::disclosure();
@@ -217,7 +221,8 @@ class frontend{
         $message = $limited ? "Google is limiting requests from this instance. Try another provider, or wait at least 30 seconds before retrying." : 'This provider could not complete your search. Choose another provider or retry in a moment.';
         $alternatives = match ($target) {
             'images' => ['brave'=>'Try Brave', 'binternet'=>'Search Pinterest'],
-            'web','news' => ['brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
+            'news' => ['newswire'=>'Try News RSS', 'brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
+            'web' => ['brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
             'videos' => ['invidious'=>'Search YouTube', 'brave'=>'Try Brave'],
             default => []
         };
@@ -1118,7 +1123,8 @@ class frontend{
 				$filters["scraper"] = [
 					"display" => "Scraper",
 					"option" => [
-						"reddit" => "Reddit via Redlib",
+						"newswire" => "News RSS · Google / Bing",
+                        "reddit" => "Reddit via Redlib (optional)",
 						"ddg" => "DuckDuckGo",
 						"brave" => "Brave",
 						"yahoo_japan" => "Yahoo! JAPAN",

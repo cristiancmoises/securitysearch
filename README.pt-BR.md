@@ -1,129 +1,117 @@
-# Security Search v0.9.23
-
-**Correção de auditoria r1:** ajusta expectativas antigas do link Redlib e do terceiro fallback e mostra trechos dos testes que falharam no deploy. Aplicação 0.9.23 / asset 27 permanecem. [Correção e limites da validação](docs/AUDITFIX-0.9.23-r1.md).
+# Security Search v0.9.24
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-Buscador proxy PHP para [SecurityOps](https://securityops.co/), baseado no
-[4get](https://git.lolcat.ca/lolcat/4get). Aplicação **0.9.23**, assets **27**.
-Provedores externos podem falhar; não se promete disponibilidade universal ou
-ganho de velocidade medido em todos eles.
+![Página inicial preta](docs/screenshots/securitysearch-0.9.21-home-black.png)
 
-## Notícias
+Renderização local anterior; não é uma captura atual da VPS. Aparência mantida;
+esta versão usa recursos **28**. Proxy de pesquisa PHP baseado no
+[4get](https://git.lolcat.ca/lolcat/4get), mantido para [SecurityOps](https://securityops.co).
+Buscas normais e temas prontos funcionam sem JavaScript. Imagens locais e melhorias
+opcionais na busca de imagens usam scripts locais. Provedores externos podem falhar.
 
-libre.securityops.co deixa de ser o padrão ativo. O primeiro candidato compilado
-é **redlib.privacyredirect.com**, com **redlib.nadeko.net** e
-**redlib.privadency.com** como alternativas sequenciais fixas. A lista oficial
-foi consultada, mas não comprova funcionamento.
+## Notícias independentes do Redlib
 
-Antes da troca, o deploy exige itens reais reconhecidos no feed E em uma busca
-neutra por palavra-chave na mesma instância pela rede da VPS. A origem aprovada
-fica em FOURGET_REDLIB_PRIMARY no novo contêiner. Falha mantém a produção e grava
-redlib-live.json no backup. Isso não foi verificado ao vivo no ambiente de autoria.
+O novo padrão **News RSS** consulta Google News RSS e, se falhar, Bing News RSS.
+São manchetes de publicadores, **não conteúdo do Reddit**. Reddit continua opcional
+e pode permanecer indisponível. A edição pode ser inglês/EUA ou português/Brasil.
+Selecionar uma única fonte desativa o fallback. Preferências já salvas continuam
+respeitadas: selecione News RSS ou abra `/news?scraper=newswire` para trocar.
 
-As buscas não são disparadas em paralelo para todas as origens. Paginação conserva
-a instância que respondeu; tokens de uma origem retirada devem ser reiniciados.
-Avisos e link direto seguem a configuração. A instância externa recebe consulta e
-IP do servidor, não os cookies do visitante. Somente o feed público inicial sem
-consulta pode ser armazenado temporariamente. FOURGET_REDLIB_FALLBACKS=false
-mantém apenas a origem escolhida nas requisições dos visitantes.
+O diagnóstico recebido mostrou duas respostas HTTP 200 sem resultados Redlib e com
+indicadores de desafio, além de HTTP 418 do Nadeko. Aumentar timeouts ou ignorar o
+parser não transforma essas páginas em notícias. Não há resolução de CAPTCHA,
+troca de identidade nem rotação de proxies para contornar recusas.
 
-## Minha imagem
+O novo critério de deploy exige manchetes e resultados de busca neutra reais e não
+vazios da mesma fonte RSS, dentro da VPS. O relatório detalhado fica em
+`news-live.json`; fonte e edição são persistidas e conferidas após a troca. Se
+ambas falharem, o contêiner atual não é substituído. Os endpoints RSS externos são
+best-effort, não uma API garantida. Testes locais não comprovam disponibilidade.
 
-![Editor local](docs/screenshots/securitysearch-0.9.23-local-picture-desktop.png)
+## Desempenho e segurança
 
-**Fixture local de navegador, não captura da VPS.** O HTML PHP real e recursos
-foram embutidos; a imagem é um padrão de teste. Seleção, FileReader, decodificação,
-canvas e exibição CSS foram exercitados. A navegação direta foi bloqueada pela
-política do ambiente e não é apresentada como aprovada.
+Apenas manchetes públicas sem consulta podem entrar no cache: 120 segundos frescas
+e até 600 segundos para fallback antigo, claramente identificado e datado. Busca
+por palavra não entra no cache. Fonte/edição têm chaves distintas e trava curta
+contra atualizações concorrentes. Recusas/desafios suspendem a fonte por dez
+minutos; rate limits aguardam pelo menos cinco minutos, respeitando Retry-After
+limitado. Não há retry em segundo plano nem fallback para uma busca vazia válida.
 
-Clique **Use a picture from this device** e depois **Choose File**. O editor abre
-antes dos temas e aplica a imagem sem outro clique de salvar. Configurações também
-exibem o editor para My picture. O CSP agora é recalculado após a preferência no
-POST, corrigindo a resposta que emitia o script com script-src 'none'.
+Rotas HTTPS fixas, IP público validado, conexão fixada ao IP, verificação TLS,
+recusa de redirecionamentos e limite de 1 MiB. São no máximo duas tentativas
+sequenciais, com 4,5 segundos por tentativa e nove segundos no adaptador. A primeira
+resolução DNS síncrona pode ultrapassar o timeout do cURL: não há promessa de
+latência absoluta nem ganho medido em todos os provedores.
 
-JPEG, PNG, WebP e GIF são identificados pelos bytes mesmo com MIME vazio; animações
-viram um quadro. Limites: 16 MiB de entrada, 48 megapixels após decodificar, saída
-até 1920 px e URL normalizada de 2 MiB. HEIC/HEIF e SVG não são suportados. O navegador
-pode alocar memória ao decodificar antes da checagem de dimensões.
+XML recusa DTDs, entidades externas, XInclude, links inseguros e estruturas enormes.
+São no máximo quarenta títulos com publicador/data/link. Descrições HTML, artigos
+completos e imagens remotas não são carregados. Não há paginação RSS inventada.
+Páginas de busca permanecem privadas/no-store/noindex e falhas não viram sucesso.
 
-O input não tem nome e fica fora dos formulários; não há API de upload, fetch,
-beacon, WebSocket ou escrita de cookies nesse script. A imagem é reprocessada
-localmente; nome e EXIF não são enviados. A sessão da aba é padrão (a restauração
-do navegador pode recuperá-la). **Remember on this device** habilita persistência
-local explicitamente; **Remove my picture** limpa ambas as opções quando permitido.
-Armazenamento cheio/bloqueado permite exibição só na página e mostra aviso. Isso
-não é armazenamento criptografado: usuários do dispositivo e scripts da mesma
-origem podem acessar os dados. Falhas de remoção são informadas.
+## Recursos preservados
 
-Sem JavaScript, o seletor desabilitado explica o motivo. **Works without JavaScript**
-se refere às buscas comuns e temas incluídos, não a essa função opcional ou aos
-aprimoramentos de imagens. A página Black continua sem script executável; Custom
-mantém connect-src 'none' na página inicial.
+Web, imagens, vídeos, música e Reddit opcional permanecem separados. Google/Brave,
+Binternet moderno/legado, seis layouts, qualidade/formato, paginação normal, rolagem
+infinita e animações visíveis com limites continuam. Preto puro, seletor de temas,
+pré-visualizações e controles pretos na cor do tema são mantidos.
 
-## Funcionalidades e proteções mantidas
+**My picture** abre o seletor local fora dos formulários. JPEG, PNG, WebP e GIF são
+identificados pelos bytes; GIF vira imagem estática. Limites: 16 MiB/48 megapixels
+após decodificação, saída normalizada de até 1920 pixels/2 MiB. Arquivo, nome e EXIF
+não são enviados ao servidor. Padrão: sessão da aba; Remember on this device salva
+somente com opção explícita. Remove my picture limpa os dois armazenamentos quando
+o navegador permite. Armazenamento bloqueado ou cheio permite uso só na página.
 
-Google/Brave, parser Binternet moderno/legado, seis layouts, prévias menores reais,
-paginação, rolagem opcional e GIF/WebP/APNG com limites e pausa permanecem. Temas,
-seleções pretas com cor do tema, link onion, Tranco em cache e noindex de consultas
-privadas são mantidos. Tron histórico continua incluído. Lain/SecOps privados e
-derivados permanecem no pacote externo de operador, fora dos commits e anexos novos
-dos quatro hosts, inclusive Codeberg. Sem --theme-assets, usam-se paleta/Matrix.
-O histórico antigo não é reescrito. Todas as correções r1/r2 permanecem.
+Lain/SecOps históricos e derivados privados continuam fora do Git e das releases,
+inclusive Codeberg. Reutilize o pacote externo somente no deploy. Sem ele, Lain
+mantém a paleta e SecOps a alternativa Matrix. Tron conserva sua animação otimizada.
+Onion/Tranco são preservados, sem inventar ranking quando não houver metadados.
 
-## Atualizar e publicar
+## Aplicar e implantar
 
-Use **securitysearch-update-0.9.23-r1** em um checkout main limpo com a v0.9.23 já aplicada. Alterações desconhecidas, tags e arquivos conflitantes são
-preservados. [Instruções r1](docs/AUDITFIX-0.9.23-r1.md); o guia de operações anterior descreve o upgrade original, não este reparo.
+Na pasta completa extraída `securitysearch-update-0.9.24`, no computador local:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/apply-securitysearch.fish ~/securitysearch
-and fish ~/Downloads/securitysearch-update-0.9.23-r1/deploy-securitysearch.fish \
-    ~/securitysearch --theme-assets ~/.local/share/securitysearch/operator-themes-v1 --rank-refresh
+fish ./apply-securitysearch.fish ~/securitysearch
+and fish ./deploy-securitysearch.fish ~/securitysearch \
+    --theme-assets ~/.local/share/securitysearch/operator-themes-v1 \
+    --rank-refresh
 ```
 
-Mantém root@securityops.co, SSH 5119, redes e 172.17.0.1:5140 -> 80; não reconfigura
-NPM. Auditoria offline completa, prontidão, feed+busca Redlib reais e Binternet real
-precisam passar antes da troca. Preserve backups e comandos de rollback.
+Aceita a árvore exata e limpa v0.9.23-r1 ou v0.9.23; cria commit normal e recusa
+alterações conflitantes. SSH `root@securityops.co`, porta **5119**. Preserva bind
+`172.17.0.1:5140 → 80`, redes e configurações privadas compatíveis. Não recria NPM.
+A suíte offline, prontidão do candidato e verificações reais RSS/Binternet continuam
+obrigatórias. Preserve backups/rollback: eles podem conter snapshots montados.
+Não use launchers antigos com o manifesto novo e não pule os testes.
 
-Depois do deploy aprovado:
+## Tag e release
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish ~/securitysearch
+fish ./publish-securitysearch.fish ~/securitysearch
+# Retomar apenas este host, incluindo tarball e checksum:
+fish ./publish-securitysearch.fish ~/securitysearch --host git.securityops.co
 ```
 
-Retomada de somente um host, incluindo release e anexos:
+Tag anotada **v0.9.24**. Arquivos `securitysearch-v0.9.24.tar.gz` e seu `.sha256`,
+gerados do commit real, não de fixtures. Tokens privados, pushes sem force,
+rascunhos verificados e anexos multipart no Forgejo. Tags/notas/anexos conflitantes
+são preservados. Somente o arquivo privado `-deploy.tar.gz` recebe temas privados.
+Publicação não faz deploy. Releases ficam disponíveis após a publicação em cada
+host: [Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.24),
+[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.24),
+[.co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.24),
+[.com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.24).
 
-```fish
-fish ~/Downloads/securitysearch-update-0.9.23-r1/publish-securitysearch.fish \
-    ~/securitysearch --host git.securityops.co
-```
-
-Cada release concluída contém securitysearch-v0.9.23.tar.gz e .tar.gz.sha256 do
-commit real anotado, não binários ou imagem Docker. Saída local:
-~/securitysearch-release-v0.9.23/. O bundle incremental depende da v0.9.20. Tokens
-são solicitados privadamente; arquivos/tags conflitantes não são substituídos.
-Checksum não é assinatura e tag anotada não é automaticamente assinada. Publicação
-não faz deploy e não é uma transação global entre servidores.
-
-[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.23) ·
-[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.23) ·
-[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.23) ·
-[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.23)
-
-Os links só funcionam após a publicação em cada host.
-
-## Validação
+## Auditoria
 
 ```sh
 sh scripts/test.sh --keep-going
 ```
 
-Os **48** comandos continuam obrigatórios; qualquer erro impede o deploy.
-PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node, Git e fish são necessários.
-[Auditoria](docs/AUDIT-0.9.23.md) separa testes PHP HTTP reais, fixtures do navegador,
-mocks de Docker/API e dependências ausentes. Nenhum deploy, push ou sucesso de
-provedor externo foi declarado durante a preparação do kit.
-
-[Notas da versão](docs/RELEASE-0.9.23.md) · [Licença AGPL-3.0](license.txt).
-**In Code We Trust.**
+Todos os **55** comandos são obrigatórios. A suíte completa precisa das extensões
+PHP curl/DOM/XML/mbstring/APCu/Imagick, Python, Node, Git e fish. Dependência ausente
+não equivale a teste aprovado. [Auditoria](docs/AUDIT-0.9.24.md) registra limitações;
+[notas bilíngues](docs/RELEASE-0.9.24.md) detalham a mudança.
+Licença [AGPL-3.0](license.txt). **In Code We Trust.**

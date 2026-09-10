@@ -514,7 +514,7 @@ class proxy{
 				throw new Exception("Remote response headers exceed the configured byte limit");
 			}
 
-			throw new Exception($curl_error);
+			throw new Exception($curl_error, $curl_errno);
 		}
 		$wire_bytes = max(0, (int)$wire_bytes);
 		if($wire_bytes > $request_budget->remaining_wire_bytes){
@@ -564,7 +564,11 @@ class proxy{
 			$http["code"] <= 309
 		){
 			
-			// redirect
+			// Optional fixed-source consumers never follow even a same-origin redirect.
+            if (!empty($request_budget->no_redirect)) {
+                throw new Exception("Remote redirect is not allowed", $http["code"]);
+            }
+            // redirect
 			if(!isset($headers["location"])){
 				
 				throw new Exception("Broken redirect");
@@ -588,7 +592,7 @@ class proxy{
 				$http["code"] > 300
 			){
 				
-				throw new Exception("Remote server returned an error code! ({$http["code"]})");
+				throw new Exception("Remote server returned an error code! ({$http["code"]})", $http["code"]);
 			}
 		}
 		
@@ -855,7 +859,7 @@ class proxy{
 		}
 		if($curl_errno){
 
-			throw new Exception($curl_error);
+			throw new Exception($curl_error, $curl_errno);
 		}
 		if($status >= 300 && $status <= 309){
 

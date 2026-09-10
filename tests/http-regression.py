@@ -129,18 +129,18 @@ http_response_code(404);return true;
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
-                assert '/static/themes/Black.css?v27' in html and html.count('class="search-action-icon"')==4
+                assert '/static/themes/Black.css?v28' in html and html.count('class="search-action-icon"')==4
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v27' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v28' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']
                 headers,html,url=search(cookie='image_infinite=no; image_motion=no; theme=Lain')
-                assert '<script' not in html and url and '/static/themes/Lain.css?v27' in html
+                assert '<script' not in html and url and '/static/themes/Lain.css?v28' in html
                 reset();headers,html,url=search()
                 for number in range(2,16):
                     data=append(url)
@@ -178,24 +178,24 @@ http_response_code(404);return true;
                 assert code==200 and 'Results from Brave' in html and 'Brave web fallback' in html and 'Search paused' not in html, (code,html[-2000:])
                 code,headers,html=request('/images?s=fallback+failure')
                 assert code==503 and 'Google and its Brave fallback' in html
-                code,headers,html=request('/news')
+                code,headers,html=request('/news?scraper=reddit')
                 assert code==200 and 'Latest posts' in html and 'Reddit via Redlib' in html and 'GNU Guix' in html and '<b></b>' not in html and 'A&amp;amp;B' not in html
                 assert '<script' not in html and "script-src 'none'" in headers['Content-Security-Policy']
                 more=Links(html).next;assert more and 'scraper=reddit' in more
                 code,headers,html=request('/'+more.lstrip('/'))
                 assert code==200 and 'Reddit via Redlib' in html
-                code,headers,html=request('/news?s=GNU+Guix')
+                code,headers,html=request('/news?scraper=reddit&s=GNU+Guix')
                 assert code==200 and 'Related posts' in html and 'redlib.privacyredirect.com/r/news/comments' in html
                 reset();started=time.monotonic()
-                code,headers,html=request('/news?s=failure')
+                code,headers,html=request('/news?scraper=reddit&s=failure')
                 elapsed=time.monotonic()-started
                 assert code==503 and 'Took ' not in html and elapsed<3, ('offline failure latency',elapsed)
                 attempts=json.loads(request('/fixture-stats')[2])['redlib']
                 assert attempts==['https://redlib.privacyredirect.com','https://redlib.nadeko.net','https://redlib.privadency.com'],attempts
                 # A second failed query is skipped by the origin-only cooldown.
-                code,headers,html=request('/news?s=failure')
+                code,headers,html=request('/news?scraper=reddit&s=failure')
                 assert code==503 and json.loads(request('/fixture-stats')[2])['redlib']==attempts
-                reset();code,headers,html=request('/news?s=fallback+news')
+                reset();code,headers,html=request('/news?scraper=reddit&s=fallback+news')
                 assert code==200 and 'redlib.nadeko.net/r/news/comments' in html
                 next_news=Links(html).next;assert next_news
                 code,headers,html=request('/'+next_news.lstrip('/'))

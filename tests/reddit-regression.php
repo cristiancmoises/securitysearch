@@ -25,7 +25,7 @@ verify($fixture->seen[0][0]==='/r/news+worldnews/search' && $fixture->seen[1][1]
 verify($fixture->seen[1][1]['after']==='t3_next123' && $fixture->seen[1][1]['restrict_sr']==='on','Only extracted cursor advances fixed search route');
 $fixture->news(['s'=>'']);verify($fixture->seen[2][0]==='/r/news+worldnews/new' && !isset($fixture->seen[2][1]['q']),'Blank news opens feed without redirecting empty search');
 $fixture->news(['s'=>'r/news']);verify($fixture->seen[3][1]['q']==='"r/news"','Reserved navigation prefix treated as search');
-$_GET=[];$_COOKIE=[];[$provider,$filters]=(new frontend())->getscraperfilters('news');verify($provider instanceof reddit,'Default Reddit news');
+$_GET=[];$_COOKIE=[];[$provider,$filters]=(new frontend())->getscraperfilters('news');verify($provider instanceof newswire,'Default independent RSS news');
 echo "PASS: Redlib source-contract parsing, escaping, dates, empty/errors, fixed routes, safe cursors, default feed and authoritative pagination.\n";
 
 verify(count($provider->decode(str_replace('gnu_guix_release','notícias_do_brasil',$body))['news'])===2,'Unicode permalink retained safely');

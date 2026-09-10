@@ -67,7 +67,7 @@ for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_cre
  engine=Engine(mode)
  def run(*args,capture=False):
   return json.dumps({'VERSION':19,'DEFAULT_THEME':'Lain','SERVER_NAME':'original','API_ENABLED':True}) if 'php' in args else ''
- with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m,'offline_audit',side_effect=RuntimeError('Audit failed') if mode=='offline_audit_failure' else None),patch.object(m,'live_redlib_gate',return_value=m.REDLIB_ORIGINS[1],side_effect=RuntimeError('News gate failed') if mode=='news_audit_failure' else None),patch.object(m,'verify_redlib_config'),patch.object(m,'live_binternet_gate',side_effect=RuntimeError('Live gate failed') if mode=='live_audit_failure' else None),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
+ with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m,'offline_audit',side_effect=RuntimeError('Audit failed') if mode=='offline_audit_failure' else None),patch.object(m,'live_news_gate',return_value=('bing','en-US'),side_effect=RuntimeError('News gate failed') if mode=='news_audit_failure' else None),patch.object(m,'verify_news_config'),patch.object(m,'live_binternet_gate',side_effect=RuntimeError('Live gate failed') if mode=='live_audit_failure' else None),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
   failed=False
   try:m.main()
   except RuntimeError:failed=True
@@ -84,7 +84,7 @@ for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_cre
    migrated_env=engine.containers['replacement']['Config']['Env']
    assert 'FOURGET_DEFAULT_THEME=Black' in migrated_env and 'FOURGET_SERVER_NAME=original' in migrated_env
    assert 'FOURGET_DEFAULT_THEME=Lain' not in migrated_env
-   assert 'FOURGET_REDLIB_PRIMARY='+m.REDLIB_ORIGINS[1] in migrated_env
+   assert 'FOURGET_NEWS_RSS_PRIMARY=bing' in migrated_env and 'FOURGET_DEFAULT_SCRAPER_NEWS=newswire' in migrated_env
   else:
    assert previous['State']['Running'],'Previous container was not restarted'
    assert previous['HostConfig']['RestartPolicy']==old['HostConfig']['RestartPolicy'],'Original restart policy not restored'
@@ -106,8 +106,8 @@ for destination in ['/etc','/etc/apache2','/etc/php84/conf.d','/etc/ImageMagick-
 print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts rejected before mutation.')
 
 for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
- responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '27|Black'),
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v27' if failure=='theme_asset' else '/static/themes/Black.css?v27')+('<script src="x"></script>' if failure=='script' else ''),
+ responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '28|Black'),
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v28' if failure=='theme_asset' else '/static/themes/Black.css?v28')+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',
@@ -116,4 +116,4 @@ for failure in [None,'version','theme','theme_asset','script','csp','image_csp',
  with patch.object(m,'inspect',return_value={'State':{'Health':{'Status':'healthy'}}}),patch.object(m,'run',side_effect=responses):
   try:m.healthy('candidate');assert failure is None
   except RuntimeError:assert failure is not None
-print('PASS: candidate gates validate asset 27, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')
+print('PASS: candidate gates validate asset 28, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')

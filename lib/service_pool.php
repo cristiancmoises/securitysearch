@@ -1,5 +1,6 @@
 <?php
 /** Fixed Redlib inventory, not a user-supplied URL list. No query/result history. */
+require_once __DIR__.'/news_failure.php';
 final class service_pool {
     public const PRIMARY='https://redlib.privacyredirect.com';
     public const FALLBACKS=['https://redlib.nadeko.net','https://redlib.privadency.com'];
@@ -49,9 +50,9 @@ final class service_pool {
                 return ['origin'=>$origin,'data'=>$data,'attempts'=>$tried];
             } catch (Exception $error) {
                 // No query strings, credentials or upstream bodies in this shared key.
-                $write($key,true,20);
+                $write($key,true,news_failure::from($error)->cooldown());
             }
         }
-        throw new RuntimeException($tried===0 ? 'Redlib instances are briefly cooling down after failures. Retry in 20 seconds.' : 'The configured Redlib instances could not complete this request. Retry later or choose another news provider.');
+        throw new RuntimeException($tried===0 ? 'Redlib instances are cooling down after refusals or network failures. Choose News RSS or retry later.' : 'The configured Redlib instances could not complete this request. Retry later or choose another news provider.');
     }
 }

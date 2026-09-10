@@ -26,7 +26,7 @@ abstract class service_search {
             $response = (new proxy(false))->get($url, proxy::req_web, false, null, 4, 2097152, $budget);
             return $response['body'];
         } catch (Exception $error) {
-            throw new RuntimeException('The selected service is unavailable. Try its direct search link or retry later.');
+            throw new RuntimeException('The selected service is unavailable. Try its direct search link or retry later.',0,$error);
         }
     }
 
