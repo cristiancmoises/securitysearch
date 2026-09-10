@@ -28,10 +28,15 @@ final class image_results {
                 $seen[$url]=true;
                 $width=filter_var($source['width'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);
                 $height=filter_var($source['height'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);
-                $sources[]=['url'=>$url,'width'=>$width && $height ? $width : 236,'height'=>$width && $height ? $height : 180];
+                $sources[]=['url'=>$url,'width'=>$width && $height ? $width : 236,'height'=>$width && $height ? $height : 180,'known_size'=>(bool)($width && $height)];
             }
             if (!$sources) { continue; }
             $original=$sources[0];$thumb=$sources[count($sources)-1];
+            // Prefer the smallest genuine provider-supplied raster when dimensions
+            // are known. Unknown-size previews retain the provider's last-source hint.
+            if ($thumb['known_size']) foreach($sources as $source) {
+                if ($source['known_size'] && $source['width']*$source['height'] < $thumb['width']*$thumb['height']) $thumb=$source;
+            }
             $display=$quality==='preview' ? $thumb : $original;
             $title=is_string($image['title'] ?? null) ? $image['title'] : 'Image result';
             $result=self::remote($image['url'] ?? null) ? $image['url'] : $original['url'];
@@ -59,7 +64,7 @@ final class image_results {
         foreach (self::items($frontend,$get,$results) as $item) {
             $title=$item['title'];
             $html.='<article class="image-wrapper"><div class="image"><a class="thumb" href="'.$escape($item['original']).'" aria-label="'.$escape('Open original: '.$title).'">'.
-                '<img src="'.$escape($item['preview']).'"'.($item['motion']===null ? '' : ' data-motion="'.$escape($item['motion']).'"').' alt="'.$escape($title).'" width="'.$item['width'].'" height="'.$item['height'].'" loading="'.($count<4 ? 'eager' : 'lazy').'" decoding="async" fetchpriority="'.($count===0 ? 'high' : 'low').'">'.
+                '<img src="'.$escape($item['preview']).'"'.($item['motion']===null ? '' : ' data-motion="'.$escape($item['motion']).'"').' alt="'.$escape($title).'" width="'.$item['width'].'" height="'.$item['height'].'" loading="'.($count<4 ? 'eager' : 'lazy').'" decoding="async" fetchpriority="'.($count===0 ? 'high' : ($count<4 ? 'auto' : 'low')).'">'.
                 '</a><a href="'.$escape($item['source']).'" rel="noreferrer nofollow"><div class="title">'.$escape($item['host']).'</div><div class="description">'.$escape($title).'</div></a>'.
                 '<div class="image-links">';
             foreach ($item['links'] as $link) { $html.='<a href="'.$escape($link['href']).'">'.$escape($link['label']).'</a>'; }

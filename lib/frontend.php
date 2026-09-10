@@ -2,6 +2,7 @@
 
 require_once __DIR__ . "/provider_availability.php";
 require_once __DIR__ . "/theme_picker.php";
+require_once __DIR__ . "/home_styles.php";
 require_once __DIR__ . "/site_metadata.php";
 require_once __DIR__ . "/service_pool.php";
 
@@ -63,6 +64,12 @@ class frontend{
         if ($template === 'home.html') $replacements['theme_picker'] = securitysearch_theme_picker($theme);
         $replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">' .
             '<link rel="stylesheet" href="/static/experience.css?v' . config::VERSION . '">';
+        if ($template === 'home.html') {
+            $replacements['home_base_style']=home_styles::inline('base') ?: '<link rel="stylesheet" href="/static/style.css?v'.config::VERSION.'">';
+            $theme_style=$theme==='Black' ? home_styles::inline('black') : '';
+            $replacements['style']=($theme_style ?: '<link rel="stylesheet" href="/static/themes/'.rawurlencode($theme).'.css?v'.config::VERSION.'">').
+                (home_styles::inline('controls') ?: '<link rel="stylesheet" href="/static/experience.css?v'.config::VERSION.'">');
+        }
         // A script is emitted only for the explicitly selected browser-local picture.
         if ($theme === 'SecOps' && !operator_themes::available('SecOps')) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/SecOps-motion.css?v' . config::VERSION . '">';
         if (operator_themes::available($theme)) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '">';

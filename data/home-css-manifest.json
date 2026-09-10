@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "generator": "scripts/build-home-css.py",
+  "inputs": {
+    "static/style.css": "9c51ecf71f9ad9fed06da12170ac973901b69d0d660f3f098d849dcb07700ce6",
+    "static/experience.css": "eac322b9d311b5d645ff8ee184c2f0e4aeada770e098c30dd499c051939ced77",
+    "static/themes/Black.css": "9b268e0aa5c71154b9c150c00b69ea0ee31592cbb56198db98ce9ad78ff421ec"
+  },
+  "outputs": {
+    "static/home-base.css": "2faf57026011d0558f0764d15522a55e0d63ba18d0a26a3da0d904d440a08e9d",
+    "static/home-controls.css": "5421b71b7fcc1084fb9baaf7797be1ba2b9afdd3b28f2328a278676f8acba7bd",
+    "static/home-black.css": "6c3e3cd753f9411185d5c35112f5f8aff45dcd452dd7fe2a01658a92c2ddb56d"
+  },
+  "note": "Complete homepage states; not only above-the-fold. Results keep full shared CSS."
+}

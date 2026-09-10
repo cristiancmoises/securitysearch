@@ -11,7 +11,7 @@ try {
  fclose($pipes[0]);$output=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
  if(proc_close($p)!==0){throw new RuntimeException('Configuration generator failed: '.$error);}
  require $root.'/data/config.php';
- if(config::NEWS_RSS_PRIMARY!=='bing' || config::NEWS_RSS_MARKET!=='pt-BR' || config::DEFAULT_SCRAPER_NEWS!=='newswire' || config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::REDLIB_FALLBACKS!==false || config::REDLIB_PRIMARY!=='https://redlib.nadeko.net' || config::VERSION!==28 || config::DEFAULT_THEME!=="Black"){throw new RuntimeException('Configuration literals/types changed');}
+ if(config::NEWS_RSS_PRIMARY!=='bing' || config::NEWS_RSS_MARKET!=='pt-BR' || config::DEFAULT_SCRAPER_NEWS!=='newswire' || config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::REDLIB_FALLBACKS!==false || config::REDLIB_PRIMARY!=='https://redlib.nadeko.net' || config::VERSION!==29 || config::DEFAULT_THEME!=="Black"){throw new RuntimeException('Configuration literals/types changed');}
  echo "PASS: quoted literals, boolean API disable, unknown environment keys and version integrity.\n";
 } finally {
  unlink($root.'/docker/gen_config.php');unlink($root.'/data/config.php');rmdir($root.'/data/captcha');rmdir($root.'/data');rmdir($root.'/docker');rmdir($root);

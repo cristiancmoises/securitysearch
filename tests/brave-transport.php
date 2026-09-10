@@ -31,9 +31,11 @@ catch(RuntimeException $error){check(str_contains($error->getMessage(),'size lim
 $chunks=['neutral'];$status=429;
 try{$invoke($provider);throw new LogicException('HTTP failure accepted');}
 catch(RuntimeException $error){check(str_contains($error->getMessage(),'unavailable'),'Provider status rejected');}
+apcu_delete(search_health::key('brave','raw_ip::::')); // isolate the next transport case
 $status=200;$errno=28;
 try{$invoke($provider);throw new LogicException('Transport failure accepted');}
 catch(RuntimeException $error){check(str_contains($error->getMessage(),'transport'),'Transport failure rejected');}
+apcu_delete(search_health::key('brave','raw_ip::::')); // deadline case must reach the deadline guard
 $errno=0;$provider->set_request_deadline(hrtime(true)-1);$before=$calls;
 try{$invoke($provider);throw new LogicException('Expired request executed');}
 catch(RuntimeException $error){check(str_contains($error->getMessage(),'budget'),'Expired budget rejected');}

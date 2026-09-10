@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__."/../lib/search_health.php";
 
 class google_cse{
 	
@@ -9,7 +10,7 @@ class google_cse{
 	private const TOKEN_FAILURE_TTL = 5;
 	private const TOKEN_ANTI_ABUSE_FAILURE_TTL = 30;
 	private const TOKEN_WAIT_USEC = 50000;
-	private const TOKEN_WAIT_ATTEMPTS = 480;
+	private const TOKEN_WAIT_ATTEMPTS = 40; // <=2s contention wait, preserving the owner's flight.
 	private $backend;
 	private $fuckhtml;
 	private $backend_name;
@@ -450,6 +451,8 @@ class google_cse{
 	}
 
 	private function get($proxy, $url, $get = [], $reqtype = self::req_js, $retried = false){
+        search_health::check('google',$proxy);
+        $started=hrtime(true);
 		$remaining = $this->remaining_network_ms();
 		$this->validate_request_url($url);
 		
@@ -514,6 +517,12 @@ class google_cse{
 		
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
+        $retry_after='';
+        curl_setopt($curlproc,CURLOPT_HEADERFUNCTION,static function($handle,$line) use(&$retry_after){
+            if(str_starts_with($line,'HTTP/'))$retry_after='';
+            if(stripos($line,'Retry-After:')===0)$retry_after=substr(trim(substr($line,12)),0,81);
+            return strlen($line);
+        });
 		$data = "";
 		$oversized = false;
 		curl_setopt($curlproc, CURLOPT_WRITEFUNCTION, function($handle, $chunk) use (&$data, &$oversized){
@@ -530,28 +539,21 @@ class google_cse{
 		curl_exec($curlproc);
 		$curl_errno = curl_errno($curlproc);
 		$status = (int)curl_getinfo($curlproc, CURLINFO_RESPONSE_CODE);
-		if($oversized){ throw new Exception("Google response exceeded the safe size limit."); }
-		if($curl_errno !== 0){
-			// libcurl errors may contain internal proxy addresses. Do not expose them.
-			throw new Exception($curl_errno === CURLE_OPERATION_TIMEDOUT
-				? "Google connection timed out. Please retry later or select another provider."
-				: "Google transport could not complete the request (code " . $curl_errno . "). Please retry later.");
-		}
-		// One retry for transient gateway errors on the SAME provider/egress.
-		// No challenge solving, proxy rotation, TLS downgrade or unbounded loops.
-		if(!$retried && in_array($status, [502, 503, 504], true) && !$this->is_google_anti_abuse_error($data)){
-			usleep(150000);
-			return $this->get($proxy, $url, [], $reqtype, true);
-		}
-
-		if(
-			$status === 429 ||
-			($status === 403 && $this->is_google_anti_abuse_error($data))
-		){
-
-			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
-		}
-		if($status >= 400){ throw new Exception("Google returned HTTP " . $status . ". Please retry later or choose another provider."); }
+        search_health::record('google','transport',$status,$curl_errno,strlen($data),(hrtime(true)-$started)/1000000);
+        if($oversized) throw new upstream_search_failure('google','body_limit',$status);
+        if($curl_errno!==0){
+            $error=new upstream_search_failure('google','transport',$status,$curl_errno);
+            search_health::remember('google',$proxy,$error);throw $error;
+        }
+        // Honor explicit Retry-After; transient retry never changes provider or egress.
+        if(!$retried && in_array($status,[502,503,504],true) && $retry_after==='' &&
+            !$this->is_google_anti_abuse_error($data) && $this->remaining_network_ms()>=1000){
+            usleep(100000);return $this->get($proxy,$url,[],$reqtype,true);
+        }
+        if($status<200 || $status>=300){
+            $error=search_health::http_failure('google',$status,$retry_after);
+            search_health::remember('google',$proxy,$error);throw $error;
+        }
 
 		if(!is_string($data)){
 
@@ -576,7 +578,7 @@ class google_cse{
 
 		if(
 			!preg_match(
-				'/google\.search\.cse\.[A-Za-z0-9]+\(([\S\s]*)\);/i',
+				'/\A\s*google\.search\.cse\.[A-Za-z0-9_]+\s*\(\s*(\{[\S\s]*\})\s*\)\s*;?\s*\z/i',
 				$payload,
 				$match
 			)
@@ -587,13 +589,13 @@ class google_cse{
 				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
 			}
 
-			throw new Exception("Failed to grep JSON");
+			throw new upstream_search_failure('google','format',200);
 		}
 
 		$json = json_decode($match[1], true);
 		if(!is_array($json)){
 
-			throw new Exception("Google returned malformed JSON");
+			throw new upstream_search_failure('google','format',200);
 		}
 
 		return $json;
@@ -638,6 +640,16 @@ class google_cse{
 					$error_text
 				) === 1;
 
+            $error_code=$json['error']['code'] ?? 0;
+            // Preserve the existing one-time renewal of an explicitly expired token.
+            // A refusal or rate limit is not an instruction to refresh credentials.
+            $renewable=$retry_token_error && !$anti_abuse_error && $token_error &&
+                preg_match('/cse[_ -]?tok|token|expired/i',$error_text);
+            if(in_array($error_code,[401,403,418,429],true) &&
+                !(in_array($error_code,[401,403],true) && $renewable)) {
+                $failure=search_health::http_failure('google',$error_code);
+                search_health::remember('google',$proxy,$failure);throw $failure;
+            }
 			if(
 				!$retry_token_error ||
 				$error_text === "" ||
@@ -669,6 +681,11 @@ class google_cse{
 					)
 				);
 			$retry_error_text = isset($retry_json["error"]) ? json_encode($retry_json["error"]) : "";
+            $retry_code=$retry_json['error']['code'] ?? 0;
+            if(in_array($retry_code,[401,403,418,429],true)) {
+                $failure=search_health::http_failure('google',$retry_code);
+                search_health::remember('google',$proxy,$failure);throw $failure;
+            }
 			if($this->is_google_anti_abuse_error($retry_error_text)){
 
 				$this->remember_cse_request_cooldown($cooldown_key);
@@ -676,7 +693,7 @@ class google_cse{
 
 			return $retry_json;
 		}catch(Throwable $error){
-
+            if ($error instanceof upstream_search_failure) search_health::remember('google',$proxy,$error);
 			if($this->is_google_anti_abuse_error($error->getMessage())){
 
 				$this->remember_cse_request_cooldown($cooldown_key);
@@ -1270,6 +1287,7 @@ class google_cse{
 	}
 	
 	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){
+        search_health::check('google',$proxy);
 		// A known provider block must not trigger another query-free bootstrap.
 		$this->throw_cse_request_cooldown($this->cse_request_cooldown_key($proxy));
 
@@ -1348,7 +1366,7 @@ class google_cse{
 				}
 
 				$this->throw_cached_bootstrap_failure($failure_key);
-				throw new Exception("Google is preparing a search session for another request. Please retry in a moment.");
+				throw new upstream_search_failure('google','busy',0,0,2);
 			}
 
 			// Close the cache-miss/publication race after acquiring the lock. A

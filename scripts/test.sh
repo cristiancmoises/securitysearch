@@ -83,6 +83,10 @@ run_test python3 tests/news-rss-deploy-regression.py
 run_test python3 tests/publication-v0.9.24-regression.py
 run_test python3 tests/news-audit-runtime-regression.py
 run_test python3 tests/redlib-attribution-regression.py
+run_test php tests/search-health-regression.php
+run_test php -d apc.enable_cli=0 -d disable_functions=curl_init,curl_reset,curl_setopt,curl_exec,curl_errno,curl_getinfo,curl_close tests/search-transport-regression.php
+run_test python3 tests/home-performance-regression.py
+run_test python3 tests/publication-v0.9.25-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

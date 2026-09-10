@@ -21,7 +21,7 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.24'
+VERSION = '0.9.25'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -135,11 +135,11 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '28|Black':
+            if marker.strip() != '29|Black':
                 raise RuntimeError('New source/config version is masked by an old setting or mount.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
-            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or '/static/themes/Black.css?v28' not in html:
+            if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or any('data-home-style="'+name+'"' not in html for name in ('base','black','controls')) or re.search(r'<link\b[^>]*rel=["\']stylesheet["\']',html,re.I):
                 raise RuntimeError('New home page failed its content check.')
             headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                           'http://127.0.0.1/',capture=True).lower()
@@ -150,11 +150,11 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v28',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v29',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v28',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v29',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',

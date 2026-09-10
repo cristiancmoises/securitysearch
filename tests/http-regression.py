@@ -129,18 +129,18 @@ http_response_code(404);return true;
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
-                assert '/static/themes/Black.css?v28' in html and html.count('class="search-action-icon"')==4
+                assert 'data-home-style="black"' in html and '/static/themes/Black.css' not in html and html.count('class="search-action-icon"')==4
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v28' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v29' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']
                 headers,html,url=search(cookie='image_infinite=no; image_motion=no; theme=Lain')
-                assert '<script' not in html and url and '/static/themes/Lain.css?v28' in html
+                assert '<script' not in html and url and '/static/themes/Lain.css?v29' in html
                 reset();headers,html,url=search()
                 for number in range(2,16):
                     data=append(url)

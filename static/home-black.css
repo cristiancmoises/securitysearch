@@ -1,0 +1,4 @@
+:root{color-scheme:dark;--1d2021:#000;--282828:#0b0e10;--3c3836:#141b1f;--504945:#26424a;--928374:#84979f;--a89984:#a9bcc4;--bdae93:#d0e0e6;--8ec07c:#3de2f4;--ebdbb2:#effafd;--green:#3de2f4;--yellow:#ffce75;--red:#ff748d;--comment:#80969c;--default:#d0e0e6;--keyword:#5ce5f0;--string:#abe9d0;}
+body,body.home{background:#000;color:var(--ebdbb2);text-shadow:none;}
+.home::before,.home::after,.home .ambient-wallpaper{display:none;content:none;background:none;}
+a{color:var(--8ec07c);}

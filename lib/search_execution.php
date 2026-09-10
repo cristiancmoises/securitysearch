@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__.'/search_guard.php';
+require_once __DIR__.'/search_health.php';
 /** One honest, bounded fallback for a new Google web/image search. */
 final class search_execution {
     public static function run(frontend $frontend,object &$scraper,array &$get,array &$filters,string $page,bool $append=false): array {
@@ -26,7 +27,9 @@ final class search_execution {
                 $result=search_guard::run($alternative,$method,$alternative_get);
             } catch (Exception $fallback) {
                 $_GET=$saved;
-                throw new RuntimeException('Google and its Brave fallback could not complete this search. Try another provider or retry later.');
+                $reasons=[];
+                foreach([$original,$fallback] as $error) if($error instanceof upstream_search_failure) $reasons[]=$error->getMessage();
+                throw new RuntimeException('Google and its Brave fallback could not complete this search. '.implode(' ',$reasons).' Try another provider or retry later.');
             }
             $get=$alternative_get;$filters=$alternative_filters;$scraper=$alternative;
             $_GET=$alternative_get;

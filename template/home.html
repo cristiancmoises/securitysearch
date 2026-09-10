@@ -5,6 +5,8 @@
 <title>Security Search — Privacy-First Metasearch Engine</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- LCP image preload (no third-party requests). -->
+<link rel="preload" as="image" href="/banner/securitysearch.webp?v{%version%}" fetchpriority="high">
 <meta name="description" content="Privacy-first proxy metasearch engine. No tracking or ads. Search the web, images, videos and community news. Works without JavaScript; optional local enhancements.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="referrer" content="no-referrer">
@@ -47,10 +49,8 @@
 <link rel="icon" href="/favicon.png" type="image/png">
 <link rel="apple-touch-icon" href="/favicon.png">
 
-<!-- LCP image preload (no third-party requests). -->
-<link rel="preload" as="image" href="/banner/securitysearch.webp?v{%version%}" fetchpriority="high">
 
-<link rel="stylesheet" href="/static/style.css?v{%version%}">
+{%home_base_style%}
 {%style%}
 
 <style>
@@ -444,7 +444,7 @@ body.home a:focus-visible{
     <main class="hero">
 
         <h1 class="logo">
-            <a href="/"><img src="/banner/securitysearch.webp?v{%version%}" alt="Security Search" width="400" height="86" fetchpriority="high" decoding="async"></a>
+            <a href="/"><img src="/banner/securitysearch.webp?v{%version%}" alt="Security Search" width="400" height="86" fetchpriority="high" loading="eager" decoding="async"></a>
         </h1>
 
         <div class="search-wrap">

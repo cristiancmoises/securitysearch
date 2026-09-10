@@ -1,3 +1,7 @@
+## v0.9.25
+
+Homepage-only inline CSS, compressed banner, Google/Brave refusal-aware health and safe diagnostics, genuine image previews. Asset 29; attribution and private-artwork policy retained. See [release notes](docs/RELEASE-0.9.25.md).
+
 ## v0.9.24 — independent RSS news and refusal-aware transport
 
 News RSS replaces the unavailable Redlib-only default; real headlines + keyword

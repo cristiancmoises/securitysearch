@@ -1,8 +1,9 @@
 <?php
+require_once __DIR__."/../lib/search_health.php";
 
 class brave{
 
-	private const CHALLENGE_ATTEMPTS = 3;
+	// A challenge is terminal; never rotate addresses to retry it.
     private fuckhtml $fuckhtml;
     private backend $backend;
     private ?int $request_deadline=null;
@@ -14,6 +15,7 @@ class brave{
     }
 	
 	public function __construct(){
+        $this->request_deadline=hrtime(true)+20000000000;
 		
 		include_once "lib/fuckhtml.php";
 		$this->fuckhtml = new fuckhtml();
@@ -169,7 +171,10 @@ class brave{
 		}
 	}
 	
-	private function get($proxy, $url, $get, $nsfw, $country){
+	private function get($proxy, $url, $get, $nsfw, $country, $retried=false){
+        $this->validate_request_url($url);
+        search_health::check("brave",$proxy);
+        $started=hrtime(true);
 		
 		switch($nsfw){
 			
@@ -218,7 +223,12 @@ class brave{
 
 		$this->backend->assign_proxy($curlproc, $proxy);
 		
-        $data='';$oversized=false;
+        $data='';$oversized=false;$retry_after='';
+        curl_setopt($curlproc,CURLOPT_HEADERFUNCTION,static function($handle,$line) use(&$retry_after){
+            if(str_starts_with($line,'HTTP/'))$retry_after='';
+            if(stripos($line,'Retry-After:')===0)$retry_after=substr(trim(substr($line,12)),0,81);
+            return strlen($line);
+        });
         curl_setopt($curlproc,CURLOPT_PROTOCOLS,CURLPROTO_HTTPS);
         curl_setopt($curlproc,CURLOPT_FOLLOWLOCATION,false);
         curl_setopt($curlproc,CURLOPT_WRITEFUNCTION,static function($handle,$chunk) use(&$data,&$oversized){
@@ -230,44 +240,34 @@ class brave{
             curl_setopt($curlproc,CURLOPT_CONNECTTIMEOUT_MS,min(5000,$remaining));
             curl_setopt($curlproc,CURLOPT_TIMEOUT_MS,$remaining);
             curl_exec($curlproc);
-            if ($oversized) throw new RuntimeException('Brave response exceeded the safe size limit.');
-            if (curl_errno($curlproc)) throw new RuntimeException('Brave transport could not complete this search.');
-            $status=(int)curl_getinfo($curlproc,CURLINFO_RESPONSE_CODE);
-            if ($status<200 || $status>=300) throw new RuntimeException('Brave is temporarily unavailable.');
+            $errno=curl_errno($curlproc);$status=(int)curl_getinfo($curlproc,CURLINFO_RESPONSE_CODE);
+            search_health::record('brave','transport',$status,$errno,strlen($data),(hrtime(true)-$started)/1000000);
+            if ($oversized) throw new upstream_search_failure('brave','body_limit',$status);
+            if ($errno) throw new upstream_search_failure('brave','transport',$status,$errno);
+            if ($this->is_pow_challenge_page($data) || preg_match('#<title[^>]*>\s*human verification\s*</title>#i',$data))
+                throw new upstream_search_failure('brave','challenge',$status,0,search_health::retry_after($retry_after));
+            if (!$retried && in_array($status,[502,503,504],true) && $retry_after==='' && $this->remaining_network_ms()>=1000) {
+                // One transient retry, on the SAME source/egress, inside the same deadline.
+                usleep(100000);return $this->get($proxy,$url,[],$nsfw,$country,true);
+            }
+            if ($status<200 || $status>=300) throw search_health::http_failure('brave',$status,$retry_after);
             return $data;
+        } catch (upstream_search_failure $error) {
+            search_health::remember('brave',$proxy,$error);throw $error;
         } finally { curl_close($curlproc); }
 	}
 
-	private function get_search_page(&$proxy, $url, $get, $nsfw, $country){
-
-		$last_page = "";
-		for($attempt = 0; $attempt < self::CHALLENGE_ATTEMPTS; $attempt++){
-
-			$last_page = $this->get($proxy, $url, $get, $nsfw, $country);
-			if(!$this->is_pow_challenge_page($last_page)){
-
-				return $last_page;
-			}
-
-			// Retrying the same address only repeats the challenge and increases
-			// latency. Unconfigured direct egress fails fast; a configured pool
-			// (including a reviewed raw/Tor pool) rotates for bounded attempts.
-			if(
-				config::PROXY_BRAVE === false ||
-				$attempt + 1 >= self::CHALLENGE_ATTEMPTS
-			){
-
-				break;
-			}
-
-			$proxy = $this->backend->get_ip();
-		}
-
-		// Return the final challenge page so the existing parser produces the
-		// normal, user-facing provider error. This is a bounded same-provider
-		// retry; queries are never submitted to a different engine silently.
-		return $last_page;
-	}
+    private function validate_request_url($url): void {
+        $p=is_string($url) ? parse_url($url) : false;
+        if(!is_array($p) || ($p['scheme']??'')!=='https' || ($p['host']??'')!=='search.brave.com' ||
+            !in_array($p['path']??'',['/search','/images','/videos','/news'],true) ||
+            isset($p['user']) || isset($p['pass']) || isset($p['fragment']) ||
+            (isset($p['port']) && $p['port']!==443) || preg_match('/[\x00-\x20\x7f]/',$url))
+            throw new InvalidArgumentException('Unsafe Brave request destination.');
+    }
+    private function get_search_page(&$proxy, $url, $get, $nsfw, $country){
+        return $this->get($proxy,$url,$get,$nsfw,$country);
+    }
 
 	private function is_pow_challenge_page($html){
 
@@ -292,21 +292,17 @@ class brave{
 			
 			if(
 				preg_match(
-					'/kit\.start\(/',
+					'/(?:\bkit|\b__sveltekit_[A-Za-z0-9_]+)\s*\.\s*start\s*\(/',
 					$discs["innerHTML"]
 				)
 			){
 				
 				$data =
-					explode(
-						"data:",
-						$discs["innerHTML"],
-						2
-					);
+					preg_split('/\bdata\s*:\s*/', $discs["innerHTML"], 2);
 				
 				if(count($data) !== 2){
 					
-					throw new Exception("Failed to split up data field");
+					throw new upstream_search_failure('brave','format',200);
 				}
 				
 				$data = $data[1];
@@ -316,7 +312,7 @@ class brave{
 		
 		if($data === null){
 			
-			throw new Exception("Could not grep JavaScript object");
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
 		$data =
@@ -330,7 +326,7 @@ class brave{
 		
 		if($data === null){
 			
-			throw new Exception("Failed to decode JavaScript object");
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
 		return $data;
@@ -430,7 +426,8 @@ class brave{
 			
 		}catch(Exception $error){
 			
-			throw new Exception("Could not fetch search page");
+			if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 		}
 		
 		$out = [
@@ -1186,7 +1183,8 @@ class brave{
 				
 			}catch(Exception $error){
 				
-				throw new Exception("Could not fetch search page");
+				if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 			}
 			
 		}else{
@@ -1225,7 +1223,8 @@ class brave{
 				
 			}catch(Exception $error){
 				
-				throw new Exception("Could not fetch search page");
+				if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 			}
 		}
 		
@@ -1317,7 +1316,7 @@ class brave{
 		try{
 			$html =
 				$this->get_search_page(
-					$proxy, // no nextpage right now, but challenge retries may rotate it
+					$proxy, // no authoritative continuation; challenges are not retried
 					"https://search.brave.com/images",
 					[
 						"q" => $search,
@@ -1329,7 +1328,8 @@ class brave{
 			
 		}catch(Exception $error){
 			
-			throw new Exception("Could not fetch search page");
+			if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 		}
 		/*
 		$handle = fopen("scraper/brave-image.html", "r");
@@ -1586,7 +1586,8 @@ class brave{
 				
 			}catch(Exception $error){
 				
-				throw new Exception("Could not fetch search page");
+				if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 			}
 			
 		}else{
@@ -1623,7 +1624,8 @@ class brave{
 				
 			}catch(Exception $error){
 				
-				throw new Exception("Could not fetch search page");
+				if ($error instanceof upstream_search_failure) throw $error;
+            throw new RuntimeException("Brave could not fetch this search page.",0,$error);
 			}
 		}
 		
@@ -2119,7 +2121,7 @@ class brave{
 
 		if(count($title) === 0){
 			if(strtolower($this->fuckhtml->getloadedhtml()) == "this service is not available in your region"){
-				throw new Exception("Brave rangebanned the IP range");
+				throw new upstream_search_failure('brave','refused',200);
 			}
 
 			throw new Exception("Brave returned a malformed page");
@@ -2127,7 +2129,7 @@ class brave{
 
 		$title = strtolower($this->fuckhtml->getTextContent($title[0]));
 		if($title == "human verification"){
-			throw new Exception("Brave returned a CAPTCHA");
+			throw new upstream_search_failure('brave','challenge',200);
 		}
 	}
 
@@ -2138,14 +2140,14 @@ class brave{
 			}
 
 			if(isset($payload["data"]["challengeSet"])){
-				throw new Exception("Brave returned a proof-of-work challenge. Configure FOURGET_PROXY_BRAVE with a suitable proxy pool or select another scraper.");
+				throw new upstream_search_failure('brave','challenge',200);
 			}
 
 			if(
 				isset($payload["data"]["title"]) &&
 				stripos($payload["data"]["title"], "PoW Captcha") !== false
 			){
-				throw new Exception("Brave returned a proof-of-work challenge. Configure FOURGET_PROXY_BRAVE with a suitable proxy pool or select another scraper.");
+				throw new upstream_search_failure('brave','challenge',200);
 			}
 		}
 	}
