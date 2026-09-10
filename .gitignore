@@ -41,3 +41,5 @@ prompts/
 # Local Python validation artifacts
 **/__pycache__/
 *.pyc
+
+!banner/social-card.png

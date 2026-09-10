@@ -110,3 +110,18 @@ pre, code{
     text-shadow:none;
     box-shadow: inset 0 0 10px #00eaff33;
 }
+
+:root{--wallpaper-still:url("/static/theme-previews/Tron.webp");}
+
+/* Bundled animation is loaded only by the selected theme. Native pause requires no script. */
+:root{--wallpaper-still:url("/static/wallpapers/tron-still.webp");}
+body.home::before{display:none;content:none;}
+.home .ambient-wallpaper{display:block;background:linear-gradient(#0005,#000a),url("/static/wallpapers/tron.webp") center/cover no-repeat;}
+.home .wallpaper-control{display:inline-flex;align-items:center;margin-right:auto;cursor:pointer;color:var(--8ec07c);font-size:.8rem;gap:.4rem;}
+.home .wallpaper-control::before{content:"▶";}
+.home .wallpaper-toggle:checked~.ambient-wallpaper{background-image:linear-gradient(#0005,#000a),var(--wallpaper-still);}
+.home .wallpaper-toggle:focus-visible~#center .wallpaper-control{outline:2px solid var(--8ec07c);outline-offset:3px;}
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){.home .ambient-wallpaper{background-image:linear-gradient(#0005,#000a),var(--wallpaper-still);}.home .wallpaper-control{display:none;}.home .motion-status{display:inline;}}
+@media print{.home .ambient-wallpaper,.home .wallpaper-control{display:none;}}
+
+.home .wallpaper-toggle{display:block;}

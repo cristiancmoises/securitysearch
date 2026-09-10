@@ -164,3 +164,7 @@ pre, code{
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
 }
+
+:root{--1d2021:#000;--282828:var(--bg-1,#090907);--3c3836:var(--bg-2,#10100e);--504945:var(--bg-3,#30291a);--928374:var(--text-muted,#aca);--a89984:var(--text-muted,#aca);--bdae93:var(--text-main);--8ec07c:var(--text-main);--ebdbb2:var(--text-strong);}
+
+:root{--wallpaper-still:url("/static/theme-previews/Art2.webp");}

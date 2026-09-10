@@ -1,3 +1,7 @@
+## v0.9.21
+
+Bounded Redlib failover, poster-preserving motion, local-only pictures, corrected themes/select colors, cached rank/onion footer and truthful metadata. Asset 25. [Release notes](docs/RELEASE-0.9.21.md) · [Operations](docs/OPERATIONS-0.9.21.md). Native full-runtime/VPS gates remain mandatory.
+
 ## v0.9.20 — release publication and r1 audit repair
 
 Binternet legacy/modern markup compatibility, bounded legacy provider waits and

@@ -3,6 +3,12 @@ include_once __DIR__ . "/lib/security_headers.php";
 include_once __DIR__ . "/lib/provider_availability.php";
 
 include "data/config.php";
+require_once __DIR__ . '/lib/theme_picker.php';
+header('Cache-Control: private, no-store');
+header('X-Robots-Tag: noindex, nofollow');
+if (($_SERVER['HTTP_SEC_FETCH_SITE'] ?? '')==='cross-site' && ($_SERVER['REQUEST_METHOD'] ?? '')==='POST') {
+    http_response_code(403); exit('Use the settings form on this site.');
+}
 
 /*
 	Define settings
@@ -429,25 +435,14 @@ if(!securitysearch_google_api_available()){
 /*
 	Set theme collection
 */
-$themes = glob("static/themes/*");
-
-$settings[0]["settings"][1]["options"][] = [
-	"value" => config::DEFAULT_THEME,
-	"text" => config::DEFAULT_THEME . " (default)"
-];
-
-foreach($themes as $theme){
-	
-	$theme = explode(".", basename($theme))[0];
-	if($theme === config::DEFAULT_THEME){
-		continue;
-	}
-	
-	$settings[0]["settings"][1]["options"][] = [
-		"value" => $theme,
-		"text" => $theme
-	];
+foreach ($settings[0]['settings'] as &$setting) {
+    if ($setting['parameter'] !== 'theme') continue;
+    $setting['options']=[];
+    foreach (securitysearch_theme_catalog() as $name=>$preview) {
+        $setting['options'][]=['value'=>$name,'text'=>($name==='Custom' ? 'My picture (browser only)' : $name).($name===config::DEFAULT_THEME ? ' (default)' : '')];
+    }
 }
+unset($setting);
 
 /*
 	Set cookies
@@ -467,6 +462,19 @@ if($_POST){
 }
 
 foreach($loop as $key => $value){
+    if (!is_string($value)) continue;
+    if ($key==='theme') {
+        if ($value==='gentoo') $value='Gentoo';
+        $value=securitysearch_theme_choice($value) ?? 'Black';
+    } else {
+        $valid=false;
+        foreach($settings as $group) foreach($group['settings'] as $setting) {
+            if($setting['parameter']===$key) foreach($setting['options'] as $option) {
+                if((string)$option['value']===$value) $valid=true;
+            }
+        }
+        if(!$valid) continue;
+    }
 	
 	if($key == "theme"){
 		
@@ -975,7 +983,7 @@ foreach($settings as $title){
 			
 			if(!isset($_COOKIE["theme"])){
 				
-				$_COOKIE["theme"] = config::DEFAULT_THEME;
+				$_COOKIE["theme"] = securitysearch_selected_theme();
 			}
 		}
 		

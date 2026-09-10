@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../lib/service_search.php';
+require_once __DIR__ . '/../lib/service_pool.php';
 
 /** News/community links from the operator's Redlib frontend, never direct Reddit. */
 class reddit extends service_search {
@@ -15,13 +16,15 @@ class reddit extends service_search {
     public function news(array $get): array {
         if (empty($get['npt'])) {
             $query=is_string($get['s'] ?? null) ? trim($get['s']) : '';
-            if (strlen($query)>500) { throw new RuntimeException('Enter a search of up to 500 bytes.'); }
+            if (strlen($query)>500 || !preg_match('//u',$query) || preg_match('/[\x00-\x1f\x7f]/',$query)) { throw new RuntimeException('Enter a search of up to 500 bytes.'); }
             $params=['q'=>$query,'sort'=>'new','t'=>'all'];
             foreach (['sort'=>'sort','time'=>'t'] as $filter=>$field) {
                 if (isset($this->getfilters('news')[$filter]['option'][$get[$filter] ?? ''])) $params[$field]=$get[$filter];
             }
         } else { $params=$this->parameters($get,'news'); }
         $path=$params['q']==='' ? self::FEED : self::SEARCH;
+        $origin=!empty($get['npt']) ? ($params['origin'] ?? self::ORIGIN) : null;
+        unset($params['origin']);
         $request=$params;
         if ($params['q']==='') { unset($request['q'],$request['sort']); }
         else {
@@ -29,7 +32,20 @@ class reddit extends service_search {
             // Redlib treats these bare prefixes as navigation; quote them for search.
             if (preg_match('#\A(?:(?:https?://)?(?:www\.|old\.|new\.)?reddit\.com/)?(?:r|u|user)/#i',$request['q'])) $request['q']='"'.$request['q'].'"';
         }
-        $parsed=$this->decode($this->fetch_path($path,$request));
+        $cacheable=get_class($this)===self::class && $params['q']==='' && empty($get['npt']);
+        $cacheKey='securitysearch-public-news-v21-'.hash('sha256',implode(',',service_pool::origins()));
+        $cached=$cacheable ? service_pool::read($cacheKey) : false;
+        if (is_array($cached) && isset($cached['data'],$cached['origin']) && in_array($cached['origin'],service_pool::origins(),true)) {
+            $selected=$cached;$wasCached=true;
+        } else {
+            $selected=service_pool::run($origin!==null ? [$origin] : service_pool::origins(),
+                fn($host,$deadline)=>$this->decode($this->fetch_redlib($host,$path,$request,$deadline),$host));
+            $selected['fetched_at']=time();$wasCached=false;
+            if ($cacheable && !empty($selected['data']['news'])) service_pool::write($cacheKey,$selected,60);
+        }
+        $parsed=$selected['data'];$params['origin']=$selected['origin'];
+        $parsed['_service']=$selected['origin'];$parsed['_cached']=$wasCached;
+        $parsed['_fetched_at']=$selected['fetched_at'];
         $after=$parsed['after'];unset($parsed['after']);
         if ($after!==null && $after!==($params['after'] ?? null)) {
             $params['after']=$after;$parsed['npt']=$this->continuation($params,'news');
@@ -37,18 +53,31 @@ class reddit extends service_search {
         return $parsed;
     }
 
-    private static function permalink(string $value): ?string {
+    protected function fetch_redlib(string $origin,string $path,array $params,int $deadline): string {
+        if (!in_array($origin,service_pool::origins(),true) || !in_array($path,[self::FEED,self::SEARCH],true)) throw new InvalidArgumentException('Unapproved service route.');
+        if ($origin===self::ORIGIN) {
+            $this->service_deadline=$deadline;
+            try {return $this->fetch_path($path,$params);} finally {$this->service_deadline=null;}
+        }
+        $url=$origin.$path.'?'.http_build_query($params,'','&',PHP_QUERY_RFC3986);
+        $budget=(object)['deadline'=>min($deadline,provider_http::deadline()),'remaining_bytes'=>2097152,'remaining_wire_bytes'=>2097152];
+        $response=(new proxy(false))->get($url,proxy::req_web,false,null,4,2097152,$budget);
+        return $response['body'];
+    }
+
+    private static function permalink(string $value,string $origin): ?string {
         if (strlen($value)>4096 || preg_match('/[\x00-\x20\x7f]/',$value)) return null;
         $p=parse_url($value);
         if (!is_array($p) || isset($p['user']) || isset($p['pass']) || isset($p['port']) || isset($p['query']) || isset($p['fragment'])) return null;
-        if (isset($p['host']) && (($p['scheme'] ?? '')!=='https' || strtolower($p['host'])!=='libre.securityops.co')) return null;
+        if (isset($p['host']) && (($p['scheme'] ?? '')!=='https' || strtolower($p['host'])!==parse_url($origin,PHP_URL_HOST))) return null;
         if (!isset($p['host']) && (isset($p['scheme']) || !str_starts_with($value,'/') || str_starts_with($value,'//'))) return null;
         $path=$p['path'] ?? '';
         if (!preg_match('#\A/r/([A-Za-z0-9_]+)/comments/([a-z0-9]+)(?:/([^/]+))?/?\z#iu',$path,$match)) return null;
-        return self::ORIGIN.'/r/'.$match[1].'/comments/'.$match[2].(isset($match[3]) ? '/'.rawurlencode(rawurldecode($match[3])) : '').(str_ends_with($path,'/') ? '/' : '');
+        return $origin.'/r/'.$match[1].'/comments/'.$match[2].(isset($match[3]) ? '/'.rawurlencode(rawurldecode($match[3])) : '').(str_ends_with($path,'/') ? '/' : '');
     }
 
-    public function decode(string $body): array {
+    public function decode(string $body,string $origin=self::ORIGIN): array {
+        if (!in_array($origin,service_pool::origins(),true)) throw new InvalidArgumentException("Unapproved Redlib origin.");
         $previous=libxml_use_internal_errors(true);
         try {
             $doc=new DOMDocument();
@@ -62,7 +91,7 @@ class reddit extends service_search {
                 if (count($out['news'])>=25) break;
                 $title=null;$url=null;
                 foreach ($xp->query('.//h2['.$class('post_title').']//a[@href]',$card) as $a) {
-                    $url=self::permalink($a->getAttribute('href'));
+                    $url=self::permalink($a->getAttribute('href'),$origin);
                     if ($url!==null) { $title=self::text(trim($a->textContent),500);break; }
                 }
                 if (!$title || !$url || isset($seen[$url])) continue;

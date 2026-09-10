@@ -5,7 +5,7 @@ $f=new frontend();libxml_use_internal_errors(true);
 foreach (glob('template/*.html') as $file) {
  $html=file_get_contents($file);verify(!preg_match('/<script\b|\son[a-z]+\s*=|javascript:/i',$html),'No executable template script: '.$file);
 }
-verify(glob('static/*.js')===['static/images-infinite.js','static/images-motion.js'],'Only scoped image enhancements are shipped');
+verify(glob('static/*.js')===['static/images-infinite.js','static/images-motion.js','static/local-background.js'],'Only scoped image/local-picture enhancements are shipped');
 verify(!file_exists('lib/image_flow.php'),'Timer snapshots removed');
 foreach (['home.html','header.html'] as $template) {
  $html=$f->load($template);$dom=new DOMDocument();$dom->loadHTML($html);$xp=new DOMXPath($dom);

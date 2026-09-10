@@ -124,7 +124,7 @@ body{
     position:absolute;
     width:100px;
     height:100px;
-    background-image:url("/static/misc/christmas-hat.png");
+    background-image:none;
     background-size:contain;
     top:-61px;
     left:-31px;
@@ -156,3 +156,5 @@ pre, code{
     text-shadow:0 0 4px #ffd700;
     box-shadow: inset 0 0 10px #ffd70033;
 }
+
+:root{--wallpaper-still:url("/static/theme-previews/Valerie.webp");}

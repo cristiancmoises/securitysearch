@@ -2,6 +2,7 @@
 
 require_once __DIR__ . "/provider_availability.php";
 require_once __DIR__ . "/theme_picker.php";
+require_once __DIR__ . "/site_metadata.php";
 
 class frontend{
 	// Cache only bundled, unrendered templates. Never store queries, cookies or
@@ -53,37 +54,14 @@ class frontend{
         }
 		$replacements["video_suggestion"] ??= "";
 		$replacements["image_suggestion"] ??= "";
-		$replacements["trust_footer"] = '<div class="trust-footer"><p>In Code We Trust.</p><a href="https://git.securityops.co/" rel="noreferrer noopener">Explore the code</a></div>';
+        $replacements["trust_footer"] = securitysearch_footer();
+        $theme = securitysearch_selected_theme();
+        if ($template === 'home.html') $replacements['theme_picker'] = securitysearch_theme_picker($theme);
+        $replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">' .
+            '<link rel="stylesheet" href="/static/experience.css?v' . config::VERSION . '">';
+        // A script is emitted only for the explicitly selected browser-local picture.
+        if ($theme === 'Custom') $replacements["style"] .= '<script defer src="/static/local-background.js?v' . config::VERSION . '"></script>';
 
-		$theme = config::DEFAULT_THEME;
-		if(isset($_COOKIE["theme"]) && is_string($_COOKIE["theme"])){
-
-			$requested_theme = $_COOKIE["theme"];
-			$valid_theme_name =
-				strlen($requested_theme) <= 100 &&
-				preg_match('/\A[A-Za-z0-9][A-Za-z0-9 _-]*\z/', $requested_theme) === 1;
-
-			if($requested_theme === "Dark"){
-
-				$theme = "Dark";
-			}elseif(
-				$valid_theme_name &&
-				is_file(dirname(__DIR__) . "/static/themes/" . $requested_theme . ".css")
-			){
-
-				$theme = $requested_theme;
-			}
-		}
-		
-        if ($template === 'home.html') { $replacements['theme_picker'] = securitysearch_theme_picker($theme); }
-		if($theme != "Dark"){
-			
-			$replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">';
-		}else{
-			
-			$replacements["style"] = "";
-		}
-		
 		if(isset($_COOKIE["scraper_ac"])){
 			
 			$replacements["ac"] = '?ac=' . htmlspecialchars($_COOKIE["scraper_ac"]);
@@ -123,6 +101,12 @@ class frontend{
 			"images" => "image-results.css"
 		];
 		$page_style = "";
+        if ($page==='news' && ($get['scraper'] ?? '')==='reddit') {
+            require_once __DIR__.'/service_pool.php';
+            $notice= count(service_pool::origins())>1
+                ? 'Reddit news tries libre.securityops.co first. If it fails, redlib.nadeko.net or redlib.privacyredirect.com may receive this query.'
+                : 'Reddit news uses libre.securityops.co; external instance fallback is disabled.';
+        }
 		if(isset($page_styles[$page])){
 
 			$page_style = '<link rel="stylesheet" href="/static/' . $page_styles[$page] . '?v' . config::VERSION . '">';

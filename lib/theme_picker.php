@@ -1,10 +1,11 @@
 <?php
 /** Native appearance form. Paths and names come only from bundled CSS files. */
 function securitysearch_theme_catalog(): array {
-    $out=['Black'=>null,'Tron'=>null,'Dark'=>null];
-    foreach (glob(dirname(__DIR__).'/static/themes/*.css') ?: [] as $file) {
-        $name=basename($file,'.css');
-        if (preg_match('/\A[A-Za-z0-9][A-Za-z0-9 _-]{0,99}\z/',$name)!==1) { continue; }
+    $out=[];
+    $names=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',
+        'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];
+    foreach ($names as $name) {
+        if (!is_file(dirname(__DIR__).'/static/themes/'.$name.'.css')) continue;
         $preview='/static/theme-previews/'.rawurlencode($name).'.webp';
         $out[$name]=is_file(dirname(__DIR__).'/static/theme-previews/'.$name.'.webp') ? $preview : null;
     }
@@ -38,7 +39,7 @@ function securitysearch_theme_picker(string $selected): string {
         '<form method="post" action="/" class="appearance-form"><input type="hidden" name="appearance" value="1">' .
         '<fieldset><legend>Background theme</legend><div class="appearance-grid">';
     foreach (securitysearch_theme_catalog() as $name=>$preview) {
-        $label=$name==='Black' ? 'Pure black' : $name;
+        $label=['Black'=>'Pure black','Custom'=>'My picture','Stop'=>'Stop · palette','Lain'=>'Lain · palette'][$name] ?? $name;
         $html.='<label class="appearance-choice"><input type="radio" name="theme" value="'.$escape($name).'"'.($name===$selected ? ' checked' : '').'>';
         if ($preview!==null) {
             $html.='<img src="'.$escape($preview).'?v'.config::VERSION.'" width="240" height="135" alt="" loading="lazy" decoding="async">';
@@ -49,5 +50,23 @@ function securitysearch_theme_picker(string $selected): string {
         $html.='<span class="appearance-label">'.$escape($label).'</span></label>';
     }
     return $html.'</div></fieldset><div class="appearance-actions"><button type="submit">Save appearance</button><a href="/settings">All settings</a></div>' .
-        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form></details>';
+        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form>'.($selected==='Custom' ? securitysearch_background_controls() : '<p class="local-picture-hint">Select My picture and save to choose a file locally. Optional JavaScript; no image upload.</p>').'</details>';
+}
+
+/** File input is deliberately outside every form and has no name attribute. */
+function securitysearch_background_controls(): string {
+    return '<section class="local-background-controls" aria-labelledby="local-background-title">'.
+        '<h2 id="local-background-title">Your picture, only in your browser</h2>'.
+        '<label for="background-file">JPEG, PNG or WebP (up to 8 MiB)</label> '.
+        '<input id="background-file" type="file" accept="image/jpeg,image/png,image/webp">'.
+        '<label><input id="background-remember" type="checkbox"> Remember on this device (local storage)</label>'.
+        '<button id="background-remove" type="button">Remove my picture</button>'.
+        '<p id="background-status" role="status" aria-live="polite">Nothing is uploaded. By default the picture stays only in this tab session.</p>'.
+        '<noscript><p>Local picture selection needs optional JavaScript. Search and bundled themes work without it.</p></noscript></section>';
+}
+
+function securitysearch_selected_theme(): string {
+    $value=$_COOKIE['theme'] ?? (defined('config::DEFAULT_THEME') ? config::DEFAULT_THEME : 'Black');
+    if ($value==='gentoo') $value='Gentoo';
+    return securitysearch_theme_choice($value) ?? 'Black';
 }

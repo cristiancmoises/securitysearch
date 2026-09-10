@@ -1,111 +1,153 @@
-# Security Search v0.9.20
+# Security Search v0.9.21
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![Security Search — pure black](docs/screenshots/securitysearch-0.9.20-home-black.png)
+![Security Search — pure black](docs/screenshots/securitysearch-0.9.21-home-black.png)
 
-Local rendering of this release, not a screenshot of the deployed VPS. The HTTP controller was exercised locally; Chromium rendered its HTML with bundled resources embedded for the isolated preview. Asset version: **24**.
+**Local release rendering, not a production-VPS screenshot.** The actual PHP
+controller generated this HTML; Chromium rendered it with bundled resources
+embedded and scripts disabled. Asset version: **25**.
 
-Security Search is a PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get), maintained for [SecurityOps](https://securityops.co/). Search providers remain external services: a working adapter cannot guarantee their availability.
+Security Search is a PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get),
+maintained for [SecurityOps](https://securityops.co/). External search providers can
+refuse requests, rate-limit servers or change their pages. This release does not
+claim that every provider is available or that every search is faster.
 
-## This update
+## Search and news
 
-Binternet accepts the older `img-container`/`img-result` markup and the newer `image-gallery`/`image-link` layout. Both root-relative and page-relative proxy/pagination links work. Query validation now follows the newer service's 160-byte UTF-8 limit rather than measuring 64 HTML-escaped bytes. Bookmarks up to 4096 bytes are supported; foreign hosts, unsafe URLs and repeated pagination cursors are rejected. Recognizable empty results are distinct from broken/blocked pages.
+Web/image Google searches retain their bounded, visibly labelled Brave fallback.
+Existing pages do not silently switch provider. Legacy provider calls share the
+existing request-local connection/request budget; definite native cURL transport
+failures now receive a narrowly scoped eight-second first-page cooldown. Parser
+errors and empty results are not cached as network failures. Video/news/music
+adapters with deadline support receive the shared request deadline.
 
-Fast previews use the smaller image actually returned by Binternet, while preserving the original URL and dimensions. No larger thumbnail URL is fabricated. The fixed service origin remains `https://images.securityops.co`; this release does not guess that the separate navigation host `img.securityops.co` is interchangeable.
+Reddit news tries **libre.securityops.co → redlib.nadeko.net →
+redlib.privacyredirect.com**, sequentially, at most three attempts. Each attempt
+gets at most 3.5 seconds within a shared ten-second budget. Failed instances cool
+for twenty seconds. The responding instance is named, and authenticated
+pagination stays with it. Only the public, query-free first news feed is cached
+for sixty seconds; keyword searches and personal results are not cached.
 
-Legacy cURL calls now share a request-local deadline: by default, 3 seconds to connect, 12 seconds per call and 20 seconds across those calls. DNS and TLS-session state are shared within one PHP request, never cookies or search results. Baidu's multi-request loop waits instead of spinning continuously. Google CSE and Brave retain their separate bounded transports and the existing first-search fallback policy. These are bounded waits and local optimizations, not measured claims about live provider speed.
+**Privacy boundary:** when the primary fails, an external Redlib operator may
+receive the query and the server's IP. No visitor cookie is forwarded. The form
+and result notice disclose the fallback. Set `FOURGET_REDLIB_FALLBACKS=false` in
+the existing deployment configuration to restrict news to the primary; the fixed
+inventory is not a user-supplied URL list. Inventory membership is not a health
+check. Live reachability must be checked from the VPS.
 
-Pure black is the new instance default. **Choose appearance** restores native, keyboard-accessible theme selection with small previews of existing image assets. Saved browser themes still win over the default. The homepage remains JavaScript-free; wallpaper is loaded only for the selected image theme. The twelve new still previews total about 45 KB.
+Binternet's modern/legacy markup compatibility, bounded continuations, explicit
+empty/error states and real smaller-preview selection remain. Image search keeps
+six layouts, preview/high/original quality choices, format filters, optional
+infinite scrolling and normal Next page links. GIF/animated WebP/APNG previews
+retain their poster while a separate motion layer loads: at most **two loading
+and four active**, with Play/Pause, visibility/reduced-motion/Save-Data opt-outs,
+fifteen-second deadlines and no automatic retry of a failed preview.
 
-![Native theme picker](docs/screenshots/securitysearch-0.9.20-theme-picker.png)
+## Appearance and browser-local pictures
 
-## Existing behavior retained
+![Theme picker](docs/screenshots/securitysearch-0.9.21-theme-picker.png)
 
-The four search actions remain inside the search bar: Search, Search Image, Search Pinterest and Search YouTube. Image search retains six layouts, preview/high/original quality choices, format filters, manual pagination, optional infinite scrolling and bounded animated previews. Only image search permits the two local enhancement scripts. The services disclosure, API routes, native links and **In Code We Trust.** footer remain.
+Pure black remains the default. Dark, Wine and The Birthday Massacre are removed
+from selectors; old saved choices migrate to Black. The duplicate gentoo choice
+is consolidated. All eighteen choices have a small local preview; palette-only
+Lain and Stop are identified rather than pretending to have a missing wallpaper.
+Native settings and image-filter selects use black backgrounds and the theme's
+accent, including cyan on Tron and SecOps.
 
-Google stays the default web/image provider. A failed first Google search can try Brave once with a visible notice; continuation requests do not silently change provider. Reddit uses the configured Redlib service and YouTube uses Invidious. Their availability has not been established by this patch.
+Tron restores its bundled motion in optimized animated WebP (about 527 KB).
+SecOps uses the existing Matrix animation (about 1.37 MB) with a cyan palette;
+it is **not** the deliberately removed historical SecOps artwork. Their still
+switch and reduced-motion/data alternatives require no JavaScript. Browser
+wallpaper loading occurs only for the selected theme.
 
-## Release v0.9.20
+**My picture** is an explicit opt-in. Choose it, save, and select a JPEG, PNG or
+WebP up to 8 MiB. The input is outside all forms and has no field name. An optional
+same-origin script reads/resizes/re-encodes it in the browser, bounded to 24
+megapixels and a 1920-pixel longest output edge with a two-MiB data-URL limit.
+No upload endpoint receives the picture, filename or EXIF. The default is this
+tab's `sessionStorage` (browser session restore policies still apply). Remember
+on this device explicitly opts into `localStorage`; Remove clears both. A shared
+browser or same-origin script can access its browser storage; this is not an
+encrypted vault. Without storage permission, the picture is page-local only.
 
-This release includes the **r1 offline-audit repair** and keeps application version
-**0.9.20** / asset version **24**. The four cURL test doubles are conditionally
-registered, partially configured isolation is rejected, and deployment prints a
-bounded audit-failure tail while retaining the complete log. Production cURL is
-not disabled. [Repair details](docs/AUDITFIX-0.9.20-r1.md).
+**Works without JavaScript** is accurate for ordinary searches, links and bundled
+themes. It does not mean zero JavaScript everywhere: image scrolling/animation and
+My picture use optional local scripts. The Black homepage emits no script; Custom
+permits its script while keeping CSP `connect-src 'none'` on that homepage.
 
-### Packages
+## Footer and discoverability
 
-[Codeberg release](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.20) ·
-[GitHub release](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
-[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
-[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.20)
+The footer links the existing v3 onion address, with Tor indicated, and displays
+small dated Tranco metadata on the right. No Tranco request is made while serving
+a page or search. A separate explicit CLI/systemd task updates public domain
+metadata daily. No confirmed rank ships in this release: it displays unavailable
+until refresh, expires old cache after three days, and distinguishes an empty
+ranking response. Tranco rank is not a security or quality rating. The onion
+address format/checksum is validated; reachability is not asserted.
 
-Each completed release provides **`securitysearch-v0.9.20.tar.gz`** and its
-**`.tar.gz.sha256`** checksum. The package is the complete tagged PHP source,
-including documentation, tests and bundled assets—not a prebuilt Docker image or
-native executable. A release link is available only after that host's publication
-has completed.
+Homepage canonical/social metadata and Website microdata are updated, the social
+card is 1200×630, and the sitemap link matches the existing route. Settings and
+private search pages remain noindex. No fake ratings, provider availability or
+search-ranking guarantees are added.
 
-```sh
-sha256sum -c securitysearch-v0.9.20.tar.gz.sha256
-tar -xzf securitysearch-v0.9.20.tar.gz
-```
+## Install/update and release
 
-### Update an existing installation
-
-Apply/deploy the repaired **`securitysearch-update-0.9.20-r1`** kit before using the
-publication kit. Do not use the original, unrepaired v0.9.20 kit or the old v0.9.19
-publication launcher.
-
-Deployment uploads committed source over SSH **5119** to **root@securityops.co**.
-The updater retains the existing **172.17.0.1:5140 → 80** binding and Docker
-networks; unsupported layouts are refused instead of changing Nginx Proxy Manager.
-The full isolated offline suite, candidate readiness and a real Binternet check
-must pass before cutover. Retain the printed backup directory: it may hold
-private-data snapshots mounted by the new container.
-
-### Maintainer publication
-
-From the extracted **`securitysearch-publication-0.9.20`** kit:
+For the existing IONOS installation, use the matching **securitysearch-update-0.9.21**
+kit; the previous exact-hash launchers intentionally reject these changed files.
 
 ```fish
-fish ./publish-securitysearch-v0.9.20.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.21/apply-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.21/deploy-securitysearch.fish ~/securitysearch --rank-refresh
+fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch
 ```
 
-The launcher verifies the exact r1 baseline, updates the English/pt-BR READMEs and
-release documentation, commits only those intended changes, runs the publication
-regressions, creates an annotated **`v0.9.20`** tag and packages that exact commit.
-It then asks for four private tokens and preflights every repository before the
-first remote write. On each host, `main` and the tag are pushed atomically without
-force. Release assets are uploaded to a draft, verified, and then published.
+These are three separate operations. Applying requires the clean published v0.9.20
+main tree and creates a normal local commit. Deployment preserves SSH **5119**,
+**root@securityops.co**, Docker networks and **172.17.0.1:5140 → 80**; unsupported
+layouts are refused. The isolated full offline suite, candidate readiness and live
+Binternet check must pass before cutover. Keep all printed backup/rollback paths.
+The optional rank timer is installed only after successful deployment and never
+rolls back the application merely because metadata is unavailable.
 
-A repeat run resumes matching drafts and missing hosts. Conflicting tags, notes or
-assets are never replaced. Publication across four servers is not atomic. A local
-incremental Git bundle is also produced for recovery; it requires the published
-v0.9.19 baseline. Tokens are not stored in files, URLs or command arguments.
+Publication creates/reuses an annotated **v0.9.21**, packages that exact real
+commit, then preflights selected repositories before any write. Matching drafts
+and assets resume; conflicting tags, notes and assets are preserved. Forgejo uses
+multipart attachments. Tokens are privately prompted, not put into command
+arguments, files or URLs. A single-host retry includes the release files:
 
-**Publication does not deploy the VPS.** After this documentation commit, the old
-r1 launcher's exact README hashes no longer match; use the matching
-`deploy-securitysearch.fish` in the publication kit for any subsequent deployment.
+```fish
+fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+```
 
-[Release notes / Notas da versão](docs/RELEASE-0.9.20.md) ·
-[Publishing guide](docs/PUBLISHING-0.9.20.md) ·
-[Publicação em português](docs/PUBLISHING-0.9.20.pt-BR.md) ·
-[Operation details](docs/UPDATE-0.9.20.md) ·
-[Detalhes em português](docs/UPDATE-0.9.20.pt-BR.md) ·
-[Audit limitations](docs/AUDIT-0.9.20.md)
+Completed releases provide **securitysearch-v0.9.21.tar.gz** (tagged PHP source,
+not prebuilt binaries/Docker) and **securitysearch-v0.9.21.tar.gz.sha256**. A local
+incremental recovery bundle requires published v0.9.20. Publication never deploys.
 
-## Tests
+[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.21) ·
+[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
+[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
+[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.21)
+
+Links become available only after each host's publication succeeds. SHA-256 checks
+integrity; an annotated tag is not automatically a cryptographic signature.
+
+## Validation
 
 ```sh
 sh scripts/test.sh
 ```
 
-Requires PHP with curl, DOM/XML, mbstring, APCu, sodium, fileinfo and Imagick, plus Python 3, Node.js, Git and fish for tests. The production image does not gain Python/Node/fish: those dependencies are installed only in its disposable audit derivative.
+The full gate requires PHP curl/DOM/mbstring/APCu/Imagick/sodium, Python, Node,
+Git and fish. The authoring environment could not run the complete native suite;
+see [audit](docs/AUDIT-0.9.21.md) for exact passes and blockers. No live provider
+speedup, VPS deployment, onion reachability or authenticated release upload is
+inferred from mock tests. An optional real-browser suite is in
+`tests/browser-experience.py`; browser navigation was policy-blocked during
+authoring, separately from the successfully rendered local screenshots.
 
-For a separate, explicit live provider matrix after deployment, run `fish ./audit-providers.fish` from the patch kit. It makes one neutral `teste` search per enabled provider/page combination, sequentially. An unavailable or empty provider is not counted as a successful search. Results, credentials and pagination tokens are not dumped into the JSON report.
+[Release notes](docs/RELEASE-0.9.21.md) · [Operations and publication](docs/OPERATIONS-0.9.21.md) ·
+[Operação/publicação](docs/OPERATIONS-0.9.21.pt-BR.md) · [r1 repair retained](docs/AUDITFIX-0.9.20-r1.md)
 
-Local authoring did **not** execute Docker, the extension-dependent PHP suites, or live VPS/provider requests. See the audit report for passes versus dependency blockers. Historical v0.9.19 tools remain available for that release. The v0.9.20 publishing tools are `scripts/package-v0.9.20.py` and `scripts/publish-v0.9.20.py`; the publication kit coordinates them.
-
-License: [AGPL-3.0](license.txt).
+License: [AGPL-3.0](license.txt). Existing search actions, service directory,
+Invidious integration, API and **In Code We Trust.** footer are retained.

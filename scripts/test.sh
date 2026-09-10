@@ -30,3 +30,10 @@ python3 tests/theme-http-regression.py
 python3 tests/http-regression.py
 php -d apc.enable_cli=1 tests/template-benchmark.php
 php -d apc.enable_cli=1 tests/performance.php
+
+php tests/experience-regression.php
+php -d apc.enable_cli=1 tests/redlib-failover-regression.php
+python3 tests/publication-v0.9.21-regression.py
+python3 tests/rank-timer-regression.py
+node tests/local-picture-regression.cjs
+python3 tests/experience-http-regression.py

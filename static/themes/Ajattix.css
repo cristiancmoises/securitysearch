@@ -118,7 +118,7 @@ body{
     position:absolute;
     width:100px;
     height:100px;
-    background-image:url("/static/misc/christmas-hat.png");
+    background-image:none;
     background-size:contain;
     top:-61px;
     left:-31px;
@@ -188,3 +188,5 @@ pre, code{
     border:1px solid #3a2f5f;
     animation: haskell-code-glow 3s ease-in-out infinite;
 }
+
+:root{--wallpaper-still:url("/static/theme-previews/Ajattix.webp");}

@@ -7,6 +7,7 @@ ob_start();
 include "data/config.php";
 
 include "lib/frontend.php";
+require_once __DIR__."/lib/search_guard.php";
 $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("news");
@@ -28,7 +29,7 @@ $payload = [
 ];
 
 try{
-	$results = $scraper->news($get);
+	$results = search_guard::run($scraper,"news",$get);
 	
 }catch(Exception $error){
 	
@@ -39,7 +40,9 @@ try{
 	Populate links
 */
 if($get['scraper']==='reddit') {
-    $payload['left']='<p class="news-context">'.($get['s']==='' ? 'Latest posts' : 'Related posts').' from r/news and r/worldnews · <a href="https://libre.securityops.co/r/news+worldnews/new" rel="noreferrer noopener">Open Reddit</a></p>';
+    $origin=$results['_service'] ?? service_pool::PRIMARY;
+    if(!in_array($origin,service_pool::origins(),true)) $origin=service_pool::PRIMARY;
+    $payload['left']='<p class="news-context">'.($get['s']==='' ? 'Latest posts' : 'Related posts').' from r/news and r/worldnews · <a href="'.htmlspecialchars($origin,ENT_QUOTES).'/r/news+worldnews/new" rel="noreferrer noopener">Open Reddit</a><small>Source: '.htmlspecialchars(parse_url($origin,PHP_URL_HOST),ENT_QUOTES).(!empty($results['_cached']) ? ' · public feed cache (up to 60 seconds)' : '').'. '.(count(service_pool::origins())>1 ? 'A fallback Redlib instance may receive this query after a failure.' : 'External Redlib fallback is disabled.').'</small></p>';
 }
 if(count($results['news'])===0) {
     $payload['left'].='<div class="infobox"><h1>No news found</h1><p>Try fewer keywords, another period or another provider.</p></div>';

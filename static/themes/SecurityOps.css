@@ -62,7 +62,7 @@ body::after{
     position:fixed;
     inset:0;
 
-    background-image:url("/static/misc/matrixxx.gif");
+    background-image:url("/static/wallpapers/secops.webp");
     background-repeat:no-repeat;
     background-position:center;
     background-size:cover;
@@ -147,7 +147,7 @@ body::after{
     position:absolute;
     width:100px;
     height:100px;
-    background-image:url("/static/misc/christmas-hat.png");
+    background-image:none;
     background-size:contain;
     top:-61px;
     left:-31px;
@@ -197,3 +197,7 @@ code{
 
     font-size:.95em;
 }
+
+:root{--1d2021:#000;--282828:#061309;--3c3836:#09180c;--504945:#164c29;--928374:#58a574;--a89984:#77c992;--bdae93:#00ff88;--8ec07c:#00ff88;--ebdbb2:#aaffcc;}
+
+:root{--wallpaper-still:url("/static/theme-previews/SecurityOps.webp");}

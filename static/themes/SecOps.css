@@ -1,0 +1,127 @@
+/* Tron: lightweight black/cyan surfaces, readable text and focused glow. */
+body{background:#000;color:#bffaff;text-shadow:none;}
+.home{background:#000;isolation:isolate;}
+.home .ambient-wallpaper{
+    position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 20%,#00334055,transparent 58%),
+               linear-gradient(180deg,#000 40%,#001116);
+}
+.home #center{position:relative;z-index:1;}
+.web .answer::after{display:none;}
+
+/* ─────────────────────────────────────────────
+   TRON COLOR VARIABLES (CYAN)
+───────────────────────────────────────────── */
+
+:root{
+    color-scheme:dark;
+	/* background shades */
+	--1d2021: #000000;
+	--282828: #020b0f;
+	--3c3836: #04161c;
+	--504945: #06242c;
+
+	/* font colors */
+	--928374: #009fb0;
+	--a89984: #00c6d6;
+	--bdae93: #00eaff;
+	--8ec07c: #33f2ff;
+	--ebdbb2: #bffaff;
+
+	/* code highlighter */
+	--comment: #006b78;
+	--default: #00eaff;
+	--keyword: #00bfff;
+	--string: #66faff;
+
+	/* semantic colors */
+	--green: #00eaff;
+	--yellow: #66faff;
+	--red: #ff4466;
+}
+
+/* ─────────────────────────────────────────────
+   TABLES & PANELS
+───────────────────────────────────────────── */
+
+.web .wiki-head table,
+.about table,
+.web .info-table,
+.instances table{
+	background:#000000cc;
+    color:#00eaff;
+    border:1px solid #004c55;
+    box-shadow: 0 0 12px #00eaff33;
+}
+
+/* alternating rows */
+.web .wiki-head tr:nth-child(odd),
+.about table tr:nth-child(odd),
+.web .info-table tr:nth-child(even),
+.nextpage,
+.spoiler-button,
+.instances tbody tr:nth-child(even){
+	background:#02161dcc;
+    color:#00eaff;
+}
+
+/* hover effect */
+.instances tbody tr:hover{
+	background:#04303acc;
+    box-shadow: inset 0 0 12px #00eaff55;
+}
+
+/* ─────────────────────────────────────────────
+   WIKI FIXES (UNCHANGED)
+───────────────────────────────────────────── */
+
+.wiki-head .description{
+    overflow:initial !important;
+}
+
+.wiki-head .photo{
+    position:relative;
+}
+
+
+
+/* ─────────────────────────────────────────────
+   LINKS & INTERACTION
+───────────────────────────────────────────── */
+
+a{
+    color:#33f2ff;
+    text-shadow:none;
+}
+
+a:hover{
+    color:#bffaff;
+    text-shadow:0 0 8px #00eaff55;
+}
+
+/* ─────────────────────────────────────────────
+   CODE BLOCKS
+───────────────────────────────────────────── */
+
+pre, code{
+    background:#000000;
+    color:#00eaff;
+    border:1px solid #004c55;
+    text-shadow:none;
+    box-shadow: inset 0 0 10px #00eaff33;
+}
+
+:root{--wallpaper-still:url("/static/theme-previews/Tron.webp");}
+
+/* Bundled animation is loaded only by the selected theme. Native pause requires no script. */
+:root{--wallpaper-still:url("/static/wallpapers/secops-still.webp");}
+body.home::before{display:none;content:none;}
+.home .ambient-wallpaper{display:block;background:linear-gradient(#0005,#000a),url("/static/wallpapers/secops.webp") center/cover no-repeat;}
+.home .wallpaper-control{display:inline-flex;align-items:center;margin-right:auto;cursor:pointer;color:var(--8ec07c);font-size:.8rem;gap:.4rem;}
+.home .wallpaper-control::before{content:"▶";}
+.home .wallpaper-toggle:checked~.ambient-wallpaper{background-image:linear-gradient(#0005,#000a),var(--wallpaper-still);}
+.home .wallpaper-toggle:focus-visible~#center .wallpaper-control{outline:2px solid var(--8ec07c);outline-offset:3px;}
+@media(prefers-reduced-motion:reduce),(prefers-reduced-data:reduce){.home .ambient-wallpaper{background-image:linear-gradient(#0005,#000a),var(--wallpaper-still);}.home .wallpaper-control{display:none;}.home .motion-status{display:inline;}}
+@media print{.home .ambient-wallpaper,.home .wallpaper-control{display:none;}}
+
+.home .wallpaper-toggle{display:block;}

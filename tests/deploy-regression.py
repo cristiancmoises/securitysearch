@@ -105,8 +105,8 @@ for destination in ['/etc','/etc/apache2','/etc/php84/conf.d','/etc/ImageMagick-
 print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts rejected before mutation.')
 
 for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
- responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '24|Black'),
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v24' if failure=='theme_asset' else '/static/themes/Black.css?v24')+('<script src="x"></script>' if failure=='script' else ''),
+ responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '25|Black'),
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v25' if failure=='theme_asset' else '/static/themes/Black.css?v25')+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',

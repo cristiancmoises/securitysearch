@@ -7,6 +7,7 @@ abstract class service_search {
     protected const ORIGIN = '';
     protected const PATH = '';
     protected backend $backend;
+    protected ?int $service_deadline = null;
 
     public function __construct() { $this->backend = new backend(static::class); }
 
@@ -17,7 +18,7 @@ abstract class service_search {
     // Subclasses supply a fixed route; never follow an upstream continuation URL.
     protected function fetch_path(string $path,array $params): string {
         $url = static::ORIGIN . $path . '?' . http_build_query($params, '', '&', PHP_QUERY_RFC3986);
-        $budget = (object)['deadline'=>min(hrtime(true)+12000000000, provider_http::deadline()), 'remaining_bytes'=>2097152, 'remaining_wire_bytes'=>2097152];
+        $budget = (object)['deadline'=>min($this->service_deadline ?? (hrtime(true)+12000000000), provider_http::deadline()), 'remaining_bytes'=>2097152, 'remaining_wire_bytes'=>2097152];
         try {
             // Reuse the media proxy's public-IP validation and DNS pinning.
             // redirectcount=4 permits this hop but rejects any redirect before

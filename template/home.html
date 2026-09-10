@@ -5,13 +5,12 @@
 <title>Security Search — Privacy-First Metasearch Engine</title>
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="Privacy-first proxy metasearch engine. No tracking, no ads, and no JavaScript. Google is the default; Brave remains available.">
+<meta name="description" content="Privacy-first proxy metasearch engine. No tracking or ads. Search the web, images, videos and community news. Works without JavaScript; optional local enhancements.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
 <meta name="author" content="Cristian Cezar Moisés / SecurityOps">
-<meta name="keywords" content="privacy search, metasearch, anonymous search, proxy search, no-tracking search, secure search, SearxNG alternative, 4get instance, securityops">
 <meta name="generator" content="Security Search">
 
 <meta name="application-name" content="Security Search">
@@ -23,26 +22,26 @@
 <link rel="canonical" href="https://securityops.co/">
 <link rel="alternate" type="application/opensearchdescription+xml" title="Security Search" href="/opensearch{%ac%}">
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="sitemap" type="application/xml" href="/sitemap.xml">
+<link rel="sitemap" type="application/xml" href="/sitemap">
 
 <link rel="alternate" hreflang="x-default" href="https://securityops.co/">
 <link rel="alternate" hreflang="en" href="https://securityops.co/">
 
 <meta property="og:site_name" content="Security Search">
 <meta property="og:title" content="Security Search — Privacy-first proxy search engine">
-<meta property="og:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript.">
+<meta property="og:description" content="Privacy-first proxy metasearch with no tracking or ads. Works without JavaScript; optional local enhancements.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://securityops.co/">
-<meta property="og:image" content="https://securityops.co/banner/securitysearch.webp?v{%version%}">
-<meta property="og:image:width" content="400">
-<meta property="og:image:height" content="86">
+<meta property="og:image" content="https://securityops.co/banner/social-card.png?v{%version%}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="Security Search logo">
 <meta property="og:locale" content="en_US">
 
-<meta name="twitter:card" content="summary">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Security Search — Privacy-first proxy search">
-<meta name="twitter:description" content="Privacy-first proxy metasearch with no tracking, no ads, and no JavaScript.">
-<meta name="twitter:image" content="https://securityops.co/banner/securitysearch.webp?v{%version%}">
+<meta name="twitter:description" content="Privacy-first proxy metasearch with no tracking or ads. Works without JavaScript; optional local enhancements.">
+<meta name="twitter:image" content="https://securityops.co/banner/social-card.png?v{%version%}">
 
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" href="/favicon.png" type="image/png">
@@ -417,7 +416,8 @@ body.home a:focus-visible{
 </style>
 </head>
 
-<body class="home">
+<body class="home" itemscope itemtype="https://schema.org/WebSite">
+<meta itemprop="name" content="Security Search"><link itemprop="url" href="https://securityops.co/">
 
 <input type="checkbox" id="wallpaper-static" class="wallpaper-toggle">
 <div class="ambient-wallpaper" aria-hidden="true"></div>
@@ -452,7 +452,7 @@ body.home a:focus-visible{
                 <input type="search" name="s" maxlength="500" placeholder="Search the web privately…" required aria-label="Search query">
                 {%search_actions%}
             </form>
-            <p class="sub-hint">Google by default · No tracking</p>
+            <p class="sub-hint">Google by default · No tracking · <span title="Search and native pagination work without JavaScript. Image motion, infinite scrolling and local pictures are optional enhancements.">Works without JavaScript</span></p>
             {%theme_picker%}
         </div>
     </main>

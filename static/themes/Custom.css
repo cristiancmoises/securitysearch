@@ -1,0 +1,9 @@
+/* Pure black by default; no wallpaper request, animation or gradient. */
+:root{color-scheme:dark;--1d2021:#000;--282828:#0b0e10;--3c3836:#141b1f;--504945:#26424a;--928374:#84979f;--a89984:#a9bcc4;--bdae93:#d0e0e6;--8ec07c:#3de2f4;--ebdbb2:#effafd;--green:#3de2f4;--yellow:#ffce75;--red:#ff748d;--comment:#80969c;--default:#d0e0e6;--keyword:#5ce5f0;--string:#abe9d0;}
+body,body.home{background:#000;color:var(--ebdbb2);text-shadow:none;}
+.home::before,.home::after,.home .ambient-wallpaper{display:none;content:none;background:none;}
+a{color:var(--8ec07c);}
+
+/* Local script sets only a bounded raster data URL; there is no upload endpoint. */
+body.local-picture{background:#000;isolation:isolate;}
+body.local-picture::before,body.home.local-picture::before{display:block;content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(#0007,#000b),var(--local-picture) center/cover no-repeat;}

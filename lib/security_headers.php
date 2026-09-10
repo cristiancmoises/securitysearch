@@ -12,7 +12,8 @@
  *
  * Notes on the CSP:
  *   - default-src 'none' is the most restrictive baseline.
- *   - Scripts/connections are disabled except on the image search route.
+ *   - Image enhancement permits same-origin scripts/connections. The opt-in Custom
+ *     theme permits its local script, but still forbids network connections.
  *   - style-src 'self' 'unsafe-inline' — home.html ships an inline <style>.
  *     If/when that is moved into static/style.css, drop 'unsafe-inline'.
  *   - img-src includes data: for bundled image placeholders.
@@ -59,10 +60,12 @@ header("X-Permitted-Cross-Domain-Policies: none");
 
 // Content Security Policy
 $image_enhancement=defined('SECURITYSEARCH_IMAGE_ENHANCEMENT') && SECURITYSEARCH_IMAGE_ENHANCEMENT===true;
+$local_picture=($_COOKIE['theme'] ?? null)==='Custom' && in_array(basename($_SERVER['SCRIPT_NAME'] ?? ''),
+    ['index.php','web.php','images.php','videos.php','news.php','music.php','settings.php','about.php','instances.php'],true);
 header(
     "Content-Security-Policy: " .
     "default-src 'none'; " .
-    ($image_enhancement ? "script-src 'self'; " : "script-src 'none'; ") .
+    (($image_enhancement || $local_picture) ? "script-src 'self'; " : "script-src 'none'; ") .
     "script-src-attr 'none'; " .
     "style-src 'self' 'unsafe-inline'; " .
     "img-src 'self' data:; " .

@@ -1,58 +1,52 @@
 'use strict';
-const assert = require('node:assert/strict');
-const vm = require('node:vm');
-const fs = require('node:fs');
-const script = fs.readFileSync('static/images-motion.js', 'utf8');
-class Element extends EventTarget {
-    constructor() { super(); this.attrs = {}; this.nodeType = 1; this.images = []; }
-    getAttribute(key) { return this.attrs[key] || null; }
-    setAttribute(key, value) { this.attrs[key] = value; }
-    set src(value) { this.attrs.src = value; }
-    get src() { return this.attrs.src; }
-    querySelectorAll() { return this.images; }
+// Browser-independent event tests; real-browser coverage is separate.
+const assert=require('node:assert/strict'), vm=require('node:vm'), fs=require('node:fs');
+const script=fs.readFileSync('static/images-motion.js','utf8');
+class E extends EventTarget {
+ constructor(){super();this.attrs={};this.nodeType=1;this.children=[];this.hidden=false;}
+ getAttribute(k){return this.attrs[k]??null;} setAttribute(k,v){this.attrs[k]=String(v);} removeAttribute(k){delete this.attrs[k];}
+ set src(v){this.attrs.src=v;} get src(){return this.attrs.src??'';}
+ appendChild(n){n.parent=this;this.children.push(n);return n;}
+ remove(){if(this.parent)this.parent.children=this.parent.children.filter(n=>n!==this);this.parent=null;}
+ querySelectorAll(){return this.children.flatMap(n=>[...(n.attrs['data-motion']?[n]:[]),...n.querySelectorAll()]);}
+ contains(n){return n===this||this.children.some(c=>c.contains(n));}
+ closest(s){return this.kind===s?this:this.parent?.closest(s)||null;}
+ matches(s){return s==='img[data-motion]'&&!!this.attrs['data-motion'];}
 }
-function fixture(options = {}) {
-    const grid = new Element();
-    const makeImage = id => { const image = new Element(); image.src = '/proxy?i=https%3A%2F%2Fexample.org%2F' + id + '.gif&s=poster'; image.setAttribute('data-motion', '/proxy?i=https%3A%2F%2Fexample.org%2F' + id + '.gif&s=animated&preview=1'); return image; };
-    grid.images = Array.from({length: 6}, (_, i) => makeImage(i));
-    const document = new Element(); document.getElementById = () => grid; document.hidden = !!options.hidden;
-    const reduced = new Element(); reduced.matches = !!options.reduced;
-    const connection = new Element(); connection.saveData = !!options.saveData;
-    const window = new Element(); window.location = new URL('https://securityops.co/images?s=GNU+Guix'); window.matchMedia = () => reduced;
-    const observers = [], mutations = [], timers = new Map(); let timer = 0;
-    class IO { constructor(callback, config) { this.callback = callback; this.config = config; this.nodes = []; observers.push(this); } observe(node) { this.nodes.push(node); } }
-    class MO { constructor(callback) { this.callback = callback; mutations.push(this); } observe() {} }
-    window.IntersectionObserver = options.unsupported ? null : IO; window.MutationObserver = MO;
-    window.setTimeout = fn => { timers.set(++timer, fn); return timer; }; window.clearTimeout = id => timers.delete(id);
-    vm.runInNewContext(script, {window, document, navigator: {connection}, IntersectionObserver: IO, MutationObserver: MO, URL});
-    const visible = (images, value = true) => observers[0].callback(images.map(target => ({target, isIntersecting: value, intersectionRatio: value ? 1 : 0})));
-    const playing = () => grid.images.filter(i => i.src.includes('s=animated'));
-    return {grid, document, window, reduced, connection, observers, mutations, timers, visible, playing, makeImage};
+function fixture(options={}){
+ const grid=new E(),makeImage=id=>{const card=new E();card.kind='.image';const anchor=new E();anchor.kind='.thumb';card.appendChild(anchor);const img=new E();img.src='/proxy?i='+id+'&s=poster';img.setAttribute('data-motion','/proxy?i='+id+'&s=animated');anchor.appendChild(img);grid.appendChild(card);return img;};
+ const images=Array.from({length:6},(_,i)=>makeImage(i));
+ const document=new E();document.getElementById=()=>grid;document.createElement=()=>new E();document.hidden=!!options.hidden;
+ const reduced=new E();reduced.matches=!!options.reduced;const connection=new E();connection.saveData=!!options.saveData;
+ const window=new E();window.location=new URL('https://securityops.co/images');window.matchMedia=()=>reduced;
+ const ios=[],mos=[],timers=new Map();let tick=0;
+ class IO{constructor(cb,config){this.cb=cb;this.config=config;this.nodes=[];ios.push(this);}observe(n){this.nodes.push(n);}unobserve(n){this.nodes=this.nodes.filter(x=>x!==n);}}
+ class MO{constructor(cb){this.cb=cb;mos.push(this);}observe(){}}
+ window.IntersectionObserver=options.unsupported?null:IO;window.MutationObserver=MO;
+ window.setTimeout=fn=>{timers.set(++tick,fn);return tick;};window.clearTimeout=id=>timers.delete(id);
+ vm.runInNewContext(script,{window,document,navigator:{connection},IntersectionObserver:IO,MutationObserver:MO,URL,Image:E});
+ const layer=i=>i.parent.children.find(c=>c.className==='motion-layer');
+ const layers=()=>images.map(layer).filter(Boolean);
+ const visible=(nodes,value=true)=>ios[0].cb(nodes.map(target=>({target,isIntersecting:value,intersectionRatio:value?1:0})));
+ const button=i=>i.closest('.image').children.find(c=>c.className==='motion-toggle');
+ return {grid,images,makeImage,document,reduced,connection,window,ios,mos,timers,layer,layers,visible,button};
 }
-let f = fixture(); assert.equal(f.playing().length, 0, 'No offscreen prefetch'); assert.equal(f.observers[0].config.rootMargin, '0px');
-f.visible(f.grid.images); assert.equal(f.playing().length, 2, 'At most two requests begin');
-f.grid.images[0].dispatchEvent(new Event('load')); assert.equal(f.playing().length, 3);
-f.grid.images[1].dispatchEvent(new Event('load')); assert.equal(f.playing().length, 4);
-f.grid.images[2].dispatchEvent(new Event('load')); f.grid.images[3].dispatchEvent(new Event('load'));
-assert.equal(f.playing().length, 4, 'At most four visible animations');
-f.visible([f.grid.images[0]], false); assert(f.grid.images[0].src.includes('s=poster')); assert(f.grid.images[4].src.includes('s=animated'));
-f.grid.images[4].dispatchEvent(new Event('error')); assert(f.grid.images[4].src.includes('s=poster')); assert(f.grid.images[5].src.includes('s=animated'));
-f.visible([f.grid.images[4]], false); f.visible([f.grid.images[4]]); assert(f.grid.images[4].src.includes('s=poster'), 'No repeated failed/static candidate');
-f.document.hidden = true; f.document.dispatchEvent(new Event('visibilitychange')); assert.equal(f.playing().length, 0); assert.equal(f.timers.size, 0);
-f.document.hidden = false; f.document.dispatchEvent(new Event('visibilitychange')); assert.equal(f.playing().length, 2);
-f.reduced.matches = true; f.reduced.dispatchEvent(new Event('change')); assert.equal(f.playing().length, 0);
-f.reduced.matches = false; f.connection.saveData = true; f.connection.dispatchEvent(new Event('change')); assert.equal(f.playing().length, 0);
-f.connection.saveData = false; f.connection.dispatchEvent(new Event('change')); assert.equal(f.playing().length, 2);
-f.window.dispatchEvent(new Event('pagehide')); assert.equal(f.playing().length, 0); f.window.dispatchEvent(new Event('pageshow')); assert.equal(f.playing().length, 2);
-for (const fn of [...f.timers.values()]) fn(); assert(f.grid.images[1].src.includes('s=poster'), 'Deadline restores poster');
-console.log('PASS: visible-only playback, two loading/four active limits, no failed retries, offscreen/hidden/reduced-motion/Save-Data suspension and deadline.');
-
-for (const options of [{hidden: true}, {reduced: true}, {saveData: true}, {unsupported: true}]) {
-    f = fixture(options); if (f.observers.length) f.visible(f.grid.images); assert.equal(f.playing().length, 0);
-}
-f = fixture(); const article = new Element(); article.images = [f.makeImage('appended')];
-f.mutations[0].callback([{addedNodes: [article]}]); assert(f.observers[0].nodes.includes(article.images[0]));
-f.visible(article.images); assert(article.images[0].src.includes('s=animated'), 'Appended card plays without a Next link dependency');
-const bad = new Element(); bad.images = [f.makeImage('bad')]; bad.images[0].setAttribute('data-motion','https://evil.example/proxy?s=animated');
-f.mutations[0].callback([{addedNodes: [bad]}]); assert(!f.observers[0].nodes.includes(bad.images[0]), 'Cross-origin motion never scheduled');
-console.log('PASS: initial opt-outs, capability fallback, appended card registration and unsafe motion URL rejection.');
+let f=fixture();assert.equal(f.layers().length,0);assert.equal(f.ios[0].config.rootMargin,'0px');
+f.visible(f.images);assert.equal(f.layers().length,2);assert(f.layers().every(l=>l.hidden));assert(f.images.every(i=>i.src.includes('s=poster')),'Posters remain throughout loading');
+f.layer(f.images[0]).dispatchEvent(new Event('load'));f.layer(f.images[1]).dispatchEvent(new Event('load'));assert.equal(f.layers().length,4);
+f.layer(f.images[2]).dispatchEvent(new Event('load'));f.layer(f.images[3]).dispatchEvent(new Event('load'));assert.equal(f.layers().filter(l=>!l.hidden).length,4);
+f.button(f.images[0]).dispatchEvent(new Event('click'));assert(!f.layer(f.images[0]));assert(f.layer(f.images[4]));assert.equal(f.button(f.images[0]).getAttribute('aria-pressed'),'false');
+f.layer(f.images[4]).dispatchEvent(new Event('error'));assert(!f.layer(f.images[4]));assert(f.layer(f.images[5]));
+f.visible([f.images[4]],false);f.visible([f.images[4]]);assert(!f.layer(f.images[4]),'No automatic retry');
+f.document.hidden=true;f.document.dispatchEvent(new Event('visibilitychange'));assert.equal(f.layers().length,0);assert.equal(f.timers.size,0);
+f.document.hidden=false;f.document.dispatchEvent(new Event('visibilitychange'));assert.equal(f.layers().length,2);assert(!f.layer(f.images[0]),'Manual pause survives hidden/resume');
+f.reduced.matches=true;f.reduced.dispatchEvent(new Event('change'));assert.equal(f.layers().length,0);
+f.reduced.matches=false;f.connection.saveData=true;f.connection.dispatchEvent(new Event('change'));assert.equal(f.layers().length,0);
+f.connection.saveData=false;f.connection.dispatchEvent(new Event('change'));assert.equal(f.layers().length,2);
+f.window.dispatchEvent(new Event('pagehide'));assert.equal(f.layers().length,0);f.window.dispatchEvent(new Event('pageshow'));assert.equal(f.layers().length,2);
+for(const fn of [...f.timers.values()])fn();assert(f.images.every(i=>i.src.includes('s=poster')));
+for(const options of [{hidden:true},{reduced:true},{saveData:true},{unsupported:true}]){f=fixture(options);if(f.ios.length)f.visible(f.images);assert.equal(f.layers().length,0);}
+f=fixture();const newImage=f.makeImage('appended');f.mos[0].cb([{addedNodes:[newImage.closest('.image')]}]);assert(f.ios[0].nodes.includes(newImage));f.visible([newImage]);assert(f.layer(newImage));
+newImage.closest('.image').remove();f.mos[0].cb([{addedNodes:[]}]);assert(!f.ios[0].nodes.includes(newImage));assert.equal(f.timers.size,0,'Removed card releases request timer');
+const bad=f.makeImage('bad');bad.setAttribute('data-motion','https://evil.example/proxy?s=animated');f.mos[0].cb([{addedNodes:[bad]}]);assert(!f.ios[0].nodes.includes(bad));
+console.log('PASS: poster retained, 2 loading/4 active, pause/resume, hidden/offscreen/reduced/Save-Data, deadline, no failed retries, appended/removed cards and same-origin restriction.');

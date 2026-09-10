@@ -126,7 +126,7 @@ body{
     position:absolute;
     width:100px;
     height:100px;
-    background-image:url("/static/misc/christmas-hat.png");
+    background-image:none;
     background-size:contain;
     background-repeat:no-repeat;
     top:-61px;
@@ -159,3 +159,5 @@ pre, code{
     text-shadow:0 0 4px rgba(199,125,255,.9);
     box-shadow: inset 0 0 12px rgba(199,125,255,.25);
 }
+
+:root{--wallpaper-still:url("/static/theme-previews/Kawaii.webp");}

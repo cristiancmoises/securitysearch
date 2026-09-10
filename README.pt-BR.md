@@ -1,96 +1,143 @@
-# Security Search v0.9.20
+# Security Search v0.9.21
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![Security Search — preto puro](docs/screenshots/securitysearch-0.9.20-home-black.png)
+![Página inicial preta](docs/screenshots/securitysearch-0.9.21-home-black.png)
 
-Prévia local desta versão; **não** é uma captura da VPS atualizada. O controlador HTTP foi testado em localhost, e o Chromium renderizou seu HTML com os recursos locais incorporados para a prévia isolada. Versão dos assets: **24**.
+**Renderização local, não captura da VPS em produção.** O controlador PHP real
+gerou o HTML; Chromium renderizou com recursos locais incorporados e scripts
+desativados. Versão dos recursos: **25**.
 
-## Alterações
+Buscador proxy PHP baseado no [4get](https://git.lolcat.ca/lolcat/4get), mantido para
+[SecurityOps](https://securityops.co/). Os provedores externos podem recusar,
+limitar ou alterar respostas. Não há garantia de disponibilidade ou ganho de
+velocidade em todos os provedores.
 
-O adaptador Binternet reconhece tanto o HTML antigo (`img-container`/`img-result`) quanto o novo (`image-gallery`/`image-link`). Aceita links locais com ou sem a barra inicial, buscas de até 160 bytes UTF-8 e bookmarks de até 4096 bytes. URLs externas inesperadas, links malformados e continuação com cursor repetido são rejeitados. Página vazia reconhecível não é confundida com bloqueio ou mudança de HTML.
+## Busca, notícias e imagens
 
-As prévias usam a imagem menor realmente fornecida pelo serviço; o endereço e as dimensões do original são preservados. Não são inventadas URLs de tamanho maior. A origem continua `https://images.securityops.co`: o endereço `img.securityops.co` da navegação não é trocado automaticamente.
+Google continua com a tentativa limitada e identificada pelo Brave na primeira
+busca web/imagens. A paginação não troca silenciosamente de provedor. Falhas
+inequívocas de transporte cURL recebem uma pausa curta de oito segundos para a
+primeira página; erros de parser e resultados vazios não são classificados como
+falhas de rede. Limites existentes de conexão/requisição são preservados.
 
-As chamadas cURL legadas compartilham um orçamento por requisição: 3 segundos de conexão, 12 segundos por chamada e 20 segundos no conjunto dessas chamadas, por padrão. DNS e sessões TLS são reaproveitados somente dentro da requisição PHP, sem compartilhar cookies ou armazenar buscas. O loop de múltiplas conexões do Baidu deixa de fazer espera ocupada. Google CSE e Brave mantêm seus transportes limitados e a política anterior de recuperação. Não há promessa de velocidade medida em provedores externos.
+Reddit tenta **libre.securityops.co → redlib.nadeko.net →
+redlib.privacyredirect.com**, em sequência, no máximo três vezes, com até 3,5
+segundos por instância e dez segundos no total. Instâncias que falham aguardam
+vinte segundos. A origem que respondeu aparece na interface e é mantida nos
+links de continuação autenticados. Somente o feed público inicial, sem consulta,
+pode ser armazenado por sessenta segundos; pesquisas com palavras-chave não.
 
-**Preto puro** passa a ser o padrão da instância. **Choose appearance** permite escolher os temas existentes por um formulário nativo, com prévias pequenas de suas imagens. O tema já salvo no navegador continua sendo respeitado. A página inicial não recebe JavaScript. Doze miniaturas estáticas novas somam aproximadamente 45 KB; wallpapers completos só são usados pelo tema selecionado.
+**Privacidade:** em uma falha da instância principal, outro operador Redlib pode
+receber a consulta e o IP do servidor. Cookies do visitante não são encaminhados.
+O formulário e a resposta informam esse comportamento. Configure
+`FOURGET_REDLIB_FALLBACKS=false` para usar apenas a instância principal. A lista
+oficial de instâncias não comprova conectividade a partir da VPS.
 
-São mantidos os quatro botões da busca, seis layouts de imagens, níveis de qualidade, filtros de formato, rolagem infinita opcional, animações limitadas, paginação manual, API, links de serviços e o rodapé **In Code We Trust.** Google continua padrão; a primeira busca pode tentar Brave uma vez, com aviso. A paginação não troca de provedor silenciosamente.
+A compatibilidade antiga/nova do Binternet, paginação limitada e uso da prévia
+menor realmente retornada são mantidos. Continuam os seis layouts, qualidade,
+filtros, paginação manual e rolagem infinita opcional. GIF/WebP animado/APNG
+mantêm o poster durante o carregamento da camada animada, com **dois carregando
+e quatro ativos**, botão Play/Pause, suspensão fora da tela/aba oculta e respeito
+a movimento reduzido/economia de dados. Uma falha não dispara repetição automática.
 
-## Release v0.9.20
+## Temas e imagem pessoal
 
-Inclui a **correção r1 da auditoria offline** e mantém a versão da aplicação
-**0.9.20** e os recursos em **24**. Os quatro mocks do cURL são registrados com
-proteção; isolamento incompleto é recusado, e falhas mostram o final limitado do
-log, preservando o arquivo completo. O cURL de produção não é desativado.
-[Detalhes da correção](docs/AUDITFIX-0.9.20-r1.md).
+![Seletor corrigido](docs/screenshots/securitysearch-0.9.21-theme-picker.png)
 
-### Pacotes
+Preto continua padrão. Dark, Wine e The Birthday Massacre saem dos seletores;
+escolhas antigas migram para Black. O gentoo duplicado foi consolidado. Todos os
+dezoito temas têm prévias locais pequenas; Lain e Stop são identificados como
+paletas. Seleções nativas usam fundo preto e a cor de destaque do tema.
 
-[Release no Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.20) ·
-[Release no GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
-[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.20) ·
-[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.20)
+Tron restaura sua animação em WebP otimizado, aproximadamente 527 KB. SecOps usa a
+animação Matrix já disponível, aproximadamente 1,37 MB, e cores em ciano; **não é
+a arte histórica que havia sido removida**. Alternativas estáticas e o controle
+de movimento não dependem de JavaScript. Apenas o tema escolhido carrega wallpaper.
 
-Cada release concluída contém **`securitysearch-v0.9.20.tar.gz`** e seu
-**`.tar.gz.sha256`**. O pacote contém o código-fonte PHP da tag exata, documentação,
-testes e recursos locais; não é um executável compilado nem uma imagem Docker.
-Cada link fica disponível após a conclusão da publicação naquele host.
+**My picture:** selecione, salve e escolha JPEG/PNG/WebP de até 8 MiB. O controle
+não pertence a formulário nem tem nome de campo. Um script opcional local lê,
+redimensiona e recodifica no navegador: até 24 megapixels na origem, 1920 pixels
+na maior dimensão de saída e data URL de até 2 MiB. Não há endpoint de upload
+para imagem, nome do arquivo ou EXIF. O padrão é `sessionStorage` da aba,
+sujeito à restauração de sessão do navegador. Remember on this device habilita
+`localStorage` explicitamente; Remove limpa ambos. Isso não é um cofre criptografado:
+um navegador compartilhado ou script da mesma origem pode acessar seu armazenamento.
 
-```sh
-sha256sum -c securitysearch-v0.9.20.tar.gz.sha256
-tar -xzf securitysearch-v0.9.20.tar.gz
-```
+A frase correta é **Works without JavaScript**. Busca normal e temas nativos
+funcionam sem ele; rolagem/animações de imagens e a foto pessoal usam scripts
+opcionais locais. A página inicial Black não emite script. No modo Custom, o
+script é permitido mas conexões de rede continuam proibidas pelo CSP da inicial.
 
-### Atualizar uma instalação existente
+## Rodapé, Tranco e metadados
 
-Aplique e implante o kit corrigido **`securitysearch-update-0.9.20-r1`** antes de
-usar o kit de publicação. Não use o kit v0.9.20 original sem a correção nem o
-publicador antigo da v0.9.19.
+O rodapé mantém o endereço onion v3 existente e mostra Tranco discreto à direita,
+com a data da lista. A renderização nunca consulta Tranco. Uma tarefa CLI/systemd
+separada atualiza os metadados públicos diariamente. **Não é incluído um ranking
+inventado:** antes de uma atualização válida aparece unavailable. Cache com mais
+de três dias expira; resposta vazia é distinguida. Ranking não é avaliação de
+segurança/qualidade. O endereço onion tem formato/checksum válidos; sua
+acessibilidade não foi verificada.
 
-O deploy envia o código commitado para **root@securityops.co**, SSH **5119**,
-preservando **172.17.0.1:5140 → 80**, redes e configurações privadas compatíveis.
-Não recria o Nginx Proxy Manager. A suíte offline completa, a prontidão do candidato
-e o teste real do Binternet precisam passar antes da troca. Preserve o diretório
-de backup exibido: ele pode conter snapshots privados montados pelo contêiner.
+Metadados canônicos/sociais, Website microdata, cartão 1200×630 e link do sitemap
+foram ajustados. Configurações e buscas privadas continuam noindex. Não se promete
+popularidade, posição no Google ou avaliações falsas.
 
-### Publicação pelo mantenedor
+## Atualizar, implantar e publicar
 
-Na pasta extraída **`securitysearch-publication-0.9.20`**:
+Use o kit correspondente **securitysearch-update-0.9.21**, não os lançadores
+antigos com hashes diferentes:
 
 ```fish
-fish ./publish-securitysearch-v0.9.20.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.21/apply-securitysearch.fish ~/securitysearch
+fish ~/Downloads/securitysearch-update-0.9.21/deploy-securitysearch.fish ~/securitysearch --rank-refresh
+fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch
 ```
 
-O programa verifica a base r1, atualiza os READMEs em inglês/pt-BR e a documentação,
-cria um commit somente das alterações previstas, testa a publicação, cria a tag
-anotada **`v0.9.20`** e gera o pacote desse commit. Depois pede quatro tokens e
-verifica os quatro repositórios antes de qualquer escrita remota. Em cada host,
-`main` e tag são enviados atomicamente, sem force. Anexos são enviados a um
-rascunho e verificados antes de publicar a release.
+São operações separadas. Aplicar requer a árvore main publicada da v0.9.20 limpa
+e cria um commit local normal. O deploy preserva SSH **5119**, **root@securityops.co**,
+redes e **172.17.0.1:5140 → 80**; não recria Nginx Proxy Manager. Antes da troca,
+a suíte offline completa, prontidão e teste real Binternet devem passar. Guarde
+backups e rollback. O timer Tranco opcional é instalado somente após deploy bem-sucedido.
+Falha de metadados não provoca rollback da aplicação.
 
-Repetir o comando retoma rascunhos compatíveis e hosts pendentes. Tags, notas ou
-anexos conflitantes não são substituídos. A publicação entre quatro servidores não
-é atômica. Um bundle incremental local também é gerado para recuperação e depende
-da base v0.9.19. Tokens não são salvos em arquivos, URLs ou argumentos.
+Publicar cria/reutiliza a tag anotada **v0.9.21**, gera o pacote do commit real e
+verifica hosts selecionados antes da primeira escrita. Rascunhos/arquivos iguais
+são retomados; tags/notas/arquivos conflitantes nunca são sobrescritos. Tokens são
+solicitados de forma privada, sem aparecer em argumentos, URLs ou arquivos.
+Para retomar somente o host .co, **incluindo os anexos da release**:
 
-**Publicar não faz deploy da VPS.** Após o commit de documentação, o kit de deploy
-r1 antigo terá hashes diferentes para os READMEs; para um deploy posterior, use
-`deploy-securitysearch.fish` deste kit de publicação.
+```fish
+fish ~/Downloads/securitysearch-update-0.9.21/publish-securitysearch.fish ~/securitysearch --host git.securityops.co
+```
 
-`fish ./audit-providers.fish`, no kit de atualização r1, executa separadamente a
-matriz real de provedores. Sua aprovação não é presumida por esta publicação.
+Cada release concluída contém `securitysearch-v0.9.21.tar.gz` e
+`securitysearch-v0.9.21.tar.gz.sha256`: código-fonte PHP completo da tag, não
+binários ou imagem Docker. O bundle incremental local depende da v0.9.20.
+Publicação não faz deploy e os quatro servidores não formam uma transação atômica.
 
-[Notas bilíngues](docs/RELEASE-0.9.20.md) ·
-[Guia de publicação](docs/PUBLISHING-0.9.20.pt-BR.md) ·
-[Operação detalhada](docs/UPDATE-0.9.20.pt-BR.md) ·
-[Auditoria e limitações](docs/AUDIT-0.9.20.md)
+[Codeberg](https://codeberg.org/berkeley/securitysearch/releases/tag/v0.9.21) ·
+[GitHub](https://github.com/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
+[SecurityOps .co](https://git.securityops.co/cristiancmoises/securitysearch/releases/tag/v0.9.21) ·
+[SecurityOps .com.br](https://git.securityops.com.br/cristiancmoises/securitysearch/releases/tag/v0.9.21)
+
+Os links só funcionam após publicação naquele host. SHA-256 verifica integridade,
+não assinatura do autor. Tag anotada não é automaticamente assinada.
 
 ## Validação
 
-`sh scripts/test.sh` requer PHP com curl, DOM/XML, mbstring, APCu, sodium, fileinfo e Imagick, além de Python 3, Node.js, Git e fish para os testes. As dependências de teste são instaladas apenas na imagem descartável de auditoria, não na aplicação em produção.
+```sh
+sh scripts/test.sh
+```
 
-Docker, VPS, provedores ao vivo e testes dependentes das extensões ausentes não foram executados no ambiente de autoria. O relatório separa testes aprovados de bloqueios de ambiente. Os utilitários históricos da v0.9.19 permanecem disponíveis. Para a v0.9.20, o kit usa `scripts/package-v0.9.20.py` e `scripts/publish-v0.9.20.py`.
+A suíte completa precisa de extensões PHP, Python, Node, Git e fish. O ambiente de
+autoria não executou a suíte nativa completa; consulte o [relatório](docs/AUDIT-0.9.21.md).
+Testes com fixtures não comprovam provedores reais, upload autenticado ou deploy.
+A navegação do Chromium foi bloqueada pela política do ambiente; as imagens acima
+são renderizações locais isoladas, não aprovação do teste de navegação/storage.
+O teste opcional real está em `tests/browser-experience.py`.
 
-Licença: [AGPL-3.0](license.txt).
+[Notas bilíngues](docs/RELEASE-0.9.21.md) · [Operação/publicação](docs/OPERATIONS-0.9.21.pt-BR.md)
+
+Licença [AGPL-3.0](license.txt). Mantidos API, Invidious, ações de busca, serviços
+e **In Code We Trust.**.

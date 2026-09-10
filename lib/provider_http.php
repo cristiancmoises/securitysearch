@@ -1,5 +1,6 @@
 <?php
 /** Request-local transport budget for legacy adapters; no result/query cache. */
+class provider_http_failure extends RuntimeException {}
 final class provider_http {
     private static ?int $until = null;
     private static $share = null;
@@ -41,6 +42,10 @@ final class provider_http {
 
     public static function exec($handle) {
         self::apply($handle);
-        return curl_exec($handle);
+        $result = curl_exec($handle);
+        if ($result === false && function_exists('curl_errno') && in_array(curl_errno($handle), [5,6,7,28,35,52,55,56,60], true)) {
+            throw new provider_http_failure('The provider connection failed. Retry later or choose another provider.');
+        }
+        return $result;
     }
 }

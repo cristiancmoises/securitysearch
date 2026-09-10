@@ -6,6 +6,7 @@ include_once __DIR__ . "/lib/security_headers.php";
 include "data/config.php";
 
 include "lib/frontend.php";
+require_once __DIR__."/lib/search_guard.php";
 $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("music");
@@ -27,7 +28,7 @@ $payload = [
 ];
 
 try{
-	$results = $scraper->music($get);
+	$results = search_guard::run($scraper,"music",$get);
 	
 }catch(Exception $error){
 	

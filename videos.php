@@ -8,6 +8,7 @@ ob_start();
 include "data/config.php";
 
 include "lib/frontend.php";
+require_once __DIR__."/lib/search_guard.php";
 $frontend = new frontend();
 
 [$scraper, $filters] = $frontend->getscraperfilters("videos");
@@ -29,7 +30,7 @@ $payload = [
 ];
 
 try{
-	$results = $get['s'] === '' && empty($get['npt']) ? ['video'=>[], 'author'=>[], 'playlist'=>[], 'livestream'=>[], 'reel'=>[], 'npt'=>null] : $scraper->video($get);
+	$results = $get['s'] === '' && empty($get['npt']) ? ['video'=>[], 'author'=>[], 'playlist'=>[], 'livestream'=>[], 'reel'=>[], 'npt'=>null] : search_guard::run($scraper,"video",$get);
 	
 }catch(Exception $error){
 	
