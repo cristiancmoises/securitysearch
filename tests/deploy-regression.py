@@ -61,9 +61,10 @@ class Engine:
     self.lost=True;raise RuntimeError('Simulated response loss after Docker renamed old container')
   return None
  def healthy(self,cid):
+  if cid=='candidate' and self.mode=='candidate_readiness_failure':raise RuntimeError('Simulated rejected candidate identity')
   if cid=='replacement' and self.mode in ('readiness_failure','cleanup_failure'):raise RuntimeError('Simulated failed replacement readiness')
 
-for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create','offline_audit_failure','live_audit_failure','news_audit_failure']:
+for mode in ['success','candidate_readiness_failure','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create','offline_audit_failure','live_audit_failure','news_audit_failure']:
  engine=Engine(mode)
  def run(*args,capture=False):
   return json.dumps({'VERSION':19,'DEFAULT_THEME':'Lain','SERVER_NAME':'original','API_ENABLED':True}) if 'php' in args else ''
@@ -73,7 +74,7 @@ for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_cre
   except RuntimeError:failed=True
   assert failed==(mode!='success')
   previous=engine.containers[OLD_ID]
-  if mode in ('offline_audit_failure','live_audit_failure','news_audit_failure'):
+  if mode in ('candidate_readiness_failure','offline_audit_failure','live_audit_failure','news_audit_failure'):
    assert previous['State']['Running'] and previous['Name']=='/security-search'
    assert not any(method=='POST' and '/'+OLD_ID+'/' in url for method,url,data in engine.calls),'Audit failure touched production'
   assert 'candidate' not in engine.containers,'Candidate leaked after response loss'
@@ -89,7 +90,7 @@ for mode in ['success','readiness_failure','cleanup_failure','lost_candidate_cre
    assert previous['State']['Running'],'Previous container was not restarted'
    assert previous['HostConfig']['RestartPolicy']==old['HostConfig']['RestartPolicy'],'Original restart policy not restored'
    if mode!='cleanup_failure':assert previous['Name']=='/security-search'
-  if mode not in ('lost_candidate_create','offline_audit_failure','live_audit_failure','news_audit_failure'):
+  if mode not in ('candidate_readiness_failure','lost_candidate_create','offline_audit_failure','live_audit_failure','news_audit_failure'):
    rollback=next((Path(temp)/'backups').glob('*/rollback.sh'));body=rollback.read_text()
    assert 'flock -n 9' in body and 'docker update --restart=always' in body and 'current_image=' in body
    # Check the actual generated shell syntax without executing Docker commands.
@@ -106,7 +107,7 @@ for destination in ['/etc','/etc/apache2','/etc/php84/conf.d','/etc/ImageMagick-
 print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts rejected before mutation.')
 
 for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
- responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '30|Black'),
+ responses=['20|Tron' if failure=='version' else (f'{m.ASSET_VERSION}|Lain' if failure=='theme' else f'{m.ASSET_VERSION}|Black'),
   'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v31' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
@@ -116,4 +117,4 @@ for failure in [None,'version','theme','theme_asset','script','csp','image_csp',
  with patch.object(m,'inspect',return_value={'State':{'Health':{'Status':'healthy'}}}),patch.object(m,'run',side_effect=responses):
   try:m.healthy('candidate');assert failure is None
   except RuntimeError:assert failure is not None
-print('PASS: candidate gates validate asset 31, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')
+print(f'PASS: candidate gates validate asset {m.ASSET_VERSION}, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')

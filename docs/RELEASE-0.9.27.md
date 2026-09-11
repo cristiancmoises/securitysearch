@@ -1,5 +1,12 @@
 # SecuritySearch v0.9.27
 
+## Maintenance revision r1
+
+Corrects the deployer's stale asset-30 readiness expectation to asset 31 and adds
+actual-PHP configuration coverage. Performance/runtime code and all deployment
+acceptance checks remain. Use the matching r1 kit; published conflicting tags or
+assets are never replaced. [Details / Detalhes](AUDITFIX-0.9.27-r1.md).
+
 Application 0.9.27 · asset31. A renderer-only performance release; upstream search
 behavior and the complete existing acceptance gates are preserved.
 

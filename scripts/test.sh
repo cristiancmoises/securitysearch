@@ -96,6 +96,7 @@ run_test python3 tests/publication-v0.9.26-regression.py
 run_test python3 tests/view-resources-regression.py
 run_test python3 tests/delivery-profile-regression.py
 run_test python3 tests/publication-v0.9.27-regression.py
+run_test python3 tests/deploy-version-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

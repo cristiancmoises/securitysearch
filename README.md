@@ -1,5 +1,14 @@
 # SecuritySearch v0.9.27
 
+## v0.9.27-r1 deployment repair
+
+The readiness gate now validates asset **31**, matching the actual PHP source and
+configuration generator; its old asset-30 expectation incorrectly rejected correct
+candidates. All previous checks remain, plus a source-derived version regression.
+Use the matching **securitysearch-update-0.9.27-r1** kit on an exact clean applied
+v0.9.27 checkout. Application version and the existing v0.9.27 tag name do not
+change; existing conflicting tags are preserved. [Repair details](docs/AUDITFIX-0.9.27-r1.md).
+
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
 ![SecuritySearch v0.9.27 homepage](docs/screenshots/securitysearch-0.9.27-home.png)
@@ -119,8 +128,8 @@ fallbacks. **In Code We Trust.**
 
 ## Apply, validate and deploy
 
-From the extracted complete `securitysearch-update-0.9.27` kit, on a clean exact
-v0.9.26 checkout:
+From the extracted complete `securitysearch-update-0.9.27-r1` kit, on a clean exact
+already-applied v0.9.27 checkout:
 
 ```fish
 fish ./apply-securitysearch.fish "$HOME/securitysearch"
@@ -167,7 +176,7 @@ v0.9.24 tag remains unchanged, as does v0.9.25. Earlier releases and history rem
 sh scripts/test.sh --keep-going
 ```
 
-The 70 mandatory commands retain every earlier suite and add compiled-resource/HTTP
+The 71 mandatory commands retain every earlier suite and add compiled-resource/HTTP
 parity, read-only diagnostic and release/package checks. The competitive
 benchmark above is deliberately not part of this runner. Native PHP curl, DOM/XML,
 mbstring, APCu and Imagick, plus Python, Node, Git and fish, are required. Missing

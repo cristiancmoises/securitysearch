@@ -1,5 +1,14 @@
 # SecuritySearch v0.9.27
 
+## Correção de implantação v0.9.27-r1
+
+A prontidão agora valida o asset **31**, igual à configuração PHP real e ao gerador
+Docker; a expectativa antiga de asset 30 rejeitava candidatos corretos. Todos os
+testes anteriores permanecem, mais uma regressão baseada no código real. Use o kit
+**securitysearch-update-0.9.27-r1** sobre o checkout v0.9.27 exato, limpo e já
+aplicado. A versão da aplicação e o nome da tag v0.9.27 são mantidos; tags
+conflitantes não são movidas. [Detalhes](docs/AUDITFIX-0.9.27-r1.md).
+
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
 ![Página inicial do SecuritySearch v0.9.27](docs/screenshots/securitysearch-0.9.27-home.png)
@@ -107,7 +116,7 @@ com `--theme-assets`. Reutilize o pacote existente fora do repositório.
 
 ## Aplicar, validar e implantar
 
-Na pasta do kit `securitysearch-update-0.9.27`, sobre um checkout limpo e exato v0.9.26:
+Na pasta do kit `securitysearch-update-0.9.27-r1`, sobre um checkout limpo, exato e já aplicado v0.9.27:
 
 ```fish
 fish ./apply-securitysearch.fish "$HOME/securitysearch"
@@ -144,7 +153,7 @@ publicar não faz deploy, e o pacote privado de imagens não é incluído.
 sh scripts/test.sh --keep-going
 ```
 
-São 70 comandos obrigatórios, sem remover suítes anteriores. O benchmark comparativo
+São 71 comandos obrigatórios, sem remover suítes anteriores. O benchmark comparativo
 não está no runner. Dependências nativas ausentes contam como falhas; mocks não
 comprovam funcionamento de provedores reais. Consulte os registros executados e
 limites em [AUDIT](docs/AUDIT-0.9.27.md), as [notas](docs/RELEASE-0.9.27.md) e a

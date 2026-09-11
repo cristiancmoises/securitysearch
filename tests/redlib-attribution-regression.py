@@ -133,7 +133,7 @@ return true;
         self.assertEqual((ROOT/'data/release-version.txt').read_text().strip(),'0.9.27')
     def test_runner_enforces_notice_without_removing_existing_gates(self):
         commands=[l for l in (ROOT/'scripts/test.sh').read_text().splitlines() if l.startswith('run_test ')]
-        self.assertEqual(len(commands),70)
+        self.assertEqual(len(commands),71)
         self.assertEqual(commands[56],'run_test python3 tests/redlib-attribution-regression.py')
         for name in ('tests/native-runtime.php','tests/http-regression.py','tests/newswire-regression.php'):
             self.assertTrue(any(name in l for l in commands))

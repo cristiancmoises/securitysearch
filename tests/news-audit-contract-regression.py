@@ -98,7 +98,7 @@ class NewsAuditContract(unittest.TestCase):
     def test_all_previous_commands_and_timeouts_remain(self):
         script = (ROOT / 'scripts/test.sh').read_text()
         commands = [line for line in script.splitlines() if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 70)
+        self.assertEqual(len(commands), 71)
         self.assertIn('run_test php -d apc.enable_cli=1 tests/regression.php', commands)
         self.assertIn('run_test python3 tests/http-regression.py', commands)
         source = (ROOT / 'tests/http-regression.py').read_text()

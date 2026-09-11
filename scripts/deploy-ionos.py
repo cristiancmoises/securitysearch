@@ -22,6 +22,7 @@ import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '0.9.27'
+ASSET_VERSION = 31
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -125,6 +126,29 @@ def create_payload(old, image, candidate=False):
     config['NetworkingConfig'] = {'EndpointsConfig': endpoints}
     return config
 
+def validate_source_marker(marker):
+    """Check the release-owned asset marker without logging arbitrary PHP output.
+
+    This gate also runs on the replacement. A mismatch stays fatal; it does not
+    rewrite configuration, accept an older asset, or imply that a mount is at fault.
+    """
+    expected = f'{ASSET_VERSION}|Black'
+    if isinstance(marker, str) and len(marker) <= 128 and marker.strip() == expected:
+        return
+    asset, theme = 'unreadable', 'unreadable'
+    if isinstance(marker, str) and len(marker) <= 128:
+        fields = marker.strip().split('|')
+        if len(fields) == 2:
+            if re.fullmatch(r'[0-9]{1,6}', fields[0]):
+                asset = fields[0]
+            theme = 'Black' if fields[1] == 'Black' else 'not Black'
+    raise RuntimeError(
+        f'Readiness source/config mismatch: expected asset {ASSET_VERSION} / theme Black; '
+        f'observed asset {asset} / theme {theme}. '
+        'The configuration was not changed by this check; inspect the effective source/configuration.'
+    )
+
+
 def healthy(cid):
     deadline = time.monotonic()+100
     while time.monotonic() < deadline:
@@ -135,8 +159,7 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '30|Black':
-                raise RuntimeError('New source/config version is masked by an old setting or mount.')
+            validate_source_marker(marker)
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
             if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or any('data-home-style="'+name+'"' not in html for name in ('base','black','controls')) or re.search(r'<link\b[^>]*rel=["\']stylesheet["\']',html,re.I):
@@ -150,11 +173,11 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v31',capture=True)
+                         f'http://127.0.0.1/static/images-infinite.js?v{ASSET_VERSION}',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v31',capture=True)
+                         f'http://127.0.0.1/static/images-motion.js?v{ASSET_VERSION}',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',
