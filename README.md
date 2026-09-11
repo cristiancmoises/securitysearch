@@ -86,16 +86,18 @@ including Codeberg.
 
 ## Apply, audit and deploy
 
-From the extracted complete `securitysearch-update-0.9.30` kit, on a clean exact v0.9.29
-checkout:
+For operators upgrading directly from the currently published v0.9.27 line, use the
+final all-in-one v0.9.30 launcher supplied with the release kit:
 
 ```fish
-fish ./apply-securitysearch.fish "$HOME/securitysearch"
-and fish ./deploy-securitysearch.fish "$HOME/securitysearch" \
-    --theme-assets "$HOME/.local/share/securitysearch/operator-themes-v1" \
-    --verify-google \
-    --rank-refresh
+fish "$HOME/Downloads/securitysearch-v0.9.30-all-in-one.fish"
 ```
+
+It accepts the exact clean published v0.9.27 baseline or the already-applied pre-fix
+v0.9.30 tree, repairs the native static-home audit, deploys the candidate, verifies the
+full native audit and live provider gates, removes only older SecuritySearch Docker
+containers/images after successful cutover, then publishes the same final commit/tag and
+source archive to the four configured forges. It never force-pushes or rewrites a tag.
 
 Deployment uses `root@securityops.co`, SSH port 5119, and preserves the established Docker
 networks/binding and Nginx Proxy Manager upstream. The complete isolated native audit,
@@ -129,7 +131,8 @@ sh scripts/test.sh --keep-going
 Every earlier mandatory suite remains. v0.9.30 adds favicon-admission, favicon-HTTP,
 FPM/event source, native FPM configuration and version-specific package/publication coverage.
 The native FPM check must run in the Alpine production-image audit; a missing local
-`php-fpm84` is not a pass. See [release notes](docs/RELEASE-0.9.30.md),
-[performance notes](docs/PERFORMANCE-0.9.30.md) and [audit](docs/AUDIT-0.9.30.md).
+`php-fpm84` is not a pass. Release notes, performance notes and the detailed audit remain under `docs/` because
+release tooling and regression tests consume them. Prompt artifacts and redundant root
+migration/patch Markdown files are not published.
 
 License: [AGPL-3.0](license.txt). **In Code We Trust.**

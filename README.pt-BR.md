@@ -84,21 +84,20 @@ continua fora do Git e de todos os releases públicos, inclusive Codeberg.
 
 ## Aplicar, auditar e implantar
 
-Na pasta extraída `securitysearch-update-0.9.30`, sobre checkout limpo e exato da v0.9.29:
+Para atualizar diretamente a partir da linha v0.9.27 atualmente publicada, use o
+lançador final tudo-em-um da v0.9.30 fornecido no kit:
 
 ```fish
-fish ./apply-securitysearch.fish "$HOME/securitysearch"
-and fish ./deploy-securitysearch.fish "$HOME/securitysearch" \
-    --theme-assets "$HOME/.local/share/securitysearch/operator-themes-v1" \
-    --verify-google \
-    --rank-refresh
+fish "$HOME/Downloads/securitysearch-v0.9.30-all-in-one.fish"
 ```
 
-O deploy usa `root@securityops.co`, SSH 5119, e preserva redes/bind do Docker e o upstream
-do Nginx Proxy Manager. Auditoria nativa isolada, prontidão do candidato, identidade
-FPM/event, RSS, Binternet e verificação Google web/imagens precisam passar antes da troca.
-Falha do candidato mantém o contêiner de produção atual. Preserve todos os diretórios de
-backup/rollback mostrados.
+Ele aceita o baseline publicado v0.9.27 exato e limpo ou a árvore v0.9.30 pré-correção
+já aplicada, corrige a auditoria nativa do static-home, implanta o candidato, exige a
+auditoria nativa completa e os gates de provedores, remove somente containers/imagens
+SecuritySearch antigos após o cutover bem-sucedido e publica o mesmo commit/tag/archive
+final nos quatro forges. Nunca usa force-push nem move uma tag existente.
+
+A implantação usa `root@securityops.co`, porta SSH 5119, e preserva as redes/binding Docker e o upstream do Nginx Proxy Manager. A auditoria nativa isolada completa, readiness, runtime FPM/event, RSS, Binternet e as verificações Google web/imagens solicitadas precisam passar antes do cutover.
 
 ## Publicar v0.9.30
 

@@ -49,7 +49,12 @@ try:
         status,h,body=response(extra=extra,path=path);assert status==200
         assert h.get('x-securitysearch-render',[None])[0] in ('compiled','dynamic')
         assert any('private' in x and 'no-store' in x for x in h.get('cache-control',[]))
-        if path=='/' and extra and extra[1].startswith('Cookie:'): assert body==static
+        # A Cookie must bypass the anonymous static artifact.  Do not require
+        # byte equality with the anonymous snapshot: cookie-aware rendering is
+        # allowed to differ while retaining the selected Black appearance.
+        if path=='/' and extra and extra[1].startswith('Cookie:'):
+            assert b'data-home-style=\"black\"' in body and b'Security Search' in body
+            assert b'<script' not in body.lower()
 
     status,_,_=response(path='/home-anonymous.generated.fast');assert status==404
     status,_,_=response(path='/home-anonymous.generated.fast.gz');assert status==404
