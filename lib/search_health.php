@@ -18,6 +18,7 @@ final class upstream_search_failure extends RuntimeException {
             'redirect'=>'returned a redirect which was not followed',
             'body_limit'=>'response exceeded the safe size limit',
             'format'=>'returned an unsupported response format',
+            'bootstrap_format'=>'returned an unsupported search-session format',
             'busy'=>'is preparing a search session for another request',
             'deadline'=>'search reached its request budget'
         ][$reason] ?? 'could not complete this search';

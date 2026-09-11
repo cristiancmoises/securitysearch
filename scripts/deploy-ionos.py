@@ -21,7 +21,7 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.25'
+VERSION = '0.9.26'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -135,7 +135,7 @@ def healthy(cid):
             # Verify the source/config version and required local assets too.
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
-            if marker.strip() != '29|Black':
+            if marker.strip() != '30|Black':
                 raise RuntimeError('New source/config version is masked by an old setting or mount.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
@@ -150,11 +150,11 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v29',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v30',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v29',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v30',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',
@@ -341,6 +341,62 @@ def verify_news_config(cid, source, market):
         raise RuntimeError('The replacement did not retain the verified RSS news configuration.')
 
 
+def live_google_gate(cid, backup):
+    """Explicit operator opt-in: require actual Google web AND image records.
+
+    No fallback, production mutation, visitor query or raw provider body is used.
+    A failed first probe does not provoke further requests to a refused provider.
+    """
+    report = {'schema': 1, 'version': VERSION, 'provider': 'google', 'attempts': []}
+    for page in ('web', 'images'):
+        row = {'page': page, 'status': 'unavailable', 'reason': 'probe_execution_failed'}
+        try:
+            raw = run('docker', 'exec', '--user', 'apache', '--workdir', APP, cid,
+                      'timeout', '-s', 'TERM', '18', 'php', '-d', 'apc.enable_cli=1',
+                      'lib/search_probe.php', 'google', page, capture=True)
+            code = 0
+        except subprocess.CalledProcessError as error:
+            raw, code = error.stdout or '', error.returncode
+        except Exception:
+            raw, code = '', -1
+        try:
+            if not isinstance(raw, str) or len(raw) > 32768:
+                raise ValueError('invalid report size')
+            data = json.loads(raw)
+            if (not isinstance(data, dict) or type(data.get('schema')) is not int or data.get('schema') != 1 or
+                    data.get('version') != VERSION or data.get('provider') != 'google' or
+                    data.get('page') != page):
+                raise ValueError('invalid report identity')
+            count = data.get('result_count')
+            if code == 0 and data.get('status') == 'ok' and type(count) is int and 1 <= count <= 100:
+                row = {'page': page, 'status': 'ok', 'count': count}
+            else:
+                row['reason'] = 'no_verified_results'
+                failure = data.get('failure', {})
+                if isinstance(failure, dict):
+                    reason = failure.get('reason')
+                    if reason in ('rate_limited', 'refused', 'challenge', 'transport', 'gateway',
+                                  'redirect', 'body_limit', 'format', 'bootstrap_format', 'busy', 'deadline'):
+                        row['reason'] = reason
+                    for key, bound in (('http_status', 599), ('curl_errno', 999), ('retry_after', 3600)):
+                        value = failure.get(key)
+                        if type(value) is int and 0 <= value <= bound:
+                            row[key] = value
+        except (ValueError, TypeError, KeyError):
+            pass
+        report['attempts'].append(row)
+        if row['status'] != 'ok':
+            if page == 'web':
+                report['attempts'].append({'page': 'images', 'status': 'not_tested', 'reason': 'preceding_failure'})
+            report['status'] = 'unavailable'
+            (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+            print('Google candidate probe: ' + json.dumps(row), flush=True)
+            raise RuntimeError('Requested Google verification failed before cutover; production is unchanged. Inspect ' + str(backup / 'google-live.json'))
+    report['status'] = 'ok'
+    (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+    print('Verified actual Google web and image results from this candidate. This is not a latency benchmark.', flush=True)
+
+
 def validate_operator_pack(directory):
     """Load only the sibling validator, even when this script is imported by path.
 
@@ -465,6 +521,8 @@ def main():
         selected_news, selected_market = live_news_gate(candidate,backup)
         set_news_primary(old, selected_news, selected_market)
         live_binternet_gate(candidate,backup)
+        if os.environ.get('SECURITYSEARCH_VERIFY_GOOGLE') == '1':
+            live_google_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')
         candidate = None
         # Store the recovery command before stopping production.

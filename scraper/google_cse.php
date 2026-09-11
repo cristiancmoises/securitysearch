@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__."/../lib/search_health.php";
+require_once __DIR__."/../lib/google_cse_protocol.php";
 
 class google_cse{
 	
@@ -575,31 +576,14 @@ class google_cse{
 	}
 
 	private function decode_response($payload){
-
-		if(
-			!preg_match(
-				'/\A\s*google\.search\.cse\.[A-Za-z0-9_]+\s*\(\s*(\{[\S\s]*\})\s*\)\s*;?\s*\z/i',
-				$payload,
-				$match
-			)
-		){
-
-			if($this->is_google_anti_abuse_error($payload)){
-
-				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
-			}
-
-			throw new upstream_search_failure('google','format',200);
-		}
-
-		$json = json_decode($match[1], true);
-		if(!is_array($json)){
-
-			throw new upstream_search_failure('google','format',200);
-		}
-
-		return $json;
-	}
+        try {return google_cse_protocol::response($payload);}
+        catch(upstream_search_failure $error) {
+            if($error->reason==='format' && $this->is_google_anti_abuse_error($payload)) {
+                throw new upstream_search_failure('google','challenge',200);
+            }
+            throw $error;
+        }
+    }
 
 	private function is_google_anti_abuse_error($text){
 
@@ -723,7 +707,7 @@ class google_cse{
 		apcu_fetch($cooldown_key, $hit);
 		if($hit){
 
-			throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
+			throw new upstream_search_failure('google','challenge',200);
 		}
 	}
 
@@ -832,7 +816,7 @@ class google_cse{
 			$req_params["start"] = 0;
 		}
 		
-		$req_params["start"] += 20;
+        $current_start=(int)($req_params['start']??0);
 		
 		if(isset($json["error"])){
 
@@ -855,160 +839,31 @@ class google_cse{
 			"related" => []
 		];
 		
-		// detect word correction
-		if(isset($json["spelling"]["type"])){
-			
-			switch($json["spelling"]["type"]){
-				
-				case "DYM": // did you mean? @TODO fix wording
-					$type = "including";
-					break;
-				
-				case "SPELL_CORRECTED_RESULTS": // not many results for
-					$type = "not_many";
-					break;
-				
-				default:
-					$type = "not_many";
-			}
-			
-			if(isset($json["spelling"]["originalQuery"])){
-				
-				$using = $json["spelling"]["originalQuery"];
-			}
-			elseif(isset($json["spelling"]["anchor"])){
-				
-				$using = html_entity_decode(strip_tags($json["spelling"]["anchor"]));
-			}elseif(isset($json["spelling"]["originalAnchor"])){
-				
-				$using = html_entity_decode(strip_tags($json["spelling"]["originalAnchor"]));
-			}
-			
-			$out["spelling"] = [
-				"type" => $type,
-				"using" => $using,
-				"correction" => $json["spelling"]["correctedQuery"]
-			];
-		}
-		
-		if(!isset($json["results"])){
-			
-			return $out;
-		}
-		
-		foreach($json["results"] as $result){
-			
-			// get date from description
-			$description =
-				explode(
-					"...",
-					trim($result["contentNoFormatting"], " ."),
-					2
-				);
-			
-			if(count($description) === 2){
-				
-				if($date = strtotime($description[0])){
-					
-					$description = ltrim($description[1]);
-				}else{
-					
-					$date = null;
-					$description = implode("...", $description);
-				}
-			}else{
-				
-				$description = implode("...", $description);
-				$date = null;
-			}
-			
-			$description = trim($description, " .");
-			
-			// get thumbnails
-			if(isset($result["richSnippet"]["cseThumbnail"]["src"])){
-				
-				$thumb = [
-					"url" => $this->unshit_thumb($result["richSnippet"]["cseThumbnail"]["src"]),
-					"ratio" => "1:1"
-				];
-			}
-			elseif(isset($result["richSnippet"]["cseImage"]["src"])){
-				
-				$thumb = [
-					"url" => $result["richSnippet"]["cseImage"]["src"],
-					"ratio" => "1:1"
-				];
-			}else{
-				
-				$thumb = [
-					"url" => null,
-					"ratio" => null
-				];
-			}
-			
-			if($thumb["url"] !== null){
-				
-				$found_size = false;
-				
-				// find correct ratio
-				
-				if(
-					isset($result["richSnippet"]["cseThumbnail"]["width"]) &&
-					isset($result["richSnippet"]["cseThumbnail"]["height"])
-				){
-					$found_size = true;
-					$width = (int)$result["richSnippet"]["cseThumbnail"]["width"];
-					$height = (int)$result["richSnippet"]["cseThumbnail"]["height"];
-				}
-				elseif(
-					isset($result["richSnippet"]["metatags"]["ogImageWidth"]) &&
-					isset($result["richSnippet"]["metatags"]["ogImageHeight"])
-				){
-					$found_size = true;
-					$width = (int)$result["richSnippet"]["metatags"]["ogImageWidth"];
-					$height = (int)$result["richSnippet"]["metatags"]["ogImageHeight"];
-				}
-				
-				// calculate rounded ratio
-				if($found_size){
-					
-					$aspect_ratio = $width / $height;
-					
-					if($aspect_ratio >= 1.5){
-						
-						$thumb["ratio"] = "16:9";
-					}
-					elseif($aspect_ratio >= 0.8){
-						
-						$thumb["ratio"] = "1:1";
-					}else{
-						
-						$thumb["ratio"] = "9:16";
-					}
-				}
-			}
-			
-			$out["web"][] = [
-				"title" => rtrim($result["titleNoFormatting"], " ."),
-				"description" => $description,
-				"url" => $result["unescapedUrl"],
-				"date" => $date,
-				"type" => "web",
-				"thumb" => $thumb,
-				"sublink" => [],
-				"table" => []
-			];
-		}
-		
-		// detect next page
-		if(
-			isset($json["cursor"]["isExactTotalResults"]) || // detects last page
-			!isset($json["cursor"]["pages"]) // detects no results on page
-		){
-			
-			return $out;
-		}
-		
+        $spelling=is_array($json['spelling']??null)?$json['spelling']:[];
+        $correction=google_cse_protocol::text($spelling['correctedQuery']??null,2048);
+        if(isset($spelling['type']) && is_string($spelling['type']) && $correction!=='') {
+            $using=google_cse_protocol::text($spelling['originalQuery']??null,2048);
+            if($using==='')$using=html_entity_decode(strip_tags(google_cse_protocol::text($spelling['originalAnchor']??$spelling['anchor']??null,4096)),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');
+            $out['spelling']=['type'=>$spelling['type']==='DYM'?'including':'not_many','using'=>$using,'correction'=>$correction];
+        }
+        if(!isset($json['results'])) {
+            if(!is_array($json['cursor']??null))throw new upstream_search_failure('google','format',200);
+            return $out;
+        }
+        if(!is_array($json['results']) || !array_is_list($json['results']))throw new upstream_search_failure('google','format',200);
+        $seen=[];
+        foreach(array_slice($json['results'],0,100) as $result) {
+            $parsed=google_cse_protocol::web_result($result);
+            if($parsed===null || isset($seen[$parsed['url']]))continue;
+            $seen[$parsed['url']]=true;
+            $out['web'][]=$parsed;
+        }
+        if($json['results']!==[] && $out['web']===[])throw new upstream_search_failure('google','format',200);
+
+        $next=google_cse_protocol::next_start($json,$current_start,count($out['web']));
+        if($next===null)return $out;
+        $req_params['start']=$next;
+
 		// get next page
 		$out["npt"] =			
 			$this->backend->store(
@@ -1113,7 +968,7 @@ class google_cse{
 			$req_params["start"] = 0;
 		}
 		
-		$req_params["start"] += 20;
+        $current_start=(int)($req_params['start']??0);
 		
 		if(isset($json["error"])){
 
@@ -1129,12 +984,13 @@ class google_cse{
 		// A response can contain a final page of image results while also marking
 		// the cursor as exact/finished. Parse those results before deciding
 		// whether another page token should be offered.
-		if(!isset($json["results"]) || !is_array($json["results"])){
-			
-			return $out;
-		}
+		if(!isset($json["results"])){
+            if(!is_array($json['cursor']??null))throw new upstream_search_failure('google','format',200);
+            return $out;
+        }
+        if(!is_array($json['results']) || !array_is_list($json['results']))throw new upstream_search_failure('google','format',200);
 		
-		foreach($json["results"] as $result){
+		foreach(array_slice($json["results"],0,100) as $result){
 
 			$parsed_result = $this->parse_image_result($result);
 			if($parsed_result !== null){
@@ -1143,16 +999,11 @@ class google_cse{
 			}
 		}
 
-		// Only decide whether a following page exists after preserving every
-		// result returned on this page.
-		if(
-			isset($json["cursor"]["isExactTotalResults"]) || // detects last page
-			!isset($json["cursor"]["pages"]) // detects no results on page
-		){
+        if($json['results']!==[] && $out['image']===[])throw new upstream_search_failure('google','format',200);
+        $next=google_cse_protocol::next_start($json,$current_start,count($out['image']));
+        if($next===null)return $out;
+        $req_params['start']=$next;
 
-			return $out;
-		}
-		
 		// get next page
 		$out["npt"] =			
 			$this->backend->store(
@@ -1183,109 +1034,23 @@ class google_cse{
 		return null;
 	}
 
-	private function parse_image_result($result){
+    private function parse_image_result($result){
+        if(!is_array($result))return null;
+        $original=google_cse_protocol::url($result['unescapedUrl']??null);
+        $original??=google_cse_protocol::url($result['tbLargeUrl']??null)??google_cse_protocol::url($result['tbUrl']??null);
+        if($original===null)return null;
+        $sources=[['url'=>$original,'width'=>google_cse_protocol::dimension($result['width']??null),'height'=>google_cse_protocol::dimension($result['height']??null)]];
+        $seen=[$original=>true];
+        foreach([['tbLargeUrl','tbLargeWidth','tbLargeHeight'],['tbUrl','tbWidth','tbHeight']] as [$url,$w,$h]) {
+            $image=google_cse_protocol::url($result[$url]??null);
+            if($image===null||isset($seen[$image]))continue;
+            $seen[$image]=true;$sources[]=['url'=>$image,'width'=>google_cse_protocol::dimension($result[$w]??null),'height'=>google_cse_protocol::dimension($result[$h]??null)];
+        }
+        $title=google_cse_protocol::text($result['titleNoFormatting']??null,2048);
+        return ['title'=>rtrim($title,' .')?:'Image result','motion_format'=>$this->motion_format_hint($result),
+            'source'=>$sources,'url'=>google_cse_protocol::url($result['originalContextUrl']??null)??$original];
+    }
 
-		if(!is_array($result)){
-
-			return null;
-		}
-
-		$original_url = $this->valid_remote_image_url($result["unescapedUrl"] ?? null);
-		$large_thumbnail_url = $this->valid_remote_image_url($result["tbLargeUrl"] ?? null);
-		$thumbnail_url =
-			$large_thumbnail_url ??
-			$this->valid_remote_image_url($result["tbUrl"] ?? null);
-		if($original_url === null){
-
-			$original_url = $thumbnail_url;
-		}
-		if($original_url === null){
-
-			return null;
-		}
-
-		$sources = [
-			[
-				"url" => $original_url,
-				"width" => $this->positive_image_dimension($result["width"] ?? null),
-				"height" => $this->positive_image_dimension($result["height"] ?? null)
-			]
-		];
-		if($thumbnail_url !== null && $thumbnail_url !== $original_url){
-
-			$sources[] = [
-				"url" => $thumbnail_url,
-				"width" => $this->positive_image_dimension(
-					$large_thumbnail_url !== null ?
-					($result["tbLargeWidth"] ?? null) :
-					($result["tbWidth"] ?? null)
-				),
-				"height" => $this->positive_image_dimension(
-					$large_thumbnail_url !== null ?
-					($result["tbLargeHeight"] ?? null) :
-					($result["tbHeight"] ?? null)
-				)
-			];
-		}
-
-		$title =
-			isset($result["titleNoFormatting"]) && is_string($result["titleNoFormatting"]) ?
-			rtrim($result["titleNoFormatting"], " .") :
-			"Image result";
-		if($title === ""){
-
-			$title = "Image result";
-		}
-
-		return [
-			"title" => $title,
-			"motion_format" => $this->motion_format_hint($result),
-			"source" => $sources,
-			"url" =>
-				$this->valid_remote_image_url($result["originalContextUrl"] ?? null) ??
-				$original_url
-		];
-	}
-
-	private function positive_image_dimension($dimension){
-
-		if(!is_numeric($dimension)){
-
-			return null;
-		}
-
-		$dimension = (int)$dimension;
-		return $dimension > 0 && $dimension <= 1000000 ? $dimension : null;
-	}
-
-	private function valid_remote_image_url($url){
-
-		if(
-			!is_string($url) ||
-			$url === "" ||
-			strlen($url) > 16384 ||
-			preg_match('/[\x00-\x20\x7f]/', $url) === 1
-		){
-
-			return null;
-		}
-
-		$parts = parse_url($url);
-		if(
-			!is_array($parts) ||
-			!isset($parts["scheme"], $parts["host"]) ||
-			!in_array(strtolower($parts["scheme"]), ["http", "https"], true) ||
-			$parts["host"] === "" ||
-			isset($parts["user"]) ||
-			isset($parts["pass"])
-		){
-
-			return null;
-		}
-
-		return $url;
-	}
-	
 	private function generate_token($proxy, $force_refresh = false, $rejected_token = null){
         search_health::check('google',$proxy);
 		// A known provider block must not trigger another query-free bootstrap.
@@ -1311,7 +1076,6 @@ class google_cse{
 			function_exists("apcu_add") &&
 			function_exists("apcu_cas") &&
 			function_exists("apcu_delete");
-		$previous_flight = null;
 
 		if($cache_available){
 
@@ -1329,7 +1093,6 @@ class google_cse{
 					return $this->return_cached_bootstrap($cached);
 				}
 
-				$previous_flight = $cached["_flight"] ?? null;
 			}
 		}
 
@@ -1352,10 +1115,7 @@ class google_cse{
 						$cached !== null &&
 						(
 							!$force_refresh ||
-							(
-								isset($cached["_flight"]) &&
-								$cached["_flight"] !== $previous_flight
-							)
+                            (is_string($rejected_token) && !hash_equals($cached['token'],$rejected_token))
 						)
 					){
 
@@ -1369,20 +1129,14 @@ class google_cse{
 				throw new upstream_search_failure('google','busy',0,0,2);
 			}
 
-			// Close the cache-miss/publication race after acquiring the lock. A
-			// forced refresh deliberately invalidates the rejected generation.
-			if(!$force_refresh){
-
-				$cached = $this->get_cached_bootstrap($cache_key);
-				if($cached !== null){
-
-					$this->release_bootstrap_lock($lock_key, $flight);
-					return $this->return_cached_bootstrap($cached);
-				}
-			}else{
-
-				apcu_delete($cache_key);
-			}
+            // Recheck after lock acquisition: another worker may already have replaced
+            // the specific rejected token. Never delete that newer successful generation.
+            $cached=$this->get_cached_bootstrap($cache_key);
+            if($cached!==null && (!$force_refresh || (is_string($rejected_token) && !hash_equals($cached['token'],$rejected_token)))) {
+                $this->release_bootstrap_lock($lock_key,$flight);
+                return $this->return_cached_bootstrap($cached);
+            }
+            if($force_refresh)apcu_delete($cache_key);
 
 			apcu_delete($failure_key);
 		}elseif($cache_available && $force_refresh){
@@ -1394,6 +1148,13 @@ class google_cse{
 
 		try{
 		
+            // Google documents this query-free loader. Fast path avoids fetching the hosted HTML first.
+            $js=$this->get($proxy,'https://cse.google.com/cse.js',['cx'=>config::GOOGLE_CX_ENDPOINT],self::req_js);
+            $params=google_cse_protocol::bootstrap($js);
+            if($params===null) {
+                if($this->is_google_anti_abuse_error($js))throw new upstream_search_failure('google','challenge',200);
+                // One format-only legacy discovery path; never retry a refusal/rate limit here.
+
 			$html =
 				$this->get(
 					$proxy,
@@ -1426,67 +1187,16 @@ class google_cse{
 				throw new Exception("Google returned a captcha");
 			}
 		
-			// get token
-			preg_match(
-				'/relativeUrl=\'([^\']+)\';/i',
-				$html,
-				$js_uri
-			);
-		
-			if(!isset($js_uri[1])){
-			
-				throw new Exception("Failed to grep search token");
-			}
-		
-			$js_uri =
-				$this->fuckhtml
-				->parseJsString(
-					$js_uri[1]
-				);
-		
-			// get parameters
-			$js =
-				$this->get(
-					$proxy,
-					"https://cse.google.com" . $js_uri,
-					[],
-					self::req_js
-				);
+            $js_uri=google_cse_protocol::script_path($html);
+            if($js_uri===null) throw new upstream_search_failure('google','bootstrap_format',200);
+            $js=$this->get($proxy,"https://cse.google.com".$js_uri,[],self::req_js);
+            $params=google_cse_protocol::bootstrap($js);
+            if($params===null) {
+                if($this->is_google_anti_abuse_error($js)) throw new upstream_search_failure('google','challenge',200);
+                throw new upstream_search_failure('google','bootstrap_format',200);
+            }
 
-			if($this->is_google_anti_abuse_error($js)){
-
-				throw new Exception("Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.");
-			}
-		
-			preg_match(
-				'/}\)\(({[\S\s]+})\);/',
-				$js,
-				$json
-			);
-		
-			if(!isset($json[1])){
-			
-				throw new Exception("Failed to grep JSON parameters");
-			}
-		
-			$json = json_decode($json[1], true);
-
-			if(
-				!is_array($json) ||
-				!isset($json["cse_token"], $json["cselibVersion"]) ||
-				!is_string($json["cse_token"]) ||
-				!is_string($json["cselibVersion"]) ||
-				$json["cse_token"] === "" ||
-				$json["cselibVersion"] === ""
-			){
-
-				throw new Exception("Google returned malformed bootstrap parameters");
-			}
-		
-			$params = [
-				"token" => $json["cse_token"],
-				"lib" => $json["cselibVersion"]
-			];
+            }
 
 			if($cache_available){
 
@@ -1505,7 +1215,7 @@ class google_cse{
 			$params["cached"] = false;
 			return $params;
 		}catch(Throwable $error){
-
+            if($error instanceof upstream_search_failure)search_health::remember('google',$proxy,$error);
 			if($owns_lock){
 
 				$anti_abuse = $this->is_google_anti_abuse_error($error->getMessage());
@@ -1576,28 +1286,4 @@ class google_cse{
 		}
 	}
 	
-	private function unshit_thumb($url){
-		// https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQINE2vbnNLHXqoZr3RVsaEJFyOsj1_BiBnJch-e1nyz3oia7Aj5xVj
-		// https://i.ytimg.com/vi/PZVIyA5ER3Y/mqdefault.jpg?sqp=-oaymwEFCJQBEFM&rs=AMzJL3nXeaCpdIar-ltNwl82Y82cIJfphA
-		
-		$parts = parse_url($url);
-		
-		if(
-			isset($parts["host"]) &&
-			preg_match(
-				'/tbn.*\.gstatic\.com/',
-				$parts["host"]
-			)
-		){
-			
-			parse_str($parts["query"], $params);
-			
-			if(isset($params["q"])){
-				
-				return "https://" . $parts["host"] . "/images?q=" . $params["q"];
-			}
-		}
-		
-		return $url;
-	}
 }

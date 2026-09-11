@@ -10,23 +10,25 @@ class frontend{
 	// Cache only bundled, unrendered templates. Never store queries, cookies or
 	// rendered HTML in the shared cache. File metadata invalidates local edits.
 	private static function template_source(string $template): string{
+        static $request_cache=[];
 		if(!preg_match('/\A[a-z][a-z0-9_-]*\.html\z/', $template)){
 			throw new InvalidArgumentException("Invalid template name");
 		}
-		$path = dirname(__DIR__) . "/template/" . $template;
+		if(isset($request_cache[$template]))return $request_cache[$template];
+        $path = dirname(__DIR__) . "/template/" . $template;
 		$stat = stat($path);
 		if($stat === false){ throw new RuntimeException("Template unavailable"); }
 		$key = 'securitysearch-template-v1-' . hash('sha256', $path . ':' . config::VERSION . ':' . $stat['mtime'] . ':' . $stat['size']);
 		$shared = function_exists('apcu_enabled') && apcu_enabled();
 		if($shared){
 			$source = apcu_fetch($key, $found);
-			if($found && is_string($source)){ return $source; }
+			if($found && is_string($source)){ return $request_cache[$template]=$source; }
 		}
 		$data = file_get_contents($path);
 		if($data === false){ throw new RuntimeException("Template unavailable"); }
 		$source = implode('', array_map('trim', explode("\n", $data)));
 		if($shared && strlen($source) <= 131072){ apcu_store($key, $source, 300); }
-		return $source;
+		return $request_cache[$template]=$source;
 	}
 
 	public function video_suggestion(string $query): string{
@@ -75,7 +77,7 @@ class frontend{
         if (operator_themes::available($theme)) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '">';
         if ($theme === 'Custom') $replacements["style"] .= '<script defer src="/static/local-background.js?v' . config::VERSION . '"></script>';
 
-		if(isset($_COOKIE["scraper_ac"])){
+		if(isset($_COOKIE["scraper_ac"]) && is_string($_COOKIE["scraper_ac"]) && strlen($_COOKIE["scraper_ac"])<=64){
 			
 			$replacements["ac"] = '?ac=' . htmlspecialchars($_COOKIE["scraper_ac"]);
 		}else{
@@ -93,16 +95,14 @@ class frontend{
 		
 		$html = self::template_source($template);
 		
-		foreach($replacements as $key => $value){
-		
-			$html =
-				str_replace(
-					"{%{$key}%}",
-					$value,
-					$html
-				);
-		}
-		
+        // One pass: substituted values are never interpreted as template instructions.
+        $map=[];
+        foreach($replacements as $key=>$value) {
+            if(!is_string($value) && !is_numeric($value) && $value!==null)throw new InvalidArgumentException('Invalid template value.');
+            $map['{%'.$key.'%}']=(string)$value;
+        }
+        $html=strtr($html,$map);
+
 		return trim($html);
 	}
 	

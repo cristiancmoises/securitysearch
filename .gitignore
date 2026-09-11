@@ -48,3 +48,7 @@ prompts/
 /static/operator-themes/
 /static/misc/secops.gif
 /static/misc/lain.gifv
+
+# Operator-generated comparison results are not published.
+/securityops-benchmarks/
+/tools/securityops-benchmarks/

@@ -23,7 +23,7 @@ def main():
   assert response.headers['Cache-Control']=='private, no-store'
   assert '<script' not in html and '{%theme_picker%}' not in html
   response=client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode({'appearance':'1','theme':'Art'}).encode()))
-  assert '/static/themes/Art.css?v29' in response.read().decode()
+  assert '/static/themes/Art.css?v30' in response.read().decode()
   assert any(c.name=='theme' and c.value=='Art' and c.has_nonstandard_attr('HttpOnly') and c.get_nonstandard_attr('SameSite')=='Lax' for c in jar)
   for form,headers,expected in [({'appearance':'1','theme':'../../etc/passwd'},{},400),({'appearance':'1','theme':'Black'},{'Sec-Fetch-Site':'cross-site'},403),({'appearance':'1','theme[]':'Art'},{},400)]:
    try:client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode(form).encode(),headers=headers));raise AssertionError('Invalid appearance accepted')

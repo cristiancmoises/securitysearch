@@ -1,3 +1,10 @@
+## v0.9.26
+
+Google CSE record/pagination/bootstrap/session fixes; single-pass templates and
+compiled homepage skin; manual benchmark script without published results; local
+README captures; optional explicit Google web/image candidate verification.
+[Release notes](docs/RELEASE-0.9.26.md) · [Upstream review](docs/UPSTREAM-0.9.26.md).
+
 ## v0.9.25
 
 Homepage-only inline CSS, compressed banner, Google/Brave refusal-aware health and safe diagnostics, genuine image previews. Asset 29; attribution and private-artwork policy retained. See [release notes](docs/RELEASE-0.9.25.md).

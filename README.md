@@ -1,147 +1,160 @@
-# Security Search v0.9.25
+# SecuritySearch v0.9.26
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-A PHP proxy metasearch engine based on [4get](https://git.lolcat.ca/lolcat/4get),
-maintained for [SecurityOps](https://securityops.co). Normal search and bundled themes
-**work without JavaScript**; local pictures and image enhancements use optional
-same-origin scripts. Application **0.9.25**, asset marker **29**.
+![SecuritySearch v0.9.26 homepage](docs/screenshots/securitysearch-0.9.26-home.png)
 
-## Homepage performance
+Local Chromium capture of this release's PHP-generated Black homepage. Bundled
+resources are embedded in the capture fixture because this authoring browser blocks
+localhost navigation. This is not a new production capture, a Lighthouse run, or a
+performance result. [Mobile capture](docs/screenshots/securitysearch-0.9.26-mobile.png).
 
-The default Black homepage embeds three small **homepage-only** stylesheets. It no
-longer waits for `style.css`, `experience.css` and `Black.css` requests before first
-paint. Other themes retain their selected external theme stylesheet; search and
-settings pages retain the full shared CSS. Missing bundled inline CSS falls back
-to the original external stylesheet rather than an unstyled page.
+A privacy-oriented PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get),
+maintained by Security Ops. **Works without JavaScript** for normal searches and
+bundled themes. Local pictures and image enhancements use optional same-origin
+scripts. No provider can guarantee every query or every request.
 
-The existing 400 × 86 WebP logo is recompressed from **11,528 to 5,710 bytes**.
-Its explicit dimensions, eager loading and high fetch priority are retained; its
-preload now appears near the start of the document. No third-party preconnect,
-JavaScript CSS loader, onload handler, or new font is introduced.
+## Google web and image reliability
 
-Reference local bytes (gzip comparison, **not measured production transfer or LCP**):
-HTML plus render-blocking CSS is 15,796 → 9,866 bytes. HTML alone increases
-7,771 → 9,866 compressed bytes; this deliberately trades a slightly larger document
-for three fewer blocking requests and much less homepage CSS. Browser fixtures
-check desktop/mobile geometry and colors. Lighthouse's estimated milliseconds are
-not claimed as an observed speedup. Re-run Lighthouse after deployment.
+The existing Google/CSE integration now parses bounded, inert JSONP prologues,
+validates result records independently and follows the explicit numeric next-page
+offset supplied by Google. Zero/invalid thumbnail heights no longer cause division
+by zero. Malformed optional text or image metadata cannot abort otherwise valid
+records. Broken entire result sets are still errors, not successful empty pages.
 
-The developer-only `scripts/build-home-css.py` regenerates the subsets using
-PHP, tinycss2, cssselect2 and lxml. Those packages are not runtime dependencies.
-The mandatory suite verifies generated CSS input/output hashes; structural changes
-also need a browser parity review.
+Cold session initialization first uses Google's documented query-free `cse.js`
+loader. A supported loader response needs one fewer bootstrap request. An unfamiliar
+loader format may use one bounded legacy discovery path; refusals, challenges and
+rate limits do not trigger that recovery. Script contents are parsed as bounded
+JSON, never executed. A valid cached session or continuation avoids bootstrap work.
 
-## Google and Brave reliability
+Concurrent refreshes recheck the cached token after acquiring the session lock, so
+one worker does not discard a successful replacement from another. A waiter compares
+the actual rejected token rather than relying on flight bookkeeping. No search
+results, queries, visitor cookies or credentials are added to shared caches.
 
-Google remains the default web/image provider. A failed new first page may use
-**one visibly identified Brave fallback** within the existing shared deadline.
-Explicit non-Google providers, successful empty results and continuations do not
-silently switch provider. No third provider is queried automatically.
+Web thumbnails and both small/large image previews retain actual provider URLs;
+originals remain available. Valid empty result lists stop normally. Pagination keeps
+its provider. The existing Google-to-Brave first-page fallback, total deadline,
+refusal cooldowns, SSL verification and response limits remain.
 
-Google/Brave now retain safe transport failure categories and honor bounded
-`Retry-After`. Query-free, egress-specific APCu metadata briefly cools transport
-failures (5 seconds), rate limits (at least 60 seconds) and refusals/challenges
-(at least 120 seconds), with a one-hour maximum. No private query/result is cached.
-Parser/format failures do not globally blacklist the provider.
+These are reproduced adapter defects and offline fixes, not proof of why every
+reported live search failed. Provider restrictions, outages or a different future
+response format can still result in a clearly identified failure.
 
-Brave does not rotate proxy addresses to retry a challenge. A 502/503/504 without
-Retry-After or a detected challenge may get at most one retry on the **same egress**
-within the existing deadline. Google retains its one same-egress transient retry.
-All TLS checks, no-redirect rules and 4 MiB response caps remain.
+## Homepage work
 
-Google bootstrap contention waits at most two seconds for another worker instead
-of tying up a request for the old long wait loop. Narrow JSONP/Svelte bootstrap
-format variations are supported without evaluating upstream JavaScript.
-These are tested fixtures, not proof of today's upstream page format or availability.
-**CAPTCHAs, refusals, network faults and rate limits can still produce a truthful 503.**
+Template replacement is now one pass; replacement values are not interpreted again
+as template placeholders. Only bundled unrendered templates are memoized. The
+homepage skin is compiled from a readable bundled CSS source, removing comments
+and excess whitespace without a runtime build or JavaScript loader. The previous
+inline Black critical CSS and optimized 400 × 86 WebP banner remain.
 
-For an explicit post-deployment diagnostic, run `diagnose-search.fish` from the kit.
-It sends a fixed neutral query to Google/Brave web/images and records bounded
-status/error/timing/count fields—not query history, tokens, IPs or response bodies.
-The first synchronous DNS lookup is not bounded by cURL alone; the wrapper also
-uses a process timeout. No live latency improvement is asserted by offline tests.
+The homepage sends `Server-Timing: app;dur=...` for PHP application processing only.
+It excludes DNS, TLS, reverse-proxy queues and browser rendering. Personalized HTML
+remains private/no-store. No third-party preconnect, visitor-result cache, analytics,
+or hidden background refresh is added. See [upstream review](docs/UPSTREAM-0.9.26.md).
 
-## Image results and local pictures
+## Manual benchmark script (results not published)
 
-Preview mode chooses the smallest genuine provider-supplied variant when dimensions
-are known; an unknown-size final variant retains the provider's preview hint.
-Original/high-quality modes and original-image links remain unchanged. The first
-four visible cards are eager; only the first receives high fetch priority, and the
-other three use normal priority. Later cards remain lazy/low priority.
+The user-supplied [SecOps Web Benchmark 3.0.0](tools/secops-web-benchmark-v3.fish) is
+included byte-for-byte as a standalone manual tool. **No comparative benchmark is
+run during installation, deployment, automated audits or this update's preparation.**
+No leaderboard, winner badge, benchmark reports or comparative performance claims
+are included. Add independently measured results later, with their method and limits.
 
-Binternet modern/legacy parsing, six layouts, normal pagination, optional infinite
-scroll and bounded animated previews with still posters and Play/Pause remain.
-**My picture** keeps its unnamed chooser outside forms. File decoding and resizing
-happen in the browser; nothing is uploaded. Session storage is the default,
-Remember on this device is explicit, and Remove clears both storage locations
-when the browser allows it. Blocked storage permits page-only display.
-
-Historical Lain/SecOps originals and derivatives remain **outside Git** and outside
-all public release attachments, including Codeberg. Only an explicit private
-`--theme-assets` deployment includes the existing external operator pack. Tron and
-the public palette/Matrix alternatives remain. Redlib attribution, RSS news,
-onion link and dated Tranco footer are retained; no rank is invented.
-
-## External providers and privacy
-
-External Redlib instances are operated by independent third-party individuals or
-organizations, **not by Security Ops**. Security Ops maintains this integration,
-not those instances. Their operators control their policies and availability;
-Reddit queries and enabled fallbacks reach those external operators. Our privacy
-statements must not be read as promises about third-party services.
-
-News RSS remains the separate default, using Google/Bing publisher headlines.
-Only query-free public headlines use its bounded cache; keyword searches do not.
-The verified RSS source/edition and existing live RSS/Binternet deployment gates
-remain unchanged. RSS and other upstream endpoints are best-effort dependencies.
-
-## Apply, deploy, publish
-
-Extract the complete `securitysearch-update-0.9.25` kit into `~/Downloads`:
+On GNU Guix, from an existing checkout, run later:
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.25/apply-securitysearch.fish ~/securitysearch
-and fish ~/Downloads/securitysearch-update-0.9.25/deploy-securitysearch.fish \
-    ~/securitysearch \
-    --theme-assets ~/.local/share/securitysearch/operator-themes-v1 \
+fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish"
+```
+
+For an already installed Python/curl toolchain:
+
+```fish
+fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish" --system-deps
+```
+
+The default is 21 measured rounds, one excluded warm-up round and a one-second pause.
+Reports stay under `~/Downloads/securityops-benchmarks/`. The Guix mode uses a
+temporary dependency environment, not a system reconfiguration. This measures
+**HTTP homepage HTML delivery only**: not browser LCP, CSS/image delivery,
+Google query latency or search quality. Differences can be dominated by geography,
+DNS/TLS, infrastructure, cache state and observation time. There is no claim that
+SecuritySearch is globally faster than 4get.ca or any other service.
+
+## Preserved features and ownership
+
+News RSS remains the default, using bounded Google/Bing headline/search feeds.
+Reddit is optional: **external Redlib instances are operated by independent third
+parties, not by Security Ops**. Security Ops maintains the integration, not those
+instances or their policies and availability. The About page and UI keep this notice.
+
+Binternet image search, six image layouts, animated-preview controls, ordinary
+pagination, optional infinite scrolling, the onion link and dated Tranco metadata
+remain. My picture reads and normalizes a selected file in the browser, outside
+forms, with session-only storage by default and explicit persistence/removal options.
+The picture, animated-preview and RSS runtime implementations are unchanged.
+
+Historical Lain/SecOps artwork stays in the external operator pack, not source
+commits or public releases on any forge, including Codeberg. Reuse that pack only
+with `--theme-assets` on private deployments. The shared code retains its public
+fallbacks. **In Code We Trust.**
+
+## Apply, validate and deploy
+
+From the extracted complete `securitysearch-update-0.9.26` kit, on a clean exact
+v0.9.25 checkout:
+
+```fish
+fish ./apply-securitysearch.fish "$HOME/securitysearch"
+and fish ./deploy-securitysearch.fish "$HOME/securitysearch" \
+    --theme-assets "$HOME/.local/share/securitysearch/operator-themes-v1" \
+    --verify-google \
     --rank-refresh
 ```
 
-Accepts the exact clean attribution-hotfix tree or v0.9.24-r1 tree. Both paths
-include the attribution correction. No reset, stash, force-push, or tag movement.
-SSH uses `root@securityops.co` port **5119**, preserving `172.17.0.1:5140 → 80`,
-Docker networks and compatible private settings without recreating NPM. All native
-offline tests, candidate readiness, RSS and Binternet checks must pass before
-cutover. Keep every backup/rollback directory and the external theme pack.
+This creates a normal commit and preserves local work, existing tags, source-release
+assets and backups. Deployment uses `root@securityops.co`, SSH port 5119, the existing
+Docker binding/networks and Nginx Proxy Manager upstream. Keep the complete kit
+together; older manifest-based launchers do not accept the updated source.
+
+All offline suites, candidate readiness, fresh RSS headlines plus keyword search,
+and live Binternet remain mandatory. The explicit `--verify-google` option additionally
+requires nonempty **Google web AND image** results from the candidate before cutover.
+No Brave fallback qualifies as Google success. A first-probe failure stops further
+Google probing and leaves production in place; `google-live.json` holds sanitized
+status/count/error evidence in the printed backup directory. Passing two neutral
+queries is not proof of all-query availability or a latency benchmark.
+
+## Publish v0.9.26
 
 ```fish
-fish ~/Downloads/securitysearch-update-0.9.25/publish-securitysearch.fish ~/securitysearch
-# Retry one host, INCLUDING its release tarball/checksum:
-fish ~/Downloads/securitysearch-update-0.9.25/publish-securitysearch.fish \
-    ~/securitysearch --host git.securityops.com.br
+fish ./publish-securitysearch.fish "$HOME/securitysearch"
+# Retry only .com.br, including release tarball and checksum:
+fish ./publish-securitysearch.fish "$HOME/securitysearch" --host git.securityops.com.br
 ```
 
-The new annotated tag is **v0.9.25**. Assets are `securitysearch-v0.9.25.tar.gz`
-and `.tar.gz.sha256`, built from the exact real tag. Tokens are entered privately.
-Selected hosts are preflighted, pushed without force, and release drafts receive
-verified attachments before publication. Conflicting notes/tags/assets are not
-replaced. Separate hosts cannot be published as one globally atomic transaction.
+Publication creates/reuses a new annotated `v0.9.26` tag, complete tagged-source
+`securitysearch-v0.9.26.tar.gz` and its `.tar.gz.sha256`. It never retargets v0.9.25
+or replaces different published assets. Tokens are entered privately, and Forgejo
+attachments use multipart uploads. Operator pictures never enter the public package.
 The published
-v0.9.24 tag and its archives remain untouched. Checksums are integrity checks,
-not digital signatures; annotated tags are not automatically signed.
+v0.9.24 tag remains unchanged, as does v0.9.25. Earlier releases and history remain. Publishing does not deploy the VPS.
 
-## Tests and evidence
+[Release notes](docs/RELEASE-0.9.26.md) · [Audit](docs/AUDIT-0.9.26.md) ·
+[Upstream review](docs/UPSTREAM-0.9.26.md) · [License: AGPL-3.0](license.txt)
+
+## Tests and boundaries
 
 ```sh
 sh scripts/test.sh --keep-going
 ```
 
-All **61** commands are mandatory: the prior 57 remain in order, with four new
-suites. Full runtime tests require PHP curl/DOM/XML/mbstring/APCu/Imagick, Python,
-Node, Git and fish. Native dependencies are never mocked to claim a full pass.
-The kit's audit distinguishes real PHP HTTP and browser fixtures from simulated
-cURL/Docker/API operations and unperformed VPS/Lighthouse runs.
-[Release notes](docs/RELEASE-0.9.25.md) · [Audit](docs/AUDIT-0.9.25.md).
-
-License: [AGPL-3.0](license.txt). **In Code We Trust.**
+The 67 mandatory commands retain every earlier suite and add CSE protocol/flow/cache,
+template/HTTP, candidate-verification and release regressions. The competitive
+benchmark above is deliberately not part of this runner. Native PHP curl, DOM/XML,
+mbstring, APCu and Imagick, plus Python, Node, Git and fish, are required. Missing
+dependencies are failures, not passes. Test doubles are identified explicitly;
+no mocked provider response is evidence of live availability. The audit records
+executed results and limits. Live VPS/forge operations are separate operator actions.

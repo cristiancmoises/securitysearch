@@ -57,11 +57,10 @@ echo "PASS: two bounded Svelte bootstrap fixtures parsed with the actual parser.
 $g=new google_cse();$r=new ReflectionClass($g);$m=$r->getMethod('request_cse');$params=['cse_tok'=>'expired','cselibv'=>'old','q'=>'fixture'];
 $calls=0;$rows=[
  ['body'=>'google.search.cse.api({"error":{"code":403,"message":"cse token expired"}});'],
- ['body'=>"<html><script>relativeUrl='/cse.js';</script></html>"],
  ['body'=>'})({"cse_token":"fresh-fixture","cselibVersion":"new-fixture"});'],
  ['body'=>'google.search.cse.api({"results":[]});']
 ];
-$result=$m->invokeArgs($g,['raw_ip::::',&$params,true]);check($result===['results'=>[]]&&$calls===4&&$params['cse_tok']==='fresh-fixture','Existing one-time token renewal retained');
+$result=$m->invokeArgs($g,['raw_ip::::',&$params,true]);check($result===['results'=>[]]&&$calls===3&&$params['cse_tok']==='fresh-fixture','Existing one-time token renewal retained');
 $g=new google_cse();$params=['q'=>'fixture'];$calls=0;$rows=[['body'=>'google.search.cse.api({"error":{"code":429,"message":"token rate limited"}});']];
 try{$m->invokeArgs($g,['raw_ip::::',&$params,true]);throw new LogicException('429 accepted');}catch(upstream_search_failure $e){check($e->reason==='rate_limited'&&$calls===1,'No token refresh for structured rate limit');}
 echo "PASS: token renewal versus rate limit uses actual request/bootstrap/parser with offline transport.\n";
