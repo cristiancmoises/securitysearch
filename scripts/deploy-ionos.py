@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import signal
+import stat
 import shutil
 import re
 import socket
@@ -378,6 +379,96 @@ def verify_news_config(cid, source, market):
         raise RuntimeError('The replacement did not retain the verified RSS news configuration.')
 
 
+
+def google_backup_identity(backup):
+    """Reject a missing/replaced report directory; never recreate lost state."""
+    try:
+        info = backup.lstat()
+    except OSError as error:
+        raise RuntimeError(
+            'Google evidence directory unavailable; stage=check-directory errno=' +
+            str(error.errno) + '. No directory was recreated; cutover is forbidden.'
+        ) from error
+    if not stat.S_ISDIR(info.st_mode):
+        raise RuntimeError('Google evidence directory is not a real directory; cutover is forbidden.')
+    return info.st_dev, info.st_ino
+
+
+def assert_google_backup(backup, identity):
+    if google_backup_identity(backup) != identity:
+        raise RuntimeError('Google evidence directory identity changed; cutover is forbidden.')
+
+
+def write_google_evidence(backup, report, identity):
+    """Atomically replace only this run's sanitized JSON, without following links."""
+    assert_google_backup(backup, identity)
+    data = (json.dumps(report, indent=2) + '\n').encode('utf-8')
+    if len(data) > 65536:
+        raise RuntimeError('Google evidence exceeded its byte limit; cutover is forbidden.')
+    directory_fd = None
+    temporary_name = None
+    try:
+        directory_fd = os.open(str(backup), os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+        info = os.fstat(directory_fd)
+        if (info.st_dev, info.st_ino) != identity:
+            raise RuntimeError('Google evidence directory identity changed before write.')
+        try:
+            target = os.stat('google-live.json', dir_fd=directory_fd, follow_symlinks=False)
+        except FileNotFoundError:
+            target = None
+        if target is not None and not stat.S_ISREG(target.st_mode):
+            raise RuntimeError('Google evidence target is not a regular file; cutover is forbidden.')
+        temporary_name = '.google-live-' + os.urandom(16).hex() + '.tmp'
+        fd = os.open(temporary_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                     0o600, dir_fd=directory_fd)
+        with os.fdopen(fd, 'wb') as stream:
+            stream.write(data)
+            stream.flush()
+            os.fsync(stream.fileno())
+        assert_google_backup(backup, identity)
+        os.replace(temporary_name, 'google-live.json',
+                   src_dir_fd=directory_fd, dst_dir_fd=directory_fd)
+        temporary_name = None
+        os.fsync(directory_fd)
+        assert_google_backup(backup, identity)
+    except OSError as error:
+        raise RuntimeError(
+            'Cannot persist Google evidence; stage=write-report file=google-live.json errno=' +
+            str(error.errno) + '. Original provider results are not certified; cutover is forbidden.'
+        ) from error
+    finally:
+        if directory_fd is not None:
+            if temporary_name is not None:
+                try:
+                    os.unlink(temporary_name, dir_fd=directory_fd)
+                except OSError:
+                    pass
+            os.close(directory_fd)
+
+
+def safe_deployment_error(error):
+    """Keep errno and source location, never dump subprocess output or secrets."""
+    if isinstance(error, RuntimeError):
+        return str(error)
+    text = type(error).__name__
+    if isinstance(error, OSError):
+        text += ' errno=' + str(error.errno)
+        # Filenames/executable arguments can contain credentials. Use known names only.
+        filename = getattr(error, 'filename', None)
+        if filename in ('docker', 'curl', 'flock'):
+            text += ' executable=' + filename
+        else:
+            text += ' resource=unclassified'
+    tb = error.__traceback__
+    while tb is not None:
+        if tb.tb_frame.f_code.co_filename == __file__:
+            location = str(tb.tb_lineno)
+        tb = tb.tb_next
+    if 'location' in locals():
+        text += ' source=scripts/deploy-ionos.py:' + location
+    return text
+
+
 def live_google_gate(cid, backup):
     """Explicit operator opt-in: require actual Google web AND image records.
 
@@ -386,6 +477,7 @@ def live_google_gate(cid, backup):
     bounded backoff so a temporary provider throttle cannot force an immediate
     cutover failure while still requiring genuine Google results before cutover.
     """
+    backup_identity = google_backup_identity(backup)
     report = {'schema': 1, 'version': VERSION, 'provider': 'google', 'attempts': []}
     max_attempts = 3
 
@@ -398,6 +490,11 @@ def live_google_gate(cid, backup):
             code = 0
         except subprocess.CalledProcessError as error:
             raw, code = error.stdout or '', error.returncode
+        except OSError as error:
+            row['os_error'] = type(error).__name__
+            if type(error.errno) is int and 0 <= error.errno <= 4095:
+                row['errno'] = error.errno
+            raw, code = '', -1
         except Exception:
             raw, code = '', -1
         try:
@@ -429,6 +526,7 @@ def live_google_gate(cid, backup):
     for page in ('web', 'images'):
         row = None
         for attempt in range(1, max_attempts + 1):
+            assert_google_backup(backup, backup_identity)
             row = probe(page, attempt)
             report['attempts'].append(row)
             if row['status'] == 'ok':
@@ -436,20 +534,24 @@ def live_google_gate(cid, backup):
             if row.get('reason') != 'rate_limited' or attempt >= max_attempts:
                 break
             retry_after = row.get('retry_after', 0)
-            delay = max(60, min(300, retry_after)) if retry_after else (60 if attempt == 1 else 120)
+            if retry_after > 300:
+                row['retry_deferred_seconds'] = retry_after
+                print('Google requested a retry beyond this deployment wait budget; no early retry.', flush=True)
+                break
+            delay = max(60, retry_after) if retry_after else (60 if attempt == 1 else 120)
             row['backoff_seconds'] = delay
-            (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+            write_google_evidence(backup, report, backup_identity)
             print('Google candidate probe rate-limited for '+page+'; waiting '+str(delay)+' seconds before bounded retry '+str(attempt + 1)+'/'+str(max_attempts)+'.', flush=True)
             time.sleep(delay)
         if row is None or row['status'] != 'ok':
             if page == 'web':
                 report['attempts'].append({'page': 'images', 'status': 'not_tested', 'reason': 'preceding_failure'})
             report['status'] = 'unavailable'
-            (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+            write_google_evidence(backup, report, backup_identity)
             print('Google candidate probe: ' + json.dumps(row), flush=True)
             raise RuntimeError('Requested Google verification failed before cutover; production is unchanged. Inspect ' + str(backup / 'google-live.json'))
     report['status'] = 'ok'
-    (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+    write_google_evidence(backup, report, backup_identity)
     print('Verified actual Google web and image results from this candidate. This is not a latency benchmark.', flush=True)
 
 
@@ -675,5 +777,5 @@ if __name__ == '__main__':
         main()
     except (Exception, KeyboardInterrupt) as error:
         # Do not print subprocess stderr, inspect data or environment values.
-        print('Update stopped: '+(str(error) if isinstance(error,RuntimeError) else type(error).__name__),file=sys.stderr)
+        print('Update stopped: '+safe_deployment_error(error),file=sys.stderr)
         sys.exit(1)
