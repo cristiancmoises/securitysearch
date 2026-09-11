@@ -20,7 +20,16 @@ try:
     else: raise RuntimeError('Apache did not become ready.')
 
     def response(extra=(),method='GET',path='/'):
-        cmd=['-D','-','-o','/tmp/securitysearch-static-body','-X',method,*extra,'http://127.0.0.1'+path]
+        body_path=Path('/tmp/securitysearch-static-body')
+        body_path.unlink(missing_ok=True)
+        url='http://127.0.0.1'+path
+        # curl -X HEAD changes only the request verb; curl still expects a body
+        # matching Content-Length and can therefore time out on a correct HEAD
+        # response.  --head gives curl HEAD semantics and no-body expectations.
+        if method=='HEAD':
+            cmd=['-D','-','-o','/dev/null','--head',*extra,url]
+        else:
+            cmd=['-D','-','-o',str(body_path),'-X',method,*extra,url]
         code,out,err=curl(*cmd)
         if code: raise RuntimeError(err)
         headers={}
@@ -29,7 +38,7 @@ try:
             if line.startswith('HTTP/'): status=int(line.split()[1]);headers={}
             elif ':' in line:
                 k,v=line.split(':',1);headers.setdefault(k.lower(),[]).append(v.strip())
-        body=Path('/tmp/securitysearch-static-body').read_bytes() if Path('/tmp/securitysearch-static-body').exists() else b''
+        body=b'' if method=='HEAD' else (body_path.read_bytes() if body_path.exists() else b'')
         return status,headers,body
 
     status,h,static=response();assert status==200 and h.get('x-securitysearch-render')==['static-home']
