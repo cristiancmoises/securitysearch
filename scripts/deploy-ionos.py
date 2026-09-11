@@ -382,11 +382,15 @@ def live_google_gate(cid, backup):
     """Explicit operator opt-in: require actual Google web AND image records.
 
     No fallback, production mutation, visitor query or raw provider body is used.
-    A failed first probe does not provoke further requests to a refused provider.
+    Refusal/challenge failures are never retried. HTTP 429 is retried only after
+    bounded backoff so a temporary provider throttle cannot force an immediate
+    cutover failure while still requiring genuine Google results before cutover.
     """
     report = {'schema': 1, 'version': VERSION, 'provider': 'google', 'attempts': []}
-    for page in ('web', 'images'):
-        row = {'page': page, 'status': 'unavailable', 'reason': 'probe_execution_failed'}
+    max_attempts = 3
+
+    def probe(page, attempt):
+        row = {'page': page, 'attempt': attempt, 'status': 'unavailable', 'reason': 'probe_execution_failed'}
         try:
             raw = run('docker', 'exec', '--user', 'apache', '--workdir', APP, cid,
                       'timeout', '-s', 'TERM', '18', 'php', '-d', 'apc.enable_cli=1',
@@ -406,23 +410,38 @@ def live_google_gate(cid, backup):
                 raise ValueError('invalid report identity')
             count = data.get('result_count')
             if code == 0 and data.get('status') == 'ok' and type(count) is int and 1 <= count <= 100:
-                row = {'page': page, 'status': 'ok', 'count': count}
-            else:
-                row['reason'] = 'no_verified_results'
-                failure = data.get('failure', {})
-                if isinstance(failure, dict):
-                    reason = failure.get('reason')
-                    if reason in ('rate_limited', 'refused', 'challenge', 'transport', 'gateway',
-                                  'redirect', 'body_limit', 'format', 'bootstrap_format', 'busy', 'deadline'):
-                        row['reason'] = reason
-                    for key, bound in (('http_status', 599), ('curl_errno', 999), ('retry_after', 3600)):
-                        value = failure.get(key)
-                        if type(value) is int and 0 <= value <= bound:
-                            row[key] = value
+                return {'page': page, 'attempt': attempt, 'status': 'ok', 'count': count}
+            row['reason'] = 'no_verified_results'
+            failure = data.get('failure', {})
+            if isinstance(failure, dict):
+                reason = failure.get('reason')
+                if reason in ('rate_limited', 'refused', 'challenge', 'transport', 'gateway',
+                              'redirect', 'body_limit', 'format', 'bootstrap_format', 'busy', 'deadline'):
+                    row['reason'] = reason
+                for key, bound in (('http_status', 599), ('curl_errno', 999), ('retry_after', 3600)):
+                    value = failure.get(key)
+                    if type(value) is int and 0 <= value <= bound:
+                        row[key] = value
         except (ValueError, TypeError, KeyError):
             pass
-        report['attempts'].append(row)
-        if row['status'] != 'ok':
+        return row
+
+    for page in ('web', 'images'):
+        row = None
+        for attempt in range(1, max_attempts + 1):
+            row = probe(page, attempt)
+            report['attempts'].append(row)
+            if row['status'] == 'ok':
+                break
+            if row.get('reason') != 'rate_limited' or attempt >= max_attempts:
+                break
+            retry_after = row.get('retry_after', 0)
+            delay = max(60, min(300, retry_after)) if retry_after else (60 if attempt == 1 else 120)
+            row['backoff_seconds'] = delay
+            (backup / 'google-live.json').write_text(json.dumps(report, indent=2) + '\n')
+            print('Google candidate probe rate-limited for '+page+'; waiting '+str(delay)+' seconds before bounded retry '+str(attempt + 1)+'/'+str(max_attempts)+'.', flush=True)
+            time.sleep(delay)
+        if row is None or row['status'] != 'ok':
             if page == 'web':
                 report['attempts'].append({'page': 'images', 'status': 'not_tested', 'reason': 'preceding_failure'})
             report['status'] = 'unavailable'
