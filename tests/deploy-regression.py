@@ -107,7 +107,7 @@ print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts 
 
 for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
  responses=['20|Tron' if failure=='version' else ('23|Lain' if failure=='theme' else '30|Black'),
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v30' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v31' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',
@@ -116,4 +116,4 @@ for failure in [None,'version','theme','theme_asset','script','csp','image_csp',
  with patch.object(m,'inspect',return_value={'State':{'Health':{'Status':'healthy'}}}),patch.object(m,'run',side_effect=responses):
   try:m.healthy('candidate');assert failure is None
   except RuntimeError:assert failure is not None
-print('PASS: candidate gates validate asset 30, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')
+print('PASS: candidate gates validate asset 31, effective Black, homepage no-script CSP, scoped image CSP and enhancer asset.')

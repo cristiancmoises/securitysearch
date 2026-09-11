@@ -52,3 +52,7 @@ prompts/
 # Operator-generated comparison results are not published.
 /securityops-benchmarks/
 /tools/securityops-benchmarks/
+
+# Generated before Apache starts, never a source artifact.
+data/view-resources.generated.php
+data/.view-resources-*

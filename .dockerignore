@@ -71,3 +71,7 @@ deploy.sh
 # Local Python validation artifacts
 **/__pycache__/
 *.pyc
+
+# Generated before Apache starts, never a source artifact.
+data/view-resources.generated.php
+data/.view-resources-*

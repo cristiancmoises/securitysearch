@@ -93,6 +93,9 @@ run_test php -d disable_functions=apcu_fetch,apcu_store,apcu_enabled,apcu_add,ap
 run_test python3 tests/frontend-onepass-regression.py
 run_test python3 tests/google-live-gate-regression.py
 run_test python3 tests/publication-v0.9.26-regression.py
+run_test python3 tests/view-resources-regression.py
+run_test python3 tests/delivery-profile-regression.py
+run_test python3 tests/publication-v0.9.27-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

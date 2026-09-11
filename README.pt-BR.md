@@ -1,18 +1,38 @@
-# SecuritySearch v0.9.26
+# SecuritySearch v0.9.27
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![Página inicial do SecuritySearch v0.9.26](docs/screenshots/securitysearch-0.9.26-home.png)
+![Página inicial do SecuritySearch v0.9.27](docs/screenshots/securitysearch-0.9.27-home.png)
 
 Captura local do Chromium a partir do HTML gerado pelo PHP desta versão. Os recursos
 locais foram incorporados na fixture porque o navegador de autoria bloqueia navegação
 para localhost. Não é uma captura nova da VPS, um teste Lighthouse nem um resultado
-de desempenho. [Captura móvel](docs/screenshots/securitysearch-0.9.26-mobile.png).
+de desempenho. [Captura móvel](docs/screenshots/securitysearch-0.9.27-mobile.png).
 
 Buscador proxy PHP baseado no [4get](https://git.lolcat.ca/lolcat/4get), mantido pela
 Security Ops. **Funciona sem JavaScript** nas buscas normais e nos temas fornecidos.
 Imagens locais e melhorias da galeria usam scripts opcionais da própria origem.
 Provedores externos podem falhar, limitar ou recusar consultas.
+
+## Renderização mais leve na v0.9.27
+
+A página inicial não carrega mais a classe completa de resultados. Templates e CSS
+públicos fixos e metadados dos temas são compilados antes do Apache iniciar para
+reutilização pelo OPcache existente. Preferências, formulários, temas e rodapé
+continuam sendo renderizados por requisição. **Não se compartilham páginas
+personalizadas, consultas, cookies, resultados ou imagens locais/privadas.**
+O modo dinâmico permanece como alternativa funcional se a compilação falhar ou
+`SECURITYSEARCH_RENDER_BUNDLE=0` for definido. Alterações intencionais de código
+exigem regeneração e substituição do processo. Nenhuma configuração do NPM, política
+TLS, timeout, limite de segurança ou provedor é alterado nesta versão.
+
+O cabeçalho `X-SecuritySearch-Render` informa `compiled` ou `dynamic`; `Server-Timing`
+continua medindo somente o PHP. Depois do deploy, `fish ./diagnose-delivery.fish`
+observa três respostas locais, sem buscas, reinícios ou mudanças. O JSON privado
+fica em `~/Downloads`. Isso não mede DNS/TLS públicos nem comprova vitória sobre
+4get.ca. O benchmark comparativo permanece manual, sem execução ou resultados
+publicados. [Operação detalhada](docs/PERFORMANCE-0.9.27.md).
+
 
 ## Correções de Google web e imagens
 
@@ -40,7 +60,7 @@ Essas correções offline não provam a causa de cada falha real nem garantem to
 As substituições do template passam a ocorrer uma única vez; os valores inseridos
 não são interpretados novamente como instruções do template. Somente templates
 locais sem conteúdo de usuários são memorizados. O CSS visual é compilado de uma
-fonte legível, removendo comentários/espaços excedentes sem compilação no servidor
+fonte legível, removendo comentários/espaços excedentes sem recompilar CSS durante requisições
 nem carregador JavaScript. Permanecem CSS crítico inline e banner WebP otimizado.
 
 `Server-Timing: app;dur=...` informa somente processamento PHP, não DNS, TLS, filas do
@@ -87,7 +107,7 @@ com `--theme-assets`. Reutilize o pacote existente fora do repositório.
 
 ## Aplicar, validar e implantar
 
-Na pasta do kit `securitysearch-update-0.9.26`, sobre um checkout limpo e exato v0.9.25:
+Na pasta do kit `securitysearch-update-0.9.27`, sobre um checkout limpo e exato v0.9.26:
 
 ```fish
 fish ./apply-securitysearch.fish "$HOME/securitysearch"
@@ -113,7 +133,7 @@ fish ./publish-securitysearch.fish "$HOME/securitysearch"
 fish ./publish-securitysearch.fish "$HOME/securitysearch" --host git.securityops.com.br
 ```
 
-Cria/reutiliza a nova tag anotada `v0.9.26` e os anexos `securitysearch-v0.9.26.tar.gz`
+Cria/reutiliza a nova tag anotada `v0.9.27` e os anexos `securitysearch-v0.9.27.tar.gz`
 e `.tar.gz.sha256`. A segunda linha retoma somente o host indicado, com anexos.
 Nenhuma tag/versão anterior ou anexo conflitante é substituído. Tokens são privados;
 publicar não faz deploy, e o pacote privado de imagens não é incluído.
@@ -124,9 +144,9 @@ publicar não faz deploy, e o pacote privado de imagens não é incluído.
 sh scripts/test.sh --keep-going
 ```
 
-São 67 comandos obrigatórios, sem remover suítes anteriores. O benchmark comparativo
+São 70 comandos obrigatórios, sem remover suítes anteriores. O benchmark comparativo
 não está no runner. Dependências nativas ausentes contam como falhas; mocks não
 comprovam funcionamento de provedores reais. Consulte os registros executados e
-limites em [AUDIT](docs/AUDIT-0.9.26.md), as [notas](docs/RELEASE-0.9.26.md) e a
+limites em [AUDIT](docs/AUDIT-0.9.27.md), as [notas](docs/RELEASE-0.9.27.md) e a
 [análise do upstream](docs/UPSTREAM-0.9.26.md). Licença [AGPL-3.0](license.txt).
 **In Code We Trust.**

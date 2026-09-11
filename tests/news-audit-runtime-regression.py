@@ -135,7 +135,7 @@ class NewsAuditRuntime(unittest.TestCase):
     def test_mandatory_native_suites_and_gates_remain(self):
         commands = [line for line in (ROOT / 'scripts/test.sh').read_text().splitlines()
                     if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 67)
+        self.assertEqual(len(commands), 70)
         self.assertIn('run_test php -d apc.enable_cli=1 tests/reddit-regression.php', commands)
         self.assertIn('run_test php tests/news-http-policy-regression.php', commands)
         self.assertIn('run_test php tests/native-runtime.php', commands)

@@ -1,9 +1,12 @@
 <?php
+require_once __DIR__."/view_resources.php";
 /** Only bundled styles are inlined. No CSS, URL, theme or HTML from a visitor. */
 final class home_styles {
     private const FILES = ['base'=>'home-base.css','controls'=>'home-controls.css','black'=>'home-black.css'];
     public static function inline(string $name): string {
         if (!isset(self::FILES[$name])) throw new InvalidArgumentException('Unknown homepage stylesheet.');
+        $compiled=view_resources::style($name);
+        if ($compiled!==null) return '<style data-home-style="'.$name.'">'.$compiled.'</style>';
         $path=dirname(__DIR__).'/static/'.self::FILES[$name];
         if (!is_file($path) || is_link($path)) return '';
         $stat=stat($path);

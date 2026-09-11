@@ -6,3 +6,6 @@ data/api_keys/ export-ignore
 static/operator-themes/** export-ignore
 static/misc/secops.gif export-ignore
 static/misc/lain.gifv export-ignore
+
+data/view-resources.generated.php export-ignore
+data/.view-resources-* export-ignore

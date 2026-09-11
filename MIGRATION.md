@@ -1,3 +1,10 @@
+## v0.9.27
+
+Startup-compiled public UI resources and a smaller shared page renderer. No visitor
+page/result caching, feature removal or upstream search changes. New immutable
+release, asset31; existing NPM/TLS/rollback and operator-media exclusions remain.
+[Operations](docs/PERFORMANCE-0.9.27.md) · [Release](docs/RELEASE-0.9.27.md).
+
 ## v0.9.26
 
 Google CSE record/pagination/bootstrap/session fixes; single-pass templates and

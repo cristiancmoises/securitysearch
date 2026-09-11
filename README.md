@@ -1,13 +1,13 @@
-# SecuritySearch v0.9.26
+# SecuritySearch v0.9.27
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![SecuritySearch v0.9.26 homepage](docs/screenshots/securitysearch-0.9.26-home.png)
+![SecuritySearch v0.9.27 homepage](docs/screenshots/securitysearch-0.9.27-home.png)
 
 Local Chromium capture of this release's PHP-generated Black homepage. Bundled
 resources are embedded in the capture fixture because this authoring browser blocks
 localhost navigation. This is not a new production capture, a Lighthouse run, or a
-performance result. [Mobile capture](docs/screenshots/securitysearch-0.9.26-mobile.png).
+performance result. [Mobile capture](docs/screenshots/securitysearch-0.9.27-mobile.png).
 
 A privacy-oriented PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get),
 maintained by Security Ops. **Works without JavaScript** for normal searches and
@@ -42,18 +42,34 @@ These are reproduced adapter defects and offline fixes, not proof of why every
 reported live search failed. Provider restrictions, outages or a different future
 response format can still result in a clearly identified failure.
 
-## Homepage work
+## Homepage work in v0.9.27
 
-Template replacement is now one pass; replacement values are not interpreted again
-as template placeholders. Only bundled unrendered templates are memoized. The
-homepage skin is compiled from a readable bundled CSS source, removing comments
-and excess whitespace without a runtime build or JavaScript loader. The previous
-inline Black critical CSS and optimized 400 × 86 WebP banner remain.
+A small shared renderer now serves the homepage without loading the full search
+results class. At container startup, fixed public template/CSS strings and theme
+metadata are compiled into a deployment-owned resource bundle for existing OPcache.
+Requests still render their own preferences, theme controls and current footer.
+**No rendered page, query, cookie, result set or local/private image is shared.**
+Unneeded style/footer fragments are skipped only where the template has no place
+for them; no visible feature is removed. The output, Black critical CSS, banner,
+forms and image behavior remain the same. Compilation failure or an explicit
+`SECURITYSEARCH_RENDER_BUNDLE=0` uses the working dynamic path.
 
-The homepage sends `Server-Timing: app;dur=...` for PHP application processing only.
-It excludes DNS, TLS, reverse-proxy queues and browser rendering. Personalized HTML
-remains private/no-store. No third-party preconnect, visitor-result cache, analytics,
-or hidden background refresh is added. See [upstream review](docs/UPSTREAM-0.9.26.md).
+The homepage reports `X-SecuritySearch-Render: compiled` or `dynamic`, plus its
+existing query-free `Server-Timing: app;dur=...`. Responses remain private/no-store.
+The bundle is rebuilt before Apache starts; source edits need regeneration and
+process replacement. No NPM, shared response cache or security bypass is introduced.
+[Performance operations](docs/PERFORMANCE-0.9.27.md) explain the boundary and rollback.
+
+Optional read-only origin check after deployment, from the extracted kit:
+
+```fish
+fish ./diagnose-delivery.fish
+```
+
+This observes three localhost homepage requests through the existing container;
+it sends no search and does not restart or reconfigure services. Its private JSON
+in `~/Downloads` separates PHP work, local transfer and compression. It is not a
+public-site speed score. No result against 4get.ca or global speed claim is asserted.
 
 ## Manual benchmark script (results not published)
 
@@ -103,8 +119,8 @@ fallbacks. **In Code We Trust.**
 
 ## Apply, validate and deploy
 
-From the extracted complete `securitysearch-update-0.9.26` kit, on a clean exact
-v0.9.25 checkout:
+From the extracted complete `securitysearch-update-0.9.27` kit, on a clean exact
+v0.9.26 checkout:
 
 ```fish
 fish ./apply-securitysearch.fish "$HOME/securitysearch"
@@ -127,7 +143,7 @@ Google probing and leaves production in place; `google-live.json` holds sanitize
 status/count/error evidence in the printed backup directory. Passing two neutral
 queries is not proof of all-query availability or a latency benchmark.
 
-## Publish v0.9.26
+## Publish v0.9.27
 
 ```fish
 fish ./publish-securitysearch.fish "$HOME/securitysearch"
@@ -135,14 +151,14 @@ fish ./publish-securitysearch.fish "$HOME/securitysearch"
 fish ./publish-securitysearch.fish "$HOME/securitysearch" --host git.securityops.com.br
 ```
 
-Publication creates/reuses a new annotated `v0.9.26` tag, complete tagged-source
-`securitysearch-v0.9.26.tar.gz` and its `.tar.gz.sha256`. It never retargets v0.9.25
+Publication creates/reuses a new annotated `v0.9.27` tag, complete tagged-source
+`securitysearch-v0.9.27.tar.gz` and its `.tar.gz.sha256`. It never retargets v0.9.26
 or replaces different published assets. Tokens are entered privately, and Forgejo
 attachments use multipart uploads. Operator pictures never enter the public package.
 The published
 v0.9.24 tag remains unchanged, as does v0.9.25. Earlier releases and history remain. Publishing does not deploy the VPS.
 
-[Release notes](docs/RELEASE-0.9.26.md) · [Audit](docs/AUDIT-0.9.26.md) ·
+[Release notes](docs/RELEASE-0.9.27.md) · [Audit](docs/AUDIT-0.9.27.md) ·
 [Upstream review](docs/UPSTREAM-0.9.26.md) · [License: AGPL-3.0](license.txt)
 
 ## Tests and boundaries
@@ -151,8 +167,8 @@ v0.9.24 tag remains unchanged, as does v0.9.25. Earlier releases and history rem
 sh scripts/test.sh --keep-going
 ```
 
-The 67 mandatory commands retain every earlier suite and add CSE protocol/flow/cache,
-template/HTTP, candidate-verification and release regressions. The competitive
+The 70 mandatory commands retain every earlier suite and add compiled-resource/HTTP
+parity, read-only diagnostic and release/package checks. The competitive
 benchmark above is deliberately not part of this runner. Native PHP curl, DOM/XML,
 mbstring, APCu and Imagick, plus Python, Node, Git and fish, are required. Missing
 dependencies are failures, not passes. Test doubles are identified explicitly;

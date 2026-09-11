@@ -25,6 +25,15 @@ fi
 
 php ./docker/gen_config.php
 
+# Compile fixed public templates/CSS once, before Apache handles any requests.
+# Explicit 0 opts out. Failure restores the original filesystem renderer.
+if [ "${SECURITYSEARCH_RENDER_BUNDLE:-1}" != "0" ] && php ./lib/build_view_resources.php --build; then
+        export SECURITYSEARCH_RENDER_BUNDLE=1
+else
+        export SECURITYSEARCH_RENDER_BUNDLE=0
+        echo "Using dynamic UI resources; all page features remain enabled."
+fi
+
 if [ "$#" -eq 1 ] && [ "$1" = "start" ]; then
         echo "4get is running"
         exec httpd -DFOREGROUND

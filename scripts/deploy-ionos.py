@@ -21,7 +21,7 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.26'
+VERSION = '0.9.27'
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -150,11 +150,11 @@ def healthy(cid):
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
                 raise RuntimeError('Image pagination policy failed readiness.')
             script = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-infinite.js?v30',capture=True)
+                         'http://127.0.0.1/static/images-infinite.js?v31',capture=True)
             if 'IntersectionObserver' not in script or 'createDocumentFragment' not in script:
                 raise RuntimeError('Image pagination asset is missing or masked.')
             motion = run('docker','exec',cid,'curl','-fsS','--max-time','10',
-                         'http://127.0.0.1/static/images-motion.js?v30',capture=True)
+                         'http://127.0.0.1/static/images-motion.js?v31',capture=True)
             if 'MutationObserver' not in motion or 'MAX_PLAYING' not in motion:
                 raise RuntimeError('Animated preview asset is missing or masked.')
             adapters = run('docker','exec',cid,'php','-r',

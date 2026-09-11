@@ -1,9 +1,12 @@
 <?php
 require_once __DIR__."/operator_themes.php";
+require_once __DIR__."/view_resources.php";
 /** Native appearance form. Paths and names come only from bundled CSS files. */
 function securitysearch_theme_catalog(): array {
     static $catalog=null;
     if ($catalog!==null) return $catalog;
+    $compiled=view_resources::catalog();
+    if($compiled!==null) return $catalog=array_replace($compiled,operator_themes::catalog());
     $out=[];
     $names=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',
         'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];
