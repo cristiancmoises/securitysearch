@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only origin delivery diagnostics for the v0.9.27 deployment, not a benchmark."""
+"""Read-only origin delivery diagnostics for the v0.9.30 deployment, not a benchmark."""
 import argparse,datetime,json,os,re,subprocess,sys
 from pathlib import Path
 HOST='root@securityops.co'
@@ -27,7 +27,7 @@ def clean_report(raw):
   asset=row.get('asset_version')
   if asset is not None and (type(asset)is not int or not 0<=asset<=9999):raise RuntimeError('Invalid asset version.')
   item['asset_version']=asset
-  if item['status']=='ok' and (asset!=31 or item['http_status']!=200 or item['curl_errno']!=0):raise RuntimeError('Invalid success claim.')
+  if item['status']=='ok' and (asset!=33 or item['http_status']!=200 or item['curl_errno']!=0):raise RuntimeError('Invalid success claim.')
   headers=row.get('headers')
   if not isinstance(headers,dict):raise RuntimeError('Invalid headers.')
   item['headers']={}
@@ -36,6 +36,7 @@ def clean_report(raw):
     val=headers[key]
     if not isinstance(val,str)or len(val)>300 or re.search(r'[\x00-\x1f\x7f]',val):raise RuntimeError('Unsafe header field.')
     item['headers'][key]=val
+  if item['status']=='ok' and item['headers'].get('x-securitysearch-render')!='static-home':raise RuntimeError('Successful profile did not use the anonymous static-home path.')
   out.append(item)
  return {'schema':1,'scope':'Read-only localhost homepage HTTP inside the application container. Not public network/TLS/NPM or search-result performance.','samples':out}
 def main():

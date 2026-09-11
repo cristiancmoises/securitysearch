@@ -8,6 +8,7 @@ if(!isset($_GET["s"]) || !is_string($_GET["s"]) || strlen($_GET["s"]) > 300){
 }
 
 include "data/config.php";
+require_once __DIR__."/lib/favicon_policy.php";
 new favicon($_GET["s"]);
 
 class favicon{
@@ -51,10 +52,26 @@ class favicon{
 		if(is_file($icon_path)){
 			$icon = file_get_contents($icon_path);
 			if($icon !== false && $icon !== ""){
+				$this->success_headers(strlen($icon));
 				echo $icon;
 				return;
 			}
 		}
+
+		// A failed favicon is cosmetic; do not let repeated failures monopolize
+		// PHP workers needed for actual web/image/news searches.
+		if(favicon_policy::is_negative($this->filename)){
+			header("X-Error: Favicon temporarily unavailable");
+			$this->defaulticon();
+		}
+		$lease=favicon_policy::acquire($this->filename);
+		if($lease===null){
+			header("X-Error: Favicon refresh is already busy");
+			$this->defaulticon();
+		}
+		$this->remote_attempted=true;
+		register_shutdown_function(static function() use ($lease){ favicon_policy::release($lease); });
+		$this->budget=(object)['deadline'=>hrtime(true)+favicon_policy::REMOTE_BUDGET_NS,'remaining_bytes'=>2097152,'remaining_wire_bytes'=>2097152];
 		
 		/*
 			Scrape html
@@ -259,11 +276,15 @@ class favicon{
 			
 			$image = $image->getImageBlob();
 			
-			// save favicon
-			$handle = fopen("icons/" . $this->filename . ".png", "w");
-			fwrite($handle, $image, strlen($image));
-			fclose($handle);
-			
+			// Save atomically; never expose a partially written cache entry.
+			$path="icons/".$this->filename.".png";
+			$tmp=tempnam("icons", ".icon-");
+			if($tmp!==false){
+				if(file_put_contents($tmp,$image,LOCK_EX)!==false) rename($tmp,$path);
+				if(is_file($tmp)) unlink($tmp);
+			}
+			favicon_policy::clear_failure($this->filename);
+			$this->success_headers(strlen($image));
 			echo $image;
 			
 		}catch(ImagickException $error){
@@ -365,23 +386,31 @@ class favicon{
         $path = 'icons/'.$this->filename.'.png';
         $tmp = tempnam('icons', '.icon-');
         if ($tmp !== false) {
-            if (file_put_contents($tmp,$image['body']) !== false) { rename($tmp,$path); }
+            if (file_put_contents($tmp,$image['body'],LOCK_EX) !== false) { rename($tmp,$path); }
             if (is_file($tmp)) { unlink($tmp); }
         }
+		favicon_policy::clear_failure($this->filename);
+		$this->success_headers(strlen($image['body']));
 		
 		echo $image["body"];
 		die();
 	}
 	
+	private function success_headers(int $length): void {
+		header('Cache-Control: public, max-age='.favicon_policy::SUCCESS_BROWSER_TTL.', stale-while-revalidate=604800');
+		header('Content-Length: '.$length);
+	}
+
 	private function defaulticon(){
-		
-		// return a placeholder response
+		if($this->remote_attempted && isset($this->filename) && is_string($this->filename)) favicon_policy::mark_failure($this->filename);
+		// Keep the established 404 contract but make the decorative fallback cheap
+		// on repeat views instead of refetching it for every result page.
 		http_response_code(404);
-		
-		$handle = fopen("lib/favicon404.png", "r");
-		echo fread($handle, filesize("lib/favicon404.png"));
-		fclose($handle);
-		
+		header('Cache-Control: public, max-age='.favicon_policy::FAILURE_BROWSER_TTL);
+		$path='lib/favicon404.png';
+		$size=filesize($path);
+		if(is_int($size)) header('Content-Length: '.$size);
+		readfile($path);
 		die();
 	}
 }

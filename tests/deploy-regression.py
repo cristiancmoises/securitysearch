@@ -106,10 +106,11 @@ for destination in ['/etc','/etc/apache2','/etc/php84/conf.d','/etc/ImageMagick-
   assert all(method=='GET' for method,path,data in engine.calls),'Preflight mutated Docker'
 print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts rejected before mutation.')
 
-for failure in [None,'version','theme','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
+for failure in [None,'version','theme','fpm_runtime','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
  responses=['20|Tron' if failure=='version' else (f'{m.ASSET_VERSION}|Lain' if failure=='theme' else f'{m.ASSET_VERSION}|Black'),
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v31' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
-  "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'",
+  'broken' if failure=='fpm_runtime' else 'fpm',
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v34' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
+  "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'\nX-SecuritySearch-Render: static-home\nCache-Control: public, max-age=60, stale-while-revalidate=30\nVary: Cookie, Authorization",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',
   'missing' if failure=='motion_asset' else 'MutationObserver MAX_PLAYING',

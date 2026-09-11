@@ -7,6 +7,8 @@ class brave{
     private fuckhtml $fuckhtml;
     private backend $backend;
     private ?int $request_deadline=null;
+    private $transport=null;
+    private $transport_proxy=null;
     public function set_request_deadline(int $deadline): void { $this->request_deadline=min($this->request_deadline ?? $deadline,$deadline); }
     private function remaining_network_ms(): int {
         $remaining=$this->request_deadline===null ? 20000 : (int)(($this->request_deadline-hrtime(true))/1000000);
@@ -171,6 +173,19 @@ class brave{
 		}
 	}
 	
+    private function transport_for($proxy){
+        // One provider object belongs to one visitor request. A permitted transient
+        // retry can reuse the easy handle's connection cache; curl_reset removes all
+        // per-request options first, and no handle is shared across visitors.
+        if($this->transport===null || $this->transport_proxy!==$proxy){
+            $this->transport=curl_init();
+            $this->transport_proxy=$proxy;
+        }else{
+            curl_reset($this->transport);
+        }
+        return $this->transport;
+    }
+
 	private function get($proxy, $url, $get, $nsfw, $country, $retried=false){
         $this->validate_request_url($url);
         search_health::check("brave",$proxy);
@@ -203,7 +218,7 @@ class brave{
 			"Sec-Fetch-User: ?1"
 		];
 		
-		$curlproc = curl_init();
+		$curlproc = $this->transport_for($proxy);
 		
 		if($get !== []){
 			$get = http_build_query($get);
@@ -254,8 +269,12 @@ class brave{
             return $data;
         } catch (upstream_search_failure $error) {
             search_health::remember('brave',$proxy,$error);throw $error;
-        } finally { curl_close($curlproc); }
+        }
 	}
+
+    public function __destruct(){
+        if($this->transport!==null && function_exists('curl_close')) curl_close($this->transport);
+    }
 
     private function validate_request_url($url): void {
         $p=is_string($url) ? parse_url($url) : false;
@@ -482,22 +501,14 @@ class brave{
 					) == "next"
 				){
 					
-					preg_match(
-						'/offset=([0-9]+)/',
-						$this->fuckhtml->getTextContent($nextpage["attributes"]["href"]),
-						$nextpage
-					);
-						
-					$q["offset"] = (int)$nextpage[1];
-					$q["nsfw"] = $nsfw;
-					$q["country"] = $country;
-					
-					$out["npt"] =
-						$this->backend->store(
-							json_encode($q),
-							"web",
-							$proxy
-						);
+					$match=[];
+					$href=$nextpage["attributes"]["href"] ?? null;
+					if(is_string($href) && preg_match('/offset=([0-9]+)/',$this->fuckhtml->getTextContent($href),$match)===1 && (int)$match[1]>0){
+						$q["offset"] = (int)$match[1];
+						$q["nsfw"] = $nsfw;
+						$q["country"] = $country;
+						$out["npt"] = $this->backend->store(json_encode($q),"web",$proxy);
+					}
 				}
 			}
 		}
@@ -2061,18 +2072,17 @@ class brave{
 					) == "next"
 				){
 					
-					preg_match(
-						'/offset=([0-9]+)/',
-						$this->fuckhtml->getTextContent($nextpage["attributes"]["href"]),
-						$nextpage
-					);
-					
+					$match=[];
+					$href=$nextpage["attributes"]["href"] ?? null;
+					if(!is_string($href) || preg_match('/offset=([0-9]+)/',$this->fuckhtml->getTextContent($href),$match)!==1 || (int)$match[1]<1){
+						return null;
+					}
 					return
 						$this->backend->store(
 							json_encode(
 								[
 									"q" => $q,
-									"offset" => (int)$nextpage[1],
+									"offset" => (int)$match[1],
 									"nsfw" => $nsfw,
 									"country" => $country,
 									"spellcheck" => $spellcheck

@@ -1,13 +1,14 @@
 <?php
 // Explicit transport doubles. Native cURL functions must be disabled for this child.
+$curl_inits=0;$curl_resets=0;
 $targets=['curl_init','curl_reset','curl_setopt','curl_exec','curl_errno','curl_getinfo','curl_close'];
 foreach($targets as $f)if(function_exists($f)){fwrite(STDERR,"Use the isolated command in scripts/test.sh.\n");exit(2);}
 // Missing extension constants are fixture option identifiers, not a native-extension emulation.
 $names=['CURLOPT_URL','CURLOPT_HTTPHEADER','CURLOPT_HTTP_VERSION','CURL_HTTP_VERSION_2_0','CURLOPT_ENCODING','CURLOPT_RETURNTRANSFER','CURLOPT_SSL_VERIFYHOST','CURLOPT_SSL_VERIFYPEER','CURLOPT_CONNECTTIMEOUT','CURLOPT_TIMEOUT','CURLOPT_NOPROXY','CURLOPT_PROXYUSERPWD','CURLOPT_PROXY','CURLOPT_PROTOCOLS','CURLPROTO_HTTPS','CURLOPT_FOLLOWLOCATION','CURLOPT_WRITEFUNCTION','CURLOPT_HEADERFUNCTION','CURLOPT_CONNECTTIMEOUT_MS','CURLOPT_TIMEOUT_MS','CURLINFO_RESPONSE_CODE'];
 foreach($names as $i=>$name)if(!defined($name))define($name,9000+$i);
 if(!function_exists('curl_init')){
- function curl_init(){return(object)['options'=>[],'row'=>[]];}
- function curl_reset($h){$h->options=[];}
+ function curl_init(){global $curl_inits;$curl_inits++;return(object)['options'=>[],'row'=>[]];}
+ function curl_reset($h){global $curl_resets;$curl_resets++;$h->options=[];}
  function curl_setopt($h,$key,$value){$h->options[$key]=$value;return true;}
  function curl_errno($h){return $h->row['errno']??0;}
  function curl_getinfo($h,$key){return $h->row['status']??200;}
@@ -26,7 +27,8 @@ foreach(['brave','google_cse']as $name){
  $provider=new $name();$ref=new ReflectionClass($provider);$get=$ref->getMethod('get');$label=$name==='brave'?'brave':'google';
  $call=fn()=>$name==='brave'?$get->invoke($provider,'raw_ip::::','https://search.brave.com/search',['q'=>'fixture'],'no','all'):$get->invoke($provider,'raw_ip::::','https://cse.google.com/cse/element/v1',['q'=>'fixture']);
  $provider->set_request_deadline(hrtime(true)+10000000000);
- $calls=0;$rows=[['status'=>502],['status'=>200,'body'=>'good']];check($call()==='good'&&$calls===2,'One gateway retry '.$name);
+ $init_before=$curl_inits;$reset_before=$curl_resets;$calls=0;$rows=[['status'=>502],['status'=>200,'body'=>'good']];check($call()==='good'&&$calls===2,'One gateway retry '.$name);
+ if($name==='brave')check($curl_inits-$init_before===1&&$curl_resets-$reset_before===1,'Brave transient retry reuses one easy handle');
  check($last_options[CURLOPT_FOLLOWLOCATION]===false&&$last_options[CURLOPT_SSL_VERIFYPEER]===true&&$last_options[CURLOPT_SSL_VERIFYHOST]===2,'TLS and no redirect');
  check($last_options[CURLOPT_TIMEOUT_MS]<=10000,'Absolute deadline');
  foreach([429,403,418,302]as $status){$calls=0;$rows=[['status'=>$status,'headers'=>['Retry-After'=>'300']]];

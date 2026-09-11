@@ -64,8 +64,8 @@ RUN set -eux; \
     \
     apk upgrade --no-cache && \
     apk add --no-cache \
-        apache2 apache2-ssl \
-        php84 php84-apache2 \
+        apache2 apache2-ssl apache2-proxy \
+        php84 php84-apache2 php84-fpm \
         php84-fileinfo php84-openssl php84-iconv php84-common \
         php84-dom php84-sodium php84-curl php84-pecl-apcu \
         php84-pecl-imagick php84-mbstring php84-opcache \
@@ -144,10 +144,11 @@ EXPOSE 80
 
 ENV FOURGET_PROTO=http
 
-# Healthcheck — Docker / orchestrators use this to detect a dead container.
+# Healthcheck — require both the anonymous static fast path and a PHP-backed
+# route.  This catches a dead PHP-FPM pool even if Apache can still serve /.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD curl -fsS -o /dev/null http://127.0.0.1/ || exit 1
+    CMD sh -c 'curl -fsS -o /dev/null http://127.0.0.1/ && curl -fsS -o /dev/null http://127.0.0.1/settings' || exit 1
 
-# tini reaps zombie processes from Apache's prefork model.
+# tini reaps child processes from Apache/PHP-FPM and the explicit prefork fallback.
 ENTRYPOINT ["/sbin/tini", "--", "./docker/docker-entrypoint.sh"]
 CMD ["start"]

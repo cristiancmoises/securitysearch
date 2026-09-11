@@ -97,6 +97,16 @@ run_test python3 tests/view-resources-regression.py
 run_test python3 tests/delivery-profile-regression.py
 run_test python3 tests/publication-v0.9.27-regression.py
 run_test python3 tests/deploy-version-regression.py
+run_test python3 tests/static-home-regression.py
+run_test python3 tests/static-home-http-regression.py
+run_test php tests/search-hotpath-regression.php
+run_test python3 tests/publication-v0.9.28-regression.py
+run_test python3 tests/publication-v0.9.29-regression.py
+run_test python3 tests/publication-v0.9.30-regression.py
+run_test php -d disable_functions=apcu_enabled,apcu_fetch,apcu_add,apcu_delete,apcu_store tests/favicon-performance-regression.php
+run_test python3 tests/favicon-http-regression.py
+run_test python3 tests/fpm-runtime-regression.py
+run_test python3 tests/fpm-native-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

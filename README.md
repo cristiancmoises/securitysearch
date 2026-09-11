@@ -1,135 +1,93 @@
-# SecuritySearch v0.9.27
-
-## v0.9.27-r1 deployment repair
-
-The readiness gate now validates asset **31**, matching the actual PHP source and
-configuration generator; its old asset-30 expectation incorrectly rejected correct
-candidates. All previous checks remain, plus a source-derived version regression.
-Use the matching **securitysearch-update-0.9.27-r1** kit on an exact clean applied
-v0.9.27 checkout. Application version and the existing v0.9.27 tag name do not
-change; existing conflicting tags are preserved. [Repair details](docs/AUDITFIX-0.9.27-r1.md).
+# SecuritySearch v0.9.30
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md)
 
-![SecuritySearch v0.9.27 homepage](docs/screenshots/securitysearch-0.9.27-home.png)
+![SecuritySearch v0.9.30 homepage](docs/screenshots/securitysearch-0.9.30-home.png)
 
-Local Chromium capture of this release's PHP-generated Black homepage. Bundled
-resources are embedded in the capture fixture because this authoring browser blocks
-localhost navigation. This is not a new production capture, a Lighthouse run, or a
-performance result. [Mobile capture](docs/screenshots/securitysearch-0.9.27-mobile.png).
+Local Chromium rendering of the v0.9.30 PHP-generated Black homepage with bundled resources
+embedded. It is visual release evidence, not a live-VPS screenshot, Lighthouse run or
+competitive benchmark. [Mobile capture](docs/screenshots/securitysearch-0.9.30-mobile.png).
 
-A privacy-oriented PHP search proxy based on [4get](https://git.lolcat.ca/lolcat/4get),
-maintained by Security Ops. **Works without JavaScript** for normal searches and
-bundled themes. Local pictures and image enhancements use optional same-origin
-scripts. No provider can guarantee every query or every request.
+SecuritySearch is a privacy-oriented PHP search proxy based on
+[4get](https://git.lolcat.ca/lolcat/4get), maintained by Security Ops. Normal searches and
+bundled themes work without JavaScript; local pictures and image enhancements use optional
+same-origin scripts. External providers can refuse or rate-limit requests.
 
-## Google web and image reliability
+## v0.9.30: concurrent delivery without removing search features
 
-The existing Google/CSE integration now parses bounded, inert JSONP prologues,
-validates result records independently and follows the explicit numeric next-page
-offset supplied by Google. Zero/invalid thumbnail heights no longer cause division
-by zero. Malformed optional text or image metadata cannot abort otherwise valid
-records. Broken entire result sets are still errors, not successful empty pages.
+This release targets server concurrency and decorative result-page work. Google/CSE, Brave,
+Binternet, RSS news, image layouts, pagination, My Picture, themes, privacy controls,
+deployment gates and rollback behavior are preserved.
 
-Cold session initialization first uses Google's documented query-free `cse.js`
-loader. A supported loader response needs one fewer bootstrap request. An unfamiliar
-loader format may use one bounded legacy discovery path; refusals, challenges and
-rate limits do not trigger that recovery. Script contents are parsed as bounded
-JSON, never executed. A valid cached session or continuation avoids bootstrap work.
+### Apache event MPM + PHP-FPM
 
-Concurrent refreshes recheck the cached token after acquiring the session lock, so
-one worker does not discard a successful replacement from another. A waiter compares
-the actual rejected token rather than relying on flight bookkeeping. No search
-results, queries, visitor cookies or credentials are added to shared caches.
+The previous image used Apache prefork/mod_php with a `MaxRequestWorkers` ceiling of 16.
+v0.9.30 makes **Apache event MPM + PHP-FPM** the verified deployment runtime. The PHP pool
+keeps `pm.max_children = 16`, so this release does not raise the prior PHP concurrency ceiling;
+instead, Apache can handle static files and keep-alive connections separately from those
+PHP children.
 
-Web thumbnails and both small/large image previews retain actual provider URLs;
-originals remain available. Valid empty result lists stop normally. Pagination keeps
-its provider. The existing Google-to-Brave first-page fallback, total deadline,
-refusal cooldowns, SSL verification and response limits remain.
+The upstream 4get Apache guide also recommends event MPM with PHP-FPM. SecuritySearch does
+not copy the much larger pool size used by the public 4get.ca instance because safe worker
+capacity depends on this VPS's memory and traffic. The prior prefork/mod_php runtime remains
+an explicit operator fallback, but normal deployment pins FPM and refuses a candidate whose
+FPM/event readiness checks fail.
 
-These are reproduced adapter defects and offline fixes, not proof of why every
-reported live search failed. Provider restrictions, outages or a different future
-response format can still result in a clearly identified failure.
+Docker health checks both `/` and the PHP-backed `/settings` route, so a surviving static
+homepage cannot hide a dead PHP-FPM pool.
 
-## Homepage work in v0.9.27
+### Favicons cannot monopolize search workers
 
-A small shared renderer now serves the homepage without loading the full search
-results class. At container startup, fixed public template/CSS strings and theme
-metadata are compiled into a deployment-owned resource bundle for existing OPcache.
-Requests still render their own preferences, theme controls and current footer.
-**No rendered page, query, cookie, result set or local/private image is shared.**
-Unneeded style/footer fragments are skipped only where the template has no place
-for them; no visible feature is removed. The output, Black critical CSS, banner,
-forms and image behavior remain the same. Compilation failure or an explicit
-`SECURITYSEARCH_RENDER_BUNDLE=0` uses the working dynamic path.
+Result favicons are cosmetic. A cold favicon miss previously had an eight-second remote
+budget and could compete with useful search work. v0.9.30 keeps favicon discovery and the
+existing fallback, but limits remote favicon work to a 2.5-second total budget and, when
+APCu is available, at most four concurrent remote refreshes.
 
-The homepage reports `X-SecuritySearch-Render: compiled` or `dynamic`, plus its
-existing query-free `Server-Timing: app;dur=...`. Responses remain private/no-store.
-The bundle is rebuilt before Apache starts; source edits need regeneration and
-process replacement. No NPM, shared response cache or security bypass is introduced.
-[Performance operations](docs/PERFORMANCE-0.9.27.md) explain the boundary and rollback.
+Duplicate work for the same host is temporarily suppressed. Recent failures receive a
+short negative cache; successful stored icons get one-day browser caching and the existing
+404 placeholder gets a five-minute browser cache. APCu keys contain hashed host identifiers,
+not queries, result bodies, cookies or credentials. Failed favicons never turn a search
+result into a failed search page.
 
-Optional read-only origin check after deployment, from the extracted kit:
+## Performance and benchmark boundaries
 
-```fish
-fish ./diagnose-delivery.fish
-```
+The supplied `tools/secops-web-benchmark-v3.fish` remains **manual and byte-for-byte
+unchanged**. It is not executed during install, deployment, release audit or packaging.
+No winner badge or competitive result is published by this release.
 
-This observes three localhost homepage requests through the existing container;
-it sends no search and does not restart or reconfigure services. Its private JSON
-in `~/Downloads` separates PHP work, local transfer and compression. It is not a
-public-site speed score. No result against 4get.ca or global speed claim is asserted.
-
-## Manual benchmark script (results not published)
-
-The user-supplied [SecOps Web Benchmark 3.0.0](tools/secops-web-benchmark-v3.fish) is
-included byte-for-byte as a standalone manual tool. **No comparative benchmark is
-run during installation, deployment, automated audits or this update's preparation.**
-No leaderboard, winner badge, benchmark reports or comparative performance claims
-are included. Add independently measured results later, with their method and limits.
-
-On GNU Guix, from an existing checkout, run later:
+Run it later on GNU Guix:
 
 ```fish
 fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish"
 ```
 
-For an already installed Python/curl toolchain:
+Or with an existing Python/curl toolchain:
 
 ```fish
 fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish" --system-deps
 ```
 
-The default is 21 measured rounds, one excluded warm-up round and a one-second pause.
-Reports stay under `~/Downloads/securityops-benchmarks/`. The Guix mode uses a
-temporary dependency environment, not a system reconfiguration. This measures
-**HTTP homepage HTML delivery only**: not browser LCP, CSS/image delivery,
-Google query latency or search quality. Differences can be dominated by geography,
-DNS/TLS, infrastructure, cache state and observation time. There is no claim that
-SecuritySearch is globally faster than 4get.ca or any other service.
+The benchmark measures HTTP homepage HTML delivery, not browser LCP, provider search latency
+or search quality. A new result from the same client/network is required before claiming
+SecuritySearch has overtaken 4get.ca.
 
-## Preserved features and ownership
+## Preserved search, image and privacy behavior
 
-News RSS remains the default, using bounded Google/Bing headline/search feeds.
-Reddit is optional: **external Redlib instances are operated by independent third
-parties, not by Security Ops**. Security Ops maintains the integration, not those
-instances or their policies and availability. The About page and UI keep this notice.
+Google web/image search retains the v0.9.26+ query-free bootstrap, record validation,
+session-race fixes, explicit pagination offsets and bounded first-page Brave fallback.
+Binternet retains modern/legacy parsing, six image layouts, ordinary pagination, optional
+infinite scrolling and bounded animation controls. News RSS remains the default news source.
 
-Binternet image search, six image layouts, animated-preview controls, ordinary
-pagination, optional infinite scrolling, the onion link and dated Tranco metadata
-remain. My picture reads and normalizes a selected file in the browser, outside
-forms, with session-only storage by default and explicit persistence/removal options.
-The picture, animated-preview and RSS runtime implementations are unchanged.
+External Redlib instances are operated by independent third parties, **not by Security Ops**.
+Security Ops maintains only the integration. **My Picture** continues to read and normalize
+a selected file in the browser without uploading the picture, filename or EXIF metadata.
+The historical Lain/SecOps operator pack remains outside Git and all public release assets,
+including Codeberg.
 
-Historical Lain/SecOps artwork stays in the external operator pack, not source
-commits or public releases on any forge, including Codeberg. Reuse that pack only
-with `--theme-assets` on private deployments. The shared code retains its public
-fallbacks. **In Code We Trust.**
+## Apply, audit and deploy
 
-## Apply, validate and deploy
-
-From the extracted complete `securitysearch-update-0.9.27-r1` kit, on a clean exact
-already-applied v0.9.27 checkout:
+From the extracted complete `securitysearch-update-0.9.30` kit, on a clean exact v0.9.29
+checkout:
 
 ```fish
 fish ./apply-securitysearch.fish "$HOME/securitysearch"
@@ -139,47 +97,39 @@ and fish ./deploy-securitysearch.fish "$HOME/securitysearch" \
     --rank-refresh
 ```
 
-This creates a normal commit and preserves local work, existing tags, source-release
-assets and backups. Deployment uses `root@securityops.co`, SSH port 5119, the existing
-Docker binding/networks and Nginx Proxy Manager upstream. Keep the complete kit
-together; older manifest-based launchers do not accept the updated source.
+Deployment uses `root@securityops.co`, SSH port 5119, and preserves the established Docker
+networks/binding and Nginx Proxy Manager upstream. The complete isolated native audit,
+candidate readiness, FPM/event runtime identity, RSS verification, live Binternet and
+requested Google web/image checks must pass before cutover. A failed candidate leaves the
+current production container in place. Keep every printed backup and rollback directory.
 
-All offline suites, candidate readiness, fresh RSS headlines plus keyword search,
-and live Binternet remain mandatory. The explicit `--verify-google` option additionally
-requires nonempty **Google web AND image** results from the candidate before cutover.
-No Brave fallback qualifies as Google success. A first-probe failure stops further
-Google probing and leaves production in place; `google-live.json` holds sanitized
-status/count/error evidence in the printed backup directory. Passing two neutral
-queries is not proof of all-query availability or a latency benchmark.
+## Publish v0.9.30
 
-## Publish v0.9.27
+After successful deployment:
 
 ```fish
 fish ./publish-securitysearch.fish "$HOME/securitysearch"
-# Retry only .com.br, including release tarball and checksum:
+# Retry one host only, including release attachments:
 fish ./publish-securitysearch.fish "$HOME/securitysearch" --host git.securityops.com.br
 ```
 
-Publication creates/reuses a new annotated `v0.9.27` tag, complete tagged-source
-`securitysearch-v0.9.27.tar.gz` and its `.tar.gz.sha256`. It never retargets v0.9.26
-or replaces different published assets. Tokens are entered privately, and Forgejo
-attachments use multipart uploads. Operator pictures never enter the public package.
+Publication creates/reuses the annotated `v0.9.30` tag and publishes
+`securitysearch-v0.9.30.tar.gz` plus its `.tar.gz.sha256`. Different existing tags, notes
+or assets are preserved rather than force-replaced. Operator artwork never enters the
+public source package.
 The published
-v0.9.24 tag remains unchanged, as does v0.9.25. Earlier releases and history remain. Publishing does not deploy the VPS.
+v0.9.24 tag and later historical release tags remain unchanged.
 
-[Release notes](docs/RELEASE-0.9.27.md) · [Audit](docs/AUDIT-0.9.27.md) ·
-[Upstream review](docs/UPSTREAM-0.9.26.md) · [License: AGPL-3.0](license.txt)
-
-## Tests and boundaries
+## Validation
 
 ```sh
 sh scripts/test.sh --keep-going
 ```
 
-The 71 mandatory commands retain every earlier suite and add compiled-resource/HTTP
-parity, read-only diagnostic and release/package checks. The competitive
-benchmark above is deliberately not part of this runner. Native PHP curl, DOM/XML,
-mbstring, APCu and Imagick, plus Python, Node, Git and fish, are required. Missing
-dependencies are failures, not passes. Test doubles are identified explicitly;
-no mocked provider response is evidence of live availability. The audit records
-executed results and limits. Live VPS/forge operations are separate operator actions.
+Every earlier mandatory suite remains. v0.9.30 adds favicon-admission, favicon-HTTP,
+FPM/event source, native FPM configuration and version-specific package/publication coverage.
+The native FPM check must run in the Alpine production-image audit; a missing local
+`php-fpm84` is not a pass. See [release notes](docs/RELEASE-0.9.30.md),
+[performance notes](docs/PERFORMANCE-0.9.30.md) and [audit](docs/AUDIT-0.9.30.md).
+
+License: [AGPL-3.0](license.txt). **In Code We Trust.**

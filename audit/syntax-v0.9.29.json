@@ -1,0 +1,22 @@
+{
+  "php": {
+    "passed": 164,
+    "failed": 0
+  },
+  "python": {
+    "passed": 76,
+    "failed": 0
+  },
+  "javascript": {
+    "passed": 6,
+    "failed": 0
+  },
+  "shell": {
+    "passed": 5,
+    "failed": 0
+  },
+  "fish": {
+    "count": 3,
+    "status": "blocked: fish interpreter unavailable in authoring environment; native VPS audit requires it"
+  }
+}

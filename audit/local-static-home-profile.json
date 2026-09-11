@@ -1,0 +1,27 @@
+{
+  "schema": "securitysearch-local-static-home-profile-v1",
+  "application": "0.9.28",
+  "asset_version": 32,
+  "scope": "localhost Apache 2.4 + mod_php authoring fixture; not production",
+  "client": "fresh curl process per sample",
+  "warmup_excluded": true,
+  "measured_rounds_per_path": 60,
+  "ordering": "randomized between eligible static and dynamic Black-cookie paths",
+  "paths": {
+    "anonymous_static": {
+      "eligibility": "GET /; no query, Cookie or Authorization",
+      "median_ttfb_ms": 1.871,
+      "median_complete_ms": 2.013,
+      "p95_complete_ms": 7.016
+    },
+    "dynamic_black_cookie": {
+      "eligibility": "GET / with Cookie: theme=Black",
+      "median_ttfb_ms": 3.071,
+      "median_complete_ms": 3.291,
+      "p95_complete_ms": 14.759
+    }
+  },
+  "median_ttfb_difference_ms": -1.2,
+  "interpretation": "The static path reduced median localhost TTFB by 1.200 ms in this fixture. This does not include public DNS/TCP/TLS, Nginx Proxy Manager, geography or VPS scheduling and is not a 4get.ca comparison.",
+  "competitive_benchmark_executed": false
+}

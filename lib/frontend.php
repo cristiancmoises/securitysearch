@@ -4,6 +4,8 @@ require_once __DIR__."/provider_availability.php";
 require_once __DIR__."/page_renderer.php";
 
 class frontend extends page_renderer{
+	/** Request-local compiled highlight patterns; never shared between visitors. */
+	private array $highlight_regex_cache = [];
 
 	public function video_suggestion(string $query): string{
 		$url = 'https://invidious.securityops.co/search?q=' . rawurlencode($query);
@@ -364,26 +366,24 @@ class frontend extends page_renderer{
 	}
 	
 	public function highlighttext($keywords, $text){
-		if(trim((string)$keywords)===''){ return htmlspecialchars((string)$text,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8'); }
-		
+		$keywords=(string)$keywords;
+		if(trim($keywords)===''){ return htmlspecialchars((string)$text,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8'); }
+
 		$text = htmlspecialchars($text);
-		
-		$keywords = explode(" ", $keywords);
-		$regex = [];
-		
-		foreach($keywords as $word){
-			
-			$regex[] = "\b" . preg_quote($word, "/") . "\b";
+		$regex=$this->highlight_regex_cache[$keywords] ?? null;
+		if($regex===null){
+			$parts=[];
+			foreach(explode(" ",$keywords) as $word){
+				$parts[]="\b".preg_quote($word,"/")."\b";
+			}
+			$regex="/".implode("|",$parts)."/i";
+			// A frontend object belongs to one request. Keep the tiny cache bounded anyway
+			// so unusual oracle/side-panel calls cannot accumulate arbitrary patterns.
+			if(count($this->highlight_regex_cache)>=4) array_shift($this->highlight_regex_cache);
+			$this->highlight_regex_cache[$keywords]=$regex;
 		}
-		
-		$regex = "/" . implode("|", $regex) . "/i";
-		
-		return
-			preg_replace(
-				$regex,
-				'<b>${0}</b>',
-				$text
-			);
+
+		return preg_replace($regex,'<b>${0}</b>',$text);
 	}
 	
 	function highlightcode($text){

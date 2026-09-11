@@ -21,7 +21,8 @@ for ($i=0;$i<3;$i++) {
     $ok=curl_exec($handle);$info=curl_getinfo($handle);$errno=curl_errno($handle);curl_close($handle);
     $match=[];$asset=null;
     if(preg_match('~/banner/securitysearch\.webp\?v([0-9]{1,4})~',$body,$match))$asset=(int)$match[1];
-    $rows[]=['sample'=>$i+1,'status'=>$ok!==false && ($info['http_code']??0)===200 && $asset===31?'ok':'unavailable',
+    $static=($headers['x-securitysearch-render']??'')==='static-home';
+    $rows[]=['sample'=>$i+1,'status'=>$ok!==false && ($info['http_code']??0)===200 && $asset===33 && $static?'ok':'unavailable',
         'http_status'=>(int)($info['http_code']??0),'curl_errno'=>$errno,'asset_version'=>$asset,
         'ttfb_ms'=>round(($info['starttransfer_time']??0)*1000,3),'total_ms'=>round(($info['total_time']??0)*1000,3),
         'wire_body_bytes'=>(int)($info['size_download']??0),'decoded_body_bytes'=>strlen($body),'headers'=>$headers];

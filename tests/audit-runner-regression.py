@@ -63,7 +63,7 @@ class Runner(unittest.TestCase):
 
     def test_real_suite_and_docker_acceptance_are_not_shortened(self):
         commands = [line for line in BODY.splitlines() if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 71)
+        self.assertEqual(len(commands), 81)
         self.assertEqual(len(set(commands)), len(commands))
         for name in ['native-runtime.php', 'operator-archive-regression.py',
                      'deploy-import-regression.py', 'deploy-regression.py', 'http-regression.py',

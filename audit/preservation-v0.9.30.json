@@ -1,0 +1,79 @@
+{
+  "schema": 1,
+  "baseline_commit": "1c7dc6060af4b38678539a596fcbcb0d9c097f71",
+  "version": "0.9.30",
+  "paths": [
+    {
+      "path": "scraper/google_cse.php",
+      "baseline_sha256": "6f2a7f87c727c319387413d46b5de88ecdaeabc6774d99b9f4ee1da5a8922198",
+      "v0.9.30_sha256": "6f2a7f87c727c319387413d46b5de88ecdaeabc6774d99b9f4ee1da5a8922198",
+      "unchanged": true
+    },
+    {
+      "path": "lib/google_cse_protocol.php",
+      "baseline_sha256": "52afb2ecb51f8347857c59be8553d2907a09c2248112e5c86270acb2258f7667",
+      "v0.9.30_sha256": "52afb2ecb51f8347857c59be8553d2907a09c2248112e5c86270acb2258f7667",
+      "unchanged": true
+    },
+    {
+      "path": "scraper/brave.php",
+      "baseline_sha256": "d2ab2faea830dc5f71776f7b56ec9349cb13946576ecfc316b92de933d9c1e15",
+      "v0.9.30_sha256": "d2ab2faea830dc5f71776f7b56ec9349cb13946576ecfc316b92de933d9c1e15",
+      "unchanged": true
+    },
+    {
+      "path": "scraper/binternet.php",
+      "baseline_sha256": "b5ede6abdeea4bef836cf9c57e57fea3bbc804220193cd1096e8c8a12d8d4934",
+      "v0.9.30_sha256": "b5ede6abdeea4bef836cf9c57e57fea3bbc804220193cd1096e8c8a12d8d4934",
+      "unchanged": true
+    },
+    {
+      "path": "scraper/newswire.php",
+      "baseline_sha256": "9c410cfa866874c33acef904e6d08ea03bd96b67bc5ade0cc966c15dfc29a705",
+      "v0.9.30_sha256": "9c410cfa866874c33acef904e6d08ea03bd96b67bc5ade0cc966c15dfc29a705",
+      "unchanged": true
+    },
+    {
+      "path": "lib/news_rss.php",
+      "baseline_sha256": "44709f8be3a042277d243e74ba0770bf7e34c1b9b0bfc0641d22aea4a7ad6741",
+      "v0.9.30_sha256": "44709f8be3a042277d243e74ba0770bf7e34c1b9b0bfc0641d22aea4a7ad6741",
+      "unchanged": true
+    },
+    {
+      "path": "static/local-background.js",
+      "baseline_sha256": "4d8671ceedd887ffb1c62d7018101479e6eed3622bb0acca60fd66640811d1ab",
+      "v0.9.30_sha256": "4d8671ceedd887ffb1c62d7018101479e6eed3622bb0acca60fd66640811d1ab",
+      "unchanged": true
+    },
+    {
+      "path": "static/images-motion.js",
+      "baseline_sha256": "592935a9110924abc37934c31d769de018ca7d57569aaef4821d3d159820455e",
+      "v0.9.30_sha256": "592935a9110924abc37934c31d769de018ca7d57569aaef4821d3d159820455e",
+      "unchanged": true
+    },
+    {
+      "path": "static/images-infinite.js",
+      "baseline_sha256": "618084f6beba0edaedf5f34a7b2fca0b186dfbbd50ae9d79e6bf127d13ae21e3",
+      "v0.9.30_sha256": "618084f6beba0edaedf5f34a7b2fca0b186dfbbd50ae9d79e6bf127d13ae21e3",
+      "unchanged": true
+    },
+    {
+      "path": "lib/redlib_attribution.php",
+      "baseline_sha256": "f79de97f4085b109f323853049a0bbdfbe6203997a6f3d82748a89e07f3dad53",
+      "v0.9.30_sha256": "f79de97f4085b109f323853049a0bbdfbe6203997a6f3d82748a89e07f3dad53",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/operator_themes.py",
+      "baseline_sha256": "2df036dd1ea0c90fa9513fc002d16042dfd8c97be0f2c7a203f4beb30b394d40",
+      "v0.9.30_sha256": "2df036dd1ea0c90fa9513fc002d16042dfd8c97be0f2c7a203f4beb30b394d40",
+      "unchanged": true
+    },
+    {
+      "path": "scripts/release_media_policy.py",
+      "baseline_sha256": "d72256ecb2039f00e3c292e4059cfc8951e335044111e32de39cd93763ce9e79",
+      "v0.9.30_sha256": "d72256ecb2039f00e3c292e4059cfc8951e335044111e32de39cd93763ce9e79",
+      "unchanged": true
+    }
+  ]
+}

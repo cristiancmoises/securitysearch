@@ -21,8 +21,8 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.27'
-ASSET_VERSION = 31
+VERSION = '0.9.30'
+ASSET_VERSION = 34
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -160,14 +160,28 @@ def healthy(cid):
             marker = run('docker','exec',cid,'php','-r',
                          'require "data/config.php"; echo config::VERSION."|".config::DEFAULT_THEME;',capture=True)
             validate_source_marker(marker)
+            try:
+                runtime = run('docker','exec',cid,'sh','-c',
+                              'test "$(cat /run/securitysearch-php-runtime)" = fpm && '
+                              'httpd -M 2>/dev/null | grep -q "mpm_event_module" && '
+                              '! httpd -M 2>/dev/null | grep -q "php_module" && '
+                              'test -s /run/securitysearch-php-fpm.pid && '
+                              'kill -0 "$(cat /run/securitysearch-php-fpm.pid)" && printf fpm',capture=True)
+            except Exception as error:
+                raise RuntimeError('PHP-FPM/event runtime failed readiness; production is unchanged.') from error
+            if runtime.strip() != 'fpm':
+                raise RuntimeError('PHP-FPM/event runtime identity failed readiness.')
             html = run('docker','exec',cid,'curl','-fsS','--max-time','10',
                        'http://127.0.0.1/',capture=True)
             if 'In Code We Trust.' not in html or 'zupt-web.securityops.co' not in html or '<script' in html.lower() or any('data-home-style="'+name+'"' not in html for name in ('base','black','controls')) or re.search(r'<link\b[^>]*rel=["\']stylesheet["\']',html,re.I):
                 raise RuntimeError('New home page failed its content check.')
             headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                           'http://127.0.0.1/',capture=True).lower()
-            if "script-src 'none'" not in headers or "connect-src 'none'" not in headers:
-                raise RuntimeError('New home page did not enforce its script-free policy.')
+            if ("script-src 'none'" not in headers or "connect-src 'none'" not in headers or
+                    'x-securitysearch-render: static-home' not in headers or
+                    'cache-control: public, max-age=60' not in headers or
+                    'vary:' not in headers or 'cookie' not in headers or 'authorization' not in headers):
+                raise RuntimeError('New anonymous home fast path or script-free policy failed readiness.')
             image_headers = run('docker','exec',cid,'curl','-fsSI','--max-time','10',
                                 'http://127.0.0.1/images',capture=True).lower()
             if "script-src 'self'" not in image_headers or "connect-src 'self'" not in image_headers or 'refresh:' in image_headers:
@@ -511,6 +525,9 @@ def main():
     # Browser theme cookies remain user choices; all other effective settings persist.
     env['FOURGET_DEFAULT_THEME'] = 'Black'
     env.pop('FOURGET_VERSION',None)
+    # v0.9.30 moves PHP to FPM/event MPM. PHP child concurrency remains capped
+    # at the previous 16-worker ceiling; rollback uses the untouched old container.
+    env['SECURITYSEARCH_PHP_RUNTIME'] = 'fpm'
     old['Config']['Env'] = [k+'='+v for k,v in env.items()]
     # Migrate away from the failed self-hosted default before candidate startup.
     set_redlib_primary(old, env.get('FOURGET_REDLIB_PRIMARY') if env.get('FOURGET_REDLIB_PRIMARY') in REDLIB_ORIGINS else REDLIB_ORIGINS[0])

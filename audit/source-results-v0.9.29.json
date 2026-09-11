@@ -1,0 +1,100 @@
+{
+  "scope": "authoring environment source audit; not native production Docker approval",
+  "runner": "sh scripts/test.sh --keep-going",
+  "runner_exit": 1,
+  "commands_total": 76,
+  "commands_passed": 56,
+  "commands_failed": 20,
+  "failed": [
+    {
+      "exit": 1,
+      "command": "python3 scripts/release-audit.py --syntax-only"
+    },
+    {
+      "exit": 2,
+      "command": "php tests/native-runtime.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/services-regression.php"
+    },
+    {
+      "exit": 77,
+      "command": "php tests/binternet-modern-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/google-transport.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 -d disable_functions=curl_setopt tests/proxy-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d disable_functions=curl_setopt,curl_exec,curl_errno,curl_error tests/stream-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/ui-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/reddit-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/animation-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/search-execution-regression.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 -d disable_functions=curl_setopt,curl_exec,curl_errno,curl_getinfo tests/brave-transport.php"
+    },
+    {
+      "exit": 1,
+      "command": "python3 tests/http-regression.py"
+    },
+    {
+      "exit": 2,
+      "command": "php -d apc.enable_cli=1 tests/template-benchmark.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/performance.php"
+    },
+    {
+      "exit": 255,
+      "command": "php -d apc.enable_cli=1 tests/redlib-failover-regression.php"
+    },
+    {
+      "exit": 2,
+      "command": "php tests/news-rss-regression.php"
+    },
+    {
+      "exit": 1,
+      "command": "python3 tests/news-rss-http-regression.py"
+    },
+    {
+      "exit": 1,
+      "command": "python3 tests/static-home-http-regression.py"
+    }
+  ],
+  "known_environment_blockers": [
+    "fish interpreter unavailable",
+    "PHP curl extension unavailable",
+    "PHP DOM/XML extension unavailable",
+    "PHP mbstring extension unavailable",
+    "PHP APCu extension unavailable",
+    "PHP Imagick extension unavailable",
+    "native Alpine httpd/curl unavailable for static-home HTTP fixture"
+  ],
+  "log_sha256": "8848f2ebcb06aa70572ad014aa88ae9fae9aec226600c9acd474b636116cd7cc"
+}

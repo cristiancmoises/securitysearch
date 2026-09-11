@@ -1,0 +1,23 @@
+{
+    "scope": "local CPU/work references only; no Apache, network, browser, provider or competitive benchmark timing",
+    "rounds": {
+        "highlight_batch": 300,
+        "gzip_reference": 400
+    },
+    "highlight_50_results_ms_median": {
+        "previous_regex_rebuild": 0.068152,
+        "v0.9.29_request_cache": 0.044214
+    },
+    "anonymous_home_bytes": {
+        "plain": 39315,
+        "gzip": 9564
+    },
+    "gzip_cpu_ms_median": {
+        "runtime_gzencode_reference": 0.769879,
+        "precompressed_byte_lookup_reference": 0.0001645
+    },
+    "notes": [
+        "Highlight comparison reproduces the prior regex-building algorithm against the v0.9.29 request-local cache.",
+        "gzip timing is a PHP CPU-work reference only; Apache/mod_deflate and public network timing were not measured."
+    ]
+}

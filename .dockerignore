@@ -75,3 +75,7 @@ deploy.sh
 # Generated before Apache starts, never a source artifact.
 data/view-resources.generated.php
 data/.view-resources-*
+
+# Runtime-generated anonymous homepage
+home-anonymous.generated.fast
+home-anonymous.generated.fast.gz

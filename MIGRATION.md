@@ -1,3 +1,15 @@
+## v0.9.30
+
+Apache event MPM + PHP-FPM candidate runtime with the PHP pool capped at the prior 16-worker ceiling; PHP-aware Docker health/readiness; bounded four-slot favicon refresh admission, shorter cosmetic-network budgets and browser/negative caching. Application 0.9.30 / asset34. [Performance](docs/PERFORMANCE-0.9.30.md) · [Release](docs/RELEASE-0.9.30.md).
+
+## v0.9.29
+
+Precompressed anonymous homepage delivery, bounded request-local result highlighting, same-request Brave transient connection reuse, and stricter Brave continuation offsets. Application 0.9.29 / asset33. [Performance](docs/PERFORMANCE-0.9.29.md) · [Release](docs/RELEASE-0.9.29.md).
+
+## v0.9.28
+
+Anonymous query-free GET/HEAD `/` can use a startup-generated static fast path, while cookies, query strings, Authorization and every search route retain the dynamic renderer. The optional Tranco timer rebuilds the artifact after successful public-rank refresh. Application 0.9.28 / asset32. [Performance](docs/PERFORMANCE-0.9.28.md) · [Release](docs/RELEASE-0.9.28.md).
+
 ## v0.9.27
 
 Startup-compiled public UI resources and a smaller shared page renderer. No visitor

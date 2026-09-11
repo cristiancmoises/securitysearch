@@ -1,0 +1,497 @@
+{
+  "schema": 1,
+  "version": "0.9.30",
+  "asset_version": 34,
+  "commands": 81,
+  "passed": 60,
+  "nonzero_or_blocked": 21,
+  "results": [
+    {
+      "index": 1,
+      "command": "python3 scripts/release-audit.py --syntax-only",
+      "status": "blocked_or_failed",
+      "reason": "authoring environment has no fish interpreter"
+    },
+    {
+      "index": 2,
+      "command": "python3 tests/audit-runner-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 3,
+      "command": "php tests/native-runtime.php",
+      "status": "blocked_or_failed",
+      "reason": "native PHP extensions missing: curl, DOM/XML, mbstring, APCu, Imagick"
+    },
+    {
+      "index": 4,
+      "command": "python3 tests/offline-boundary-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 5,
+      "command": "php tests/provider-dns-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 6,
+      "command": "python3 tests/operator-themes-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 7,
+      "command": "python3 tests/operator-archive-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 8,
+      "command": "python3 tests/provider-http-harness-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 9,
+      "command": "php -d apc.enable_cli=1 tests/regression.php",
+      "status": "blocked_or_failed",
+      "reason": "mbstring missing (mb_strcut)"
+    },
+    {
+      "index": 10,
+      "command": "php -d apc.enable_cli=1 tests/services-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "mbstring missing (mb_strcut)"
+    },
+    {
+      "index": 11,
+      "command": "php tests/binternet-contract-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 12,
+      "command": "php tests/binternet-modern-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "DOM/mbstring missing"
+    },
+    {
+      "index": 13,
+      "command": "php tests/theme-picker-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 14,
+      "command": "php -d disable_functions=curl_setopt,curl_exec,curl_share_init,curl_share_setopt tests/provider-http-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 15,
+      "command": "php -d apc.enable_cli=1 tests/google-transport.php",
+      "status": "blocked_or_failed",
+      "reason": "PHP cURL missing"
+    },
+    {
+      "index": 16,
+      "command": "php -d apc.enable_cli=1 tests/provider-api-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 17,
+      "command": "php -d apc.enable_cli=1 -d disable_functions=curl_setopt tests/proxy-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "PHP cURL constants missing"
+    },
+    {
+      "index": 18,
+      "command": "php tests/config-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 19,
+      "command": "php -d disable_functions=curl_setopt,curl_exec,curl_errno,curl_error tests/stream-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "PHP cURL missing"
+    },
+    {
+      "index": 20,
+      "command": "php -d apc.enable_cli=1 tests/ui-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "DOM extension missing"
+    },
+    {
+      "index": 21,
+      "command": "php -d apc.enable_cli=1 tests/reddit-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "DOM extension missing"
+    },
+    {
+      "index": 22,
+      "command": "php -d apc.enable_cli=1 tests/animation-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "Imagick extension missing"
+    },
+    {
+      "index": 23,
+      "command": "php -d apc.enable_cli=1 tests/search-execution-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "mbstring missing (mb_strcut)"
+    },
+    {
+      "index": 24,
+      "command": "php -d apc.enable_cli=1 -d disable_functions=curl_setopt,curl_exec,curl_errno,curl_getinfo tests/brave-transport.php",
+      "status": "blocked_or_failed",
+      "reason": "PHP cURL missing"
+    },
+    {
+      "index": 25,
+      "command": "node tests/infinite-regression.cjs",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 26,
+      "command": "node tests/motion-regression.cjs",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 27,
+      "command": "python3 tests/publication-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 28,
+      "command": "python3 tests/publication-kit-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 29,
+      "command": "python3 tests/push-remotes-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 30,
+      "command": "python3 tests/deploy-import-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 31,
+      "command": "python3 tests/deploy-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 32,
+      "command": "python3 tests/deploy-gates-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 33,
+      "command": "python3 tests/theme-http-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 34,
+      "command": "python3 tests/http-regression.py",
+      "status": "blocked_or_failed",
+      "reason": "full HTTP suite cannot complete without native PHP extensions"
+    },
+    {
+      "index": 35,
+      "command": "php -d apc.enable_cli=1 tests/template-benchmark.php",
+      "status": "blocked_or_failed",
+      "reason": "APCu CLI extension unavailable"
+    },
+    {
+      "index": 36,
+      "command": "php -d apc.enable_cli=1 tests/performance.php",
+      "status": "blocked_or_failed",
+      "reason": "mbstring missing after homepage benchmark stage"
+    },
+    {
+      "index": 37,
+      "command": "php tests/experience-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 38,
+      "command": "php -d apc.enable_cli=1 tests/redlib-failover-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "DOM extension missing"
+    },
+    {
+      "index": 39,
+      "command": "python3 tests/publication-v0.9.21-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 40,
+      "command": "python3 tests/rank-timer-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 41,
+      "command": "node tests/local-picture-regression.cjs",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 42,
+      "command": "python3 tests/experience-http-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 43,
+      "command": "python3 tests/publication-v0.9.22-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 44,
+      "command": "php tests/news-primary-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 45,
+      "command": "python3 tests/news-deploy-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 46,
+      "command": "python3 tests/picture-http-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 47,
+      "command": "python3 tests/publication-v0.9.23-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 48,
+      "command": "python3 tests/news-audit-contract-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 49,
+      "command": "php tests/news-core-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 50,
+      "command": "php tests/news-rss-regression.php",
+      "status": "blocked_or_failed",
+      "reason": "DOM/mbstring missing for RSS parser"
+    },
+    {
+      "index": 51,
+      "command": "php tests/news-http-policy-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 52,
+      "command": "php tests/newswire-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 53,
+      "command": "python3 tests/news-rss-http-regression.py",
+      "status": "blocked_or_failed",
+      "reason": "DOM/mbstring/APCu missing for RSS HTTP suite"
+    },
+    {
+      "index": 54,
+      "command": "python3 tests/news-rss-deploy-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 55,
+      "command": "python3 tests/publication-v0.9.24-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 56,
+      "command": "python3 tests/news-audit-runtime-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 57,
+      "command": "python3 tests/redlib-attribution-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 58,
+      "command": "php tests/search-health-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 59,
+      "command": "php -d apc.enable_cli=0 -d disable_functions=curl_init,curl_reset,curl_setopt,curl_exec,curl_errno,curl_getinfo,curl_close tests/search-transport-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 60,
+      "command": "python3 tests/home-performance-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 61,
+      "command": "python3 tests/publication-v0.9.25-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 62,
+      "command": "php tests/google-contract-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 63,
+      "command": "php -d apc.enable_cli=0 -d disable_functions=curl_init,curl_reset,curl_setopt,curl_exec,curl_errno,curl_getinfo,curl_close tests/google-flow-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 64,
+      "command": "php -d disable_functions=apcu_fetch,apcu_store,apcu_enabled,apcu_add,apcu_cas,apcu_delete tests/google-cache-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 65,
+      "command": "python3 tests/frontend-onepass-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 66,
+      "command": "python3 tests/google-live-gate-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 67,
+      "command": "python3 tests/publication-v0.9.26-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 68,
+      "command": "python3 tests/view-resources-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 69,
+      "command": "python3 tests/delivery-profile-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 70,
+      "command": "python3 tests/publication-v0.9.27-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 71,
+      "command": "python3 tests/deploy-version-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 72,
+      "command": "python3 tests/static-home-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 73,
+      "command": "python3 tests/static-home-http-regression.py",
+      "status": "blocked_or_failed",
+      "reason": "native Alpine httpd/curl unavailable in authoring environment"
+    },
+    {
+      "index": 74,
+      "command": "php tests/search-hotpath-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 75,
+      "command": "python3 tests/publication-v0.9.28-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 76,
+      "command": "python3 tests/publication-v0.9.29-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 77,
+      "command": "python3 tests/publication-v0.9.30-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 78,
+      "command": "php -d disable_functions=apcu_enabled,apcu_fetch,apcu_add,apcu_delete,apcu_store tests/favicon-performance-regression.php",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 79,
+      "command": "python3 tests/favicon-http-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 80,
+      "command": "python3 tests/fpm-runtime-regression.py",
+      "status": "passed",
+      "reason": null
+    },
+    {
+      "index": 81,
+      "command": "python3 tests/fpm-native-regression.py",
+      "status": "blocked_or_failed",
+      "reason": "php-fpm84/Alpine Apache modules unavailable in authoring environment"
+    }
+  ],
+  "note": "Every listed command was attempted during authoring, using the final source after focused fixes. Native-only missing dependencies are not reclassified as passes; complete isolated Alpine audit remains a deployment gate."
+}

@@ -86,7 +86,7 @@ class Views(unittest.TestCase):
    self.assertIn('data/view-resources.generated.php',(ROOT/file).read_text())
  def test_process_startup_compiles_then_falls_back_on_failure(self):
   source=(ROOT/'docker/docker-entrypoint.sh').read_text()
-  start=source.index('# Compile fixed public');end=source.index('\nif [ "$#"',start);block=source[start:end]
+  start=source.index('# Compile fixed public');end=source.index('# Prefer Apache event',start);block=source[start:end]
   # Shell commands are deliberately mocked; native PHP compilation is tested above.
   bindir=Path(self.temp.name)/'bin';bindir.mkdir();php=bindir/'php'
   for flag,exit_code,expected in [('1',0,'1'),('1',1,'0'),('0',0,'0')]:

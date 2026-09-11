@@ -71,9 +71,11 @@ class SourceIdentity(unittest.TestCase):
                 return marker if marker is not None else php(self.root, '-r', args[-1])
             if 'php' in args:
                 return 'missing' if failure == 'adapters' else 'ready'
+            if 'sh' in args and '/run/securitysearch-php-runtime' in args[-1]:
+                return 'fpm'
             url = args[-1]
             if url == 'http://127.0.0.1/' and '-fsSI' in args:
-                return "Content-Security-Policy: script-src 'none'; connect-src 'none'"
+                return "Content-Security-Policy: script-src 'none'; connect-src 'none'\nX-SecuritySearch-Render: static-home\nCache-Control: public, max-age=60, stale-while-revalidate=30\nVary: Cookie, Authorization"
             if url == 'http://127.0.0.1/':
                 return ('In Code We Trust. zupt-web.securityops.co ' +
                         ''.join('<style data-home-style="' + n + '"></style>' for n in ('base', 'black', 'controls')))
@@ -102,7 +104,7 @@ class SourceIdentity(unittest.TestCase):
         marker = self.generate(FOURGET_VERSION=str(int(self.asset) - 1), FOURGET_DEFAULT_THEME='Black')
         self.assertEqual(marker, self.original)
         calls = self.run_readiness()
-        self.assertEqual(len(calls), 7)
+        self.assertEqual(len(calls), 8)
         urls = [call[-1] for call in calls if 'curl' in call]
         self.assertIn('http://127.0.0.1/static/images-infinite.js?v' + self.asset, urls)
         self.assertIn('http://127.0.0.1/static/images-motion.js?v' + self.asset, urls)

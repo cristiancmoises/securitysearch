@@ -115,7 +115,7 @@ return true;
             with self.subTest(theme=theme):
                 code,_,b=self.page(cookie='theme='+theme);self.assertEqual(code,200)
                 self.assertIn(SHORT,html.unescape(b))
-                self.assertIn('data-home-style="black"' if theme=='Black' else '/themes/'+theme+'.css?v31',b)
+                self.assertIn('data-home-style="black"' if theme=='Black' else '/themes/'+theme+'.css?v34',b)
     def test_disclosure_all_origins_and_fallback_states(self):
         for origin in ORIGINS:
             for enabled in (True,False):
@@ -130,10 +130,10 @@ return true;
         en=(ROOT/'README.md').read_text();pt=(ROOT/'README.pt-BR.md').read_text()
         self.assertIn('not by Security Ops',en);self.assertIn('não pela Security Ops',pt)
         self.assertIn('published\nv0.9.24 tag',en)
-        self.assertEqual((ROOT/'data/release-version.txt').read_text().strip(),'0.9.27')
+        self.assertEqual((ROOT/'data/release-version.txt').read_text().strip(),'0.9.30')
     def test_runner_enforces_notice_without_removing_existing_gates(self):
         commands=[l for l in (ROOT/'scripts/test.sh').read_text().splitlines() if l.startswith('run_test ')]
-        self.assertEqual(len(commands),71)
+        self.assertEqual(len(commands),81)
         self.assertEqual(commands[56],'run_test python3 tests/redlib-attribution-regression.py')
         for name in ('tests/native-runtime.php','tests/http-regression.py','tests/newswire-regression.php'):
             self.assertTrue(any(name in l for l in commands))

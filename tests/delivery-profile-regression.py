@@ -5,15 +5,15 @@ from pathlib import Path
 from unittest.mock import patch
 ROOT=Path(__file__).resolve().parents[1]
 spec=importlib.util.spec_from_file_location('profile',ROOT/'scripts/delivery-profile.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
-def report():return {'schema':1,'samples':[{'sample':i,'status':'ok','asset_version':31,'http_status':200,'curl_errno':0,'wire_body_bytes':9100,'decoded_body_bytes':39315,'ttfb_ms':2.2,'total_ms':2.8,'headers':{'server-timing':'app;dur=0.25','cache-control':'private, no-store','content-encoding':'gzip','x-securitysearch-render':'compiled'}}for i in (1,2,3)]}
+def report():return {'schema':1,'samples':[{'sample':i,'status':'ok','asset_version':33,'http_status':200,'curl_errno':0,'wire_body_bytes':9100,'decoded_body_bytes':39315,'ttfb_ms':2.2,'total_ms':2.8,'headers':{'cache-control':'public, max-age=60, stale-while-revalidate=30','content-encoding':'gzip','x-securitysearch-render':'static-home','vary':'Cookie, Authorization'}}for i in (1,2,3)]}
 class Profile(unittest.TestCase):
  def test_safe_report_retains_only_allowlisted_fields(self):
   r=report();r['secret']='hidden';r['samples'][0]['headers']['set-cookie']='hidden';r['samples'][0]['body']='hidden'
-  clean=m.clean_report(json.dumps(r));self.assertNotIn('hidden',json.dumps(clean));self.assertEqual(clean['samples'][0]['headers']['x-securitysearch-render'],'compiled')
+  clean=m.clean_report(json.dumps(r));self.assertNotIn('hidden',json.dumps(clean));self.assertEqual(clean['samples'][0]['headers']['x-securitysearch-render'],'static-home')
  def test_invalid_identity_size_and_numbers_rejected(self):
   for value in ['bad','[]','x'*32769,json.dumps({'schema':True,'samples':[]})]:
    with self.assertRaises((RuntimeError,ValueError)):m.clean_report(value)
-  for key,value in [('asset_version',30),('curl_errno',True),('http_status',503),('total_ms',float('nan')),('ttfb_ms',-1)]:
+  for key,value in [('asset_version',31),('curl_errno',True),('http_status',503),('total_ms',float('nan')),('ttfb_ms',-1)]:
    r=report();r['samples'][0][key]=value
    with self.assertRaises(RuntimeError):m.clean_report(json.dumps(r))
  def test_control_characters_in_headers_rejected(self):
