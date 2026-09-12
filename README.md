@@ -1,138 +1,159 @@
-# SecuritySearch v0.9.30
+# SecuritySearch v0.9.40
 
-[English](README.md) · [Português do Brasil](README.pt-BR.md)
+[English](README.md) · [Português do Brasil](README.pt-BR.md) · [Documentation](docs/INDEX.md)
 
-![SecuritySearch v0.9.30 homepage](docs/screenshots/securitysearch-0.9.30-home.png)
+![SecuritySearch homepage](docs/screenshots/securitysearch-0.9.36-home.png)
 
-Local Chromium rendering of the v0.9.30 PHP-generated Black homepage with bundled resources
-embedded. It is visual release evidence, not a live-VPS screenshot, Lighthouse run or
-competitive benchmark. [Mobile capture](docs/screenshots/securitysearch-0.9.30-mobile.png).
+Historical v0.9.36 local Chromium capture of the PHP homepage with networking blocked.
+This is not a current production screenshot, search-results sample, or performance score.
 
 SecuritySearch is a privacy-oriented PHP search proxy based on
-[4get](https://git.lolcat.ca/lolcat/4get), maintained by Security Ops. Normal searches and
-bundled themes work without JavaScript; local pictures and image enhancements use optional
-same-origin scripts. External providers can refuse or rate-limit requests.
+[4get](https://git.lolcat.ca/lolcat/4get), maintained by Security Ops.
+Web, image, video, news and music search use the existing provider integrations.
+Core search, filters, pagination and bundled themes work without JavaScript.
+My Picture, animation controls and infinite scrolling use optional same-origin JavaScript.
+Provider rate limits and outages are reported as failures, not successful results.
 
-## v0.9.30: concurrent delivery without removing search features
+**This delivery upgrades the verified v0.9.30 source directly to v0.9.40.**
+Do not install v0.9.31–v0.9.39 first. The release identifier is `0.9.40`; the independent
+static-asset identifier is `40`. A deployable package is not evidence of production acceptance.
+The scripts require a complete native audit and live-provider checks before replacement/publication.
 
-This release targets server concurrency and decorative result-page work. Google/CSE, Brave,
-Binternet, RSS news, image layouts, pagination, My Picture, themes, privacy controls,
-deployment gates and rollback behavior are preserved.
+## What changes from v0.9.30
 
-### Apache event MPM + PHP-FPM
+The cumulative update includes the retained v0.9.31–v0.9.38 fixes: static delivery and favicon
+handling, image proxy/PNG validation, usable image-preview selection instead of 1-pixel
+placeholders, smaller integrity-checked operator payloads, and complete bounded audit evidence.
+The current search-state changes preserve literal queries `0`, `all`, and `any`, preserve
+zero-valued filters, encode continuation tokens as one parameter, use the normalized query
+for web oracles, and retain HTTP 503/no-store/Retry-After on music-provider failures.
 
-The previous image used Apache prefork/mod_php with a `MaxRequestWorkers` ceiling of 16.
-v0.9.30 makes **Apache event MPM + PHP-FPM** the verified deployment runtime. The PHP pool
-keeps `pm.max_children = 16`, so this release does not raise the prior PHP concurrency ceiling;
-instead, Apache can handle static files and keep-alive connections separately from those
-PHP children.
+The image selector examines at most 32 supplied sources per card without making image probes.
+Provider transport, existing retry budgets and request limits remain protected. No query cache,
+new provider fanout, advertising, JavaScript dependency, or benchmark winner claim is added.
+Music output buffering preserves error headers; it is not a latency optimization.
 
-The upstream 4get Apache guide also recommends event MPM with PHP-FPM. SecuritySearch does
-not copy the much larger pool size used by the public 4get.ca instance because safe worker
-capacity depends on this VPS's memory and traffic. The prior prefork/mod_php runtime remains
-an explicit operator fallback, but normal deployment pins FPM and refuses a candidate whose
-FPM/event readiness checks fail.
+The native audit contains **119 mandatory commands**. The first 115 v0.9.38 commands retain
+their order; four new suites bring the total to 119.
+They cover search-state, HTTP, release and publication behavior.
+The audit refuses missing commands, duplicates, incomplete logs, nonzero exits and missing
+native prerequisites. Read the candidate-specific validation report supplied with the update kit.
 
-Docker health checks both `/` and the PHP-backed `/settings` route, so a surviving static
-homepage cannot hide a dead PHP-FPM pool.
+## Direct IONOS upgrade
 
-### Favicons cannot monopolize search workers
+Downloads: `~/Downloads`. Full clean Git checkout: `~/securitysearch`, branch `main`.
+Local tools: Fish, Python 3, Git, OpenSSH (`ssh` and `scp`), coreutils and tar/gzip.
+No local PHP, Docker, or `guix shell` is required by the launchers.
 
-Result favicons are cosmetic. A cold favicon miss previously had an eight-second remote
-budget and could compete with useful search work. v0.9.30 keeps favicon discovery and the
-existing fallback, but limits remote favicon work to a 2.5-second total budget and, when
-APCu is available, at most four concurrent remote refreshes.
+The independently observed GitHub v0.9.30 baseline is commit
+`331cf550d8b279736126e7362fb699f99fc2bc66`, tree
+`488b01ae481e8e4e95dad3743c2a175c43065c97`.
+Your server and other forges were not queried to infer their state. The launcher checks the
+actual local tree, not just the version string. The nine retained exact v0.9.30–v0.9.38
+baselines and an already-applied exact v0.9.40 are supported; unknown or dirty work is refused.
 
-Duplicate work for the same host is temporarily suppressed. Recent failures receive a
-short negative cache; successful stored icons get one-day browser caching and the existing
-404 placeholder gets a five-minute browser cache. APCu keys contain hashed host identifiers,
-not queries, result bodies, cookies or credentials. Failed favicons never turn a search
-result into a failed search page.
-
-## Performance and benchmark boundaries
-
-The supplied `tools/secops-web-benchmark-v3.fish` remains **manual and byte-for-byte
-unchanged**. It is not executed during install, deployment, release audit or packaging.
-No winner badge or competitive result is published by this release.
-
-Run it later on GNU Guix:
+Save the deployment launcher and its `.sha256` directly in `~/Downloads`, then:
 
 ```fish
-fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish"
+begin
+    cd "$HOME/Downloads"
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --check-only
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --audit-only
+end
 ```
 
-Or with an existing Python/curl toolchain:
+`--check-only` is read-only and uses no SSH. `--audit-only` creates a normal patch commit
+when needed, uploads source/private themes, builds and runs native tests on the VPS.
+It does not replace production, clean older objects, run live-provider probes or publish.
+Uploads, images and evidence remain on disk. Minimum free-space checks do not guarantee a build fits.
+Success ends with `AUDIT ONLY COMPLETE — NOT DEPLOYED`.
+
+To prepare the normal local commit without SSH, themes or a build, run the same verified
+launcher with `--prepare-only`. This is optional: audit/deploy already applies the update
+and creates its commit. Repeat invocation on the exact target creates no duplicate commit.
+It never tags or pushes, and failure does not discard your staged work.
+
+After reviewing a successful native audit, run the verified deployment launcher without flags:
 
 ```fish
-fish --no-config "$HOME/securitysearch/tools/secops-web-benchmark-v3.fish" --system-deps
+fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
 ```
 
-The benchmark measures HTTP homepage HTML delivery, not browser LCP, provider search latency
-or search quality. A new result from the same client/network is required before claiming
-SecuritySearch has overtaken 4get.ca.
+Target: `root@securityops.co`, SSH port `5119`, existing container `security-search`.
+Private theme pack: `~/.local/share/securitysearch/operator-themes-v1`.
+Existing Docker bindings, Nginx Proxy Manager, networks, volumes and private configuration
+are preserved. Host keys must already be known and match; forwarding is explicitly disabled.
+No host-key bypass, global prune, forced history rewrite or backup deletion is performed.
 
-## Preserved search, image and privacy behavior
+Normal deployment repeats the **119/0** native audit and requires genuine Google Web **and**
+Images, RSS, Binternet and existing image checks before cutover. It retains the advisory lock,
+production-drift checks, source/image verification, rollback protection and receipt validation.
+Only `DEPLOY COMPLETE` indicates the guarded workflow completed.
 
-Google web/image search retains the v0.9.26+ query-free bootstrap, record validation,
-session-race fixes, explicit pagination offsets and bounded first-page Brave fallback.
-Binternet retains modern/legacy parsing, six image layouts, ordinary pagination, optional
-infinite scrolling and bounded animation controls. News RSS remains the default news source.
+Unlike audit-only, normal deployment retains targeted pre-build cleanup of eligible old,
+stopped SecuritySearch objects. Such cleanup can precede a later candidate failure.
+Running production, protected rollback objects, shared resources, NPM, volumes, networks,
+backups and build cache remain protected. `--cleanup-plan` previews eligibility without deletion.
 
-External Redlib instances are operated by independent third parties, **not by Security Ops**.
-Security Ops maintains only the integration. **My Picture** continues to read and normalize
-a selected file in the browser without uploading the picture, filename or EXIF metadata.
-The historical Lain/SecOps operator pack remains outside Git and all public release assets,
-including Codeberg.
+## Commit, push and release to all four remotes
 
-## Apply, audit and deploy
-
-For operators upgrading directly from the currently published v0.9.27 line, use the
-final all-in-one v0.9.30 launcher supplied with the release kit:
+The deployment/prepare launcher creates the ordinary local update commit on **your existing
+history**. The separate publisher verifies the active deployed commit, image and retained
+audit/live evidence before creating or reusing an immutable annotated `v0.9.40` tag and pushing.
+It does not require deploying intermediate versions or moving your existing `v0.9.30` tag.
+Earlier tags, including the published
+v0.9.24 tag and v0.9.30, are never retargeted.
 
 ```fish
-fish "$HOME/Downloads/securitysearch-v0.9.30-all-in-one.fish"
+begin
+    cd "$HOME/Downloads"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+end
 ```
 
-It accepts the exact clean published v0.9.27 baseline or the already-applied pre-fix
-v0.9.30 tree, repairs the native static-home audit, deploys the candidate, verifies the
-full native audit and live provider gates, removes only older SecuritySearch Docker
-containers/images after successful cutover, then publishes the same final commit/tag and
-source archive to the four configured forges. It never force-pushes or rewrites a tag.
+Targets are `github.com/cristiancmoises/securitysearch`,
+`codeberg.org/berkeley/securitysearch`, `git.securityops.co/cristiancmoises/securitysearch`
+and `git.securityops.com.br/cristiancmoises/securitysearch`.
+The publisher pushes `main` and the tag, then reconciles release metadata, source archive
+and checksum. Tokens are entered locally and not stored. Conflicting tags/assets and
+non-fast-forward histories are refused. Four-host publication is not one atomic transaction;
+a failure can leave some hosts updated. Retry the same script or select one `--host`.
+Use `--verify-only` for deployed verification without publication.
+The stable release flag is metadata, not a guarantee of bug-free or completed 1.0 acceptance.
 
-Deployment uses `root@securityops.co`, SSH port 5119, and preserves the established Docker
-networks/binding and Nginx Proxy Manager upstream. The complete isolated native audit,
-candidate readiness, FPM/event runtime identity, RSS verification, live Binternet and
-requested Google web/image checks must pass before cutover. A failed candidate leaves the
-current production container in place. Keep every printed backup and rollback directory.
+## Diagnostics, tests and limits
 
-## Publish v0.9.30
+`securitysearch-audit-diagnostics-0.9.40.fish` collects a filtered retained audit report without
+building. `--explain-latest` and `--explain-report FILE` read local reports without SSH.
+Reports and checksum sidecars are mode 0600; raw queries, provider bodies, arbitrary logs and
+credentials are excluded. Collection exit 0 means **collected**, not **audit passed**.
+Offline review returns 0 for consistent zero-failure evidence, 1 for a recorded failure,
+and 2 for missing/invalid/incomplete evidence. Reports never authorize deployment/publication.
 
-After successful deployment:
+Run `sh scripts/test.sh --keep-going` only in the intended test runtime. Missing Fish,
+PHP extensions, Alpine httpd or PHP-FPM are failures, not skips. The audit captures at most
+8 MiB with a 1,800-second deadline; uploads and Docker builds are outside that audit deadline.
+Historical local logs or synthetic fixtures cannot establish current IONOS acceptance.
 
-```fish
-fish ./publish-securitysearch.fish "$HOME/securitysearch"
-# Retry one host only, including release attachments:
-fish ./publish-securitysearch.fish "$HOME/securitysearch" --host git.securityops.com.br
-```
+The manual `tools/secops-web-benchmark-v3.fish` remains optional and is never run by deployment,
+CI or publication. No speedup against other search engines is claimed. The `--profile-only`
+mode measures this instance's delivery paths and is not a search-quality benchmark.
 
-Publication creates/reuses the annotated `v0.9.30` tag and publishes
-`securitysearch-v0.9.30.tar.gz` plus its `.tar.gz.sha256`. Different existing tags, notes
-or assets are preserved rather than force-replaced. Operator artwork never enters the
-public source package.
-The published
-v0.9.24 tag and later historical release tags remain unchanged.
+External Redlib instances are operated by independent third parties, not by Security Ops.
+Restricted Lain/SecOps originals and derivatives remain in the private operator pack and
+are excluded from Git/public release assets; the known-media policy is not an AI detector.
+The delivered update kit is not a fresh-install source distribution: unchanged fonts,
+private artwork and synthetic reconstruction history are not shipped in it.
 
-## Validation
+## Documentation
 
-```sh
-sh scripts/test.sh --keep-going
-```
-
-Every earlier mandatory suite remains. v0.9.30 adds favicon-admission, favicon-HTTP,
-FPM/event source, native FPM configuration and version-specific package/publication coverage.
-The native FPM check must run in the Alpine production-image audit; a missing local
-`php-fpm84` is not a pass. Release notes, performance notes and the detailed audit remain under `docs/` because
-release tooling and regression tests consume them. Prompt artifacts and redundant root
-migration/patch Markdown files are not published.
-
-License: [AGPL-3.0](license.txt). **In Code We Trust.**
+[Upgrade v0.9.30 → v0.9.40](docs/UPGRADE-0.9.30-to-0.9.40.md) ·
+[Operations](docs/OPERATIONS-0.9.40.md) · [Publishing](docs/PUBLISHING.md) ·
+[Troubleshooting](docs/TROUBLESHOOTING-0.9.40.md) · [Changelog](CHANGELOG.md) ·
+[Release notes](docs/RELEASE-0.9.40.md) · [Audit contract](docs/AUDIT-0.9.40.md) ·
+[Performance scope](docs/PERFORMANCE-0.9.40.md) · [Providers](docs/PROVIDERS.md) ·
+[License](license.txt).

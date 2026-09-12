@@ -1382,13 +1382,14 @@ class frontend extends page_renderer{
 		foreach($gets as $key => $value){
 			
 			if(
-				$value == null ||
-				$value == false ||
-				$key == "npt" ||
-				$key == "extendedsearch" ||
-				$value == "any" ||
-				$value == "all" ||
-				$key == "spellcheck" ||
+				$value === null ||
+				$value === false ||
+				$value === "" ||
+				$key === "npt" ||
+				$key === "extendedsearch" ||
+				// "0", "all" and "any" are valid search terms. Only filters use sentinels.
+				($key !== "s" && ($value === "any" || $value === "all")) ||
+				$key === "spellcheck" ||
 				(
 					$ommit === true &&
 					$key == "s"
@@ -1409,7 +1410,7 @@ class frontend extends page_renderer{
 			$out[$key] = $value;
 		}
 		
-		return http_build_query($out);
+		return http_build_query($out, '', '&', PHP_QUERY_RFC1738);
 	}
 	
 	public function animatedimageformat($image){
@@ -1521,6 +1522,7 @@ class frontend extends page_renderer{
 		
 		$query = $this->buildquery($gets);
 		
-		return $page . "?" . $query . "&npt=" . $npt;
+		// Encode the continuation as one value; it must not add or replace filters.
+		return $page . "?" . $query . ($query === "" ? "" : "&") . "npt=" . rawurlencode($npt);
 	}
 }

@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
+from audit_fixture import captured, EXITED
 
 ROOT = Path(__file__).resolve().parents[1]
 PHP = ['php', '-d', 'display_errors=stderr', '-d', 'log_errors=0']
@@ -119,8 +120,8 @@ class NewsAuditRuntime(unittest.TestCase):
             return 'a' * 64 if args[:2] == ('docker', 'create') else ''
         with tempfile.TemporaryDirectory() as temp, \
                 patch.object(module, 'run', side_effect=run), \
-                patch.object(module, 'inspect', return_value={'State': {'ExitCode': 0}}), \
-                patch.object(module.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, 'offline fixture')), \
+                patch.object(module, 'inspect', return_value=EXITED), \
+                patch.object(module, 'audit_capture', side_effect=captured()), \
                 contextlib.redirect_stdout(io.StringIO()):
             module.offline_audit('offline-fixture-image', Path(temp))
         create = next(call for call in calls if call[:2] == ('docker', 'create'))
@@ -135,12 +136,13 @@ class NewsAuditRuntime(unittest.TestCase):
     def test_mandatory_native_suites_and_gates_remain(self):
         commands = [line for line in (ROOT / 'scripts/test.sh').read_text().splitlines()
                     if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 81)
+        self.assertEqual(len(commands), 119)
         self.assertIn('run_test php -d apc.enable_cli=1 tests/reddit-regression.php', commands)
         self.assertIn('run_test php tests/news-http-policy-regression.php', commands)
         self.assertIn('run_test php tests/native-runtime.php', commands)
         deploy = (ROOT / 'scripts/deploy-ionos.py').read_text()
-        self.assertIn('if result.returncode != 0 or code != 0:', deploy)
+        self.assertIn("capture['returncode'] != 0 or type(code) is not int or code != 0", deploy)
+        self.assertIn('evidence.validate_log(raw, commands)', deploy)
         self.assertIn('live_news_gate(', deploy)
         self.assertIn('live_binternet_gate(', deploy)
 

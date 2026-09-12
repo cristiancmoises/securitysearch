@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "release": "0.9.30",
+  "commit": "331cf550d8b279736126e7362fb699f99fc2bc66",
+  "tree": "488b01ae481e8e4e95dad3743c2a175c43065c97",
+  "target_release": "0.9.40",
+  "target_asset_version": 40,
+  "observed_source": "GitHub commits/main read during this session",
+  "source_verified": true,
+  "ionos_queried": false,
+  "other_remotes_queried": false,
+  "note": "User reports this release on IONOS and all four remotes. Only GitHub was independently read. Match exact source trees; version text alone is insufficient."
+}

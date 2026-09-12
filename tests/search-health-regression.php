@@ -23,9 +23,14 @@ foreach([''=>0,'0'=>0,'31'=>31,'999999999999999999999999999'=>3600,'+12'=>0,'-1'
 ok(search_health::retry_after(gmdate('D, d M Y H:i:s',1120).' GMT',1000)===120,'Date Retry-After');
 foreach([null,true,[],['until'=>999999999,'reason'=>'refused','http_status'=>200,'curl_errno'=>0]] as $row){search_health::check('google','raw_ip::::',fn($key)=>$row,1000);ok(true,'Poisoned/invalid cache ignored');}
 $f=new frontend();$images=['image'=>[['title'=>'Genuine previews','url'=>'https://example.com/page','source'=>[
- ['url'=>'https://example.com/original.png','width'=>2000,'height'=>1000],['url'=>'https://example.com/small.png','width'=>200,'height'=>100],['url'=>'https://example.com/large.png','width'=>900,'height'=>450]
+ ['url'=>'https://example.com/original.png','width'=>2000,'height'=>1000],['url'=>'https://example.com/small.png','width'=>240,'height'=>120],['url'=>'https://example.com/large.png','width'=>900,'height'=>450]
 ]]]];
-$items=image_results::items($f,['quality'=>'preview'],$images);ok(str_contains(urldecode($items[0]['preview']),'small.png'),'Smallest known supplied preview');ok(str_contains(urldecode($items[0]['original']),'original.png'),'Original retained');
+$items=image_results::items($f,['quality'=>'preview'],$images);ok(str_contains(urldecode($items[0]['preview']),'small.png'),'Smallest adequate known supplied preview');ok(str_contains(urldecode($items[0]['original']),'original.png'),'Original retained');
+// The former minimum-area rule must not choose an undersized alternative
+// when a supplied preview reaches the fit-inside target.
+$images['image'][0]['source'][1]['width']=200;
+$images['image'][0]['source'][1]['height']=100;
+$items=image_results::items($f,['quality'=>'preview'],$images);ok(str_contains(urldecode($items[0]['preview']),'large.png'),'Known adequate preview wins over undersized source');
 $items=image_results::items($f,['quality'=>'original'],$images);ok(str_contains(urldecode($items[0]['preview']),'original.png'),'Original quality respected');
 $images['image']=array_fill(0,6,$images['image'][0]);[$markup]=image_results::render($f,[],$images);
 ok(substr_count($markup,'loading="eager"')===4 && substr_count($markup,'loading="lazy"')===2,'Bounded eager images');

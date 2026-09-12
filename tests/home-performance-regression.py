@@ -44,13 +44,13 @@ class Home(unittest.TestCase):
   _,text=self.page();p=Page(text);images=[a for a in p.images if a.get('alt')=='Security Search'];self.assertEqual(len(images),1);img=images[0]
   self.assertEqual((img['width'],img['height'],img['loading'],img['fetchpriority']),('400','86','eager','high'))
   pre=[l for l in p.links if l.get('rel')=='preload'and l.get('as')=='image'];self.assertEqual(len(pre),1);self.assertEqual(pre[0]['href'],img['src'])
-  self.assertLess(text.index('rel="preload"'),text.index('<style'));self.assertIn('?v34',img['src'])
+  self.assertLess(text.index('rel="preload"'),text.index('<style'));self.assertIn('?v40',img['src'])
   data=(ROOT/'banner/securitysearch.webp').read_bytes();self.assertLessEqual(len(data),6000);self.assertEqual(data[:4],b'RIFF');self.assertEqual(data[8:12],b'WEBP')
  def test_custom_and_image_themes_still_supported(self):
   for theme in ['Custom','Tron','Lain','SecOps','Art','Gentoo']:
    with self.subTest(theme=theme):
     h,text=self.page(theme);p=Page(text)
-    self.assertTrue(any('/themes/'+theme+'.css?v34' in l.get('href','')for l in p.links))
+    self.assertTrue(any('/themes/'+theme+'.css?v40' in l.get('href','')for l in p.links))
     self.assertFalse(any('/static/style.css' in l.get('href','') or '/static/experience.css'in l.get('href','')for l in p.links))
     self.assertEqual(len(p.scripts),1 if theme=='Custom' else 0)
     if theme=='Custom':self.assertIn('local-background.js',p.scripts[0]['src']);self.assertIn('id="background-file"',text)

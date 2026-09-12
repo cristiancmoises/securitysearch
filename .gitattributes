@@ -9,3 +9,7 @@ static/misc/lain.gifv export-ignore
 
 data/view-resources.generated.php export-ignore
 data/.view-resources-* export-ignore
+
+static/**/*.pre.gz export-ignore
+static/*.pre.gz export-ignore
+data/precompressed-assets.generated.json export-ignore

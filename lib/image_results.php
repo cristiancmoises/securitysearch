@@ -2,6 +2,7 @@
 /** Bounded, server-rendered image cards; no browser script is required. */
 final class image_results {
     public const PAGE_SIZE = 24;
+    public const MAX_SOURCES = 32;
 
     public static function remote($url): bool {
         if (!is_string($url) || $url === '' || strlen($url)>8192) { return false; }
@@ -22,7 +23,7 @@ final class image_results {
         foreach (array_slice($results['image'] ?? [],0,self::PAGE_SIZE) as $image) {
             if (!is_array($image) || !is_array($image['source'] ?? null)) { continue; }
             $sources=[];$seen=[];
-            foreach ($image['source'] as $source) {
+            foreach (array_slice($image['source'],0,self::MAX_SOURCES) as $source) {
                 $url=is_array($source) ? ($source['url'] ?? null) : null;
                 if (!self::remote($url) || isset($seen[$url])) { continue; }
                 $seen[$url]=true;
@@ -31,12 +32,7 @@ final class image_results {
                 $sources[]=['url'=>$url,'width'=>$width && $height ? $width : 236,'height'=>$width && $height ? $height : 180,'known_size'=>(bool)($width && $height)];
             }
             if (!$sources) { continue; }
-            $original=$sources[0];$thumb=$sources[count($sources)-1];
-            // Prefer the smallest genuine provider-supplied raster when dimensions
-            // are known. Unknown-size previews retain the provider's last-source hint.
-            if ($thumb['known_size']) foreach($sources as $source) {
-                if ($source['known_size'] && $source['width']*$source['height'] < $thumb['width']*$thumb['height']) $thumb=$source;
-            }
+            $original=$sources[0];$thumb=self::thumbnail($sources);
             $display=$quality==='preview' ? $thumb : $original;
             $title=is_string($image['title'] ?? null) ? $image['title'] : 'Image result';
             $result=self::remote($image['url'] ?? null) ? $image['url'] : $original['url'];
@@ -56,6 +52,34 @@ final class image_results {
                 'width'=>$display['width'],'height'=>$display['height'],'links'=>$links,'motion'=>$motion_src];
         }
         return $items;
+    }
+
+    /** Select only supplied URLs: no probe, request, cache or format inference.
+     * The first valid source remains the original. Prefer a real preview over a
+     * multi-megapixel original, even when that preview needs a little upscaling.
+     * 236 x 180 is the proxy's fit-inside box, not a crop: reaching either axis
+     * is sufficient. Both edges must exceed 16px to avoid tiny/strip placeholders.
+     * Unknown sizes are hints, never proof of a usable image; the proxy remains
+     * responsible for network, MIME, dimension and decoding validation.
+     */
+    private static function thumbnail(array $sources): array {
+        $adequate=null;$unknown=null;$small=null;
+        foreach (array_slice($sources,1) as $source) {
+            if (!$source['known_size']) { $unknown=$source;continue; }
+            $w=$source['width'];$h=$source['height'];
+            if ($w<=16 || $h<=16) { continue; }
+            $area=$w*$h;
+            if ($w>=236 || $h>=180) {
+                if ($adequate===null || $area<$adequate['width']*$adequate['height']) {
+                    $adequate=$source;
+                }
+            } elseif ($small===null || $area>$small['width']*$small['height']) {
+                $small=$source;
+            }
+        }
+        // Keep the provider's last unknown-size preview hint, rather than
+        // inventing dimensions or preferring a known tracking pixel.
+        return $adequate ?? $unknown ?? $small ?? $sources[0];
     }
 
     public static function render(frontend $frontend,array $get,array $results): array {

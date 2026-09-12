@@ -1,3 +1,5 @@
+> **Current v0.9.40 operations:** [documentation index](INDEX.md) and [direct upgrade from v0.9.30](UPGRADE-0.9.30-to-0.9.40.md). Existing IONOS installations should use the guarded update, not generic fresh-install commands. Older version-specific examples below are reference/history, not current acceptance evidence.
+
 # Search providers
 
 For the v0.9.12 connection reuse, strict proxy validation and HTTP 503 contract, see

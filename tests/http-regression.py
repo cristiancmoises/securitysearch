@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Real localhost HTTP controller tests with an isolated, offline provider fixture.
 Copies production PHP/controllers into a temporary tree; never modifies a live scraper.
-Requires PHP curl/DOM/mbstring/APCu/sodium. No browser or external network requests.
+Requires all modules checked by tests/native-runtime.php, including Imagick. No browser or external network requests.
 """
 from html.parser import HTMLParser
 import json
@@ -17,6 +17,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from http_runtime import require_native_runtime, require_status, RuntimePrerequisiteError
+
 ROOT=Path(__file__).resolve().parents[1]
 class Links(HTMLParser):
     def __init__(self,html):
@@ -27,6 +31,7 @@ class Links(HTMLParser):
 
 
 def main():
+    require_native_runtime(ROOT)
     with tempfile.TemporaryDirectory(prefix='securitysearch-http-') as temp:
         root=Path(temp)
         for folder in ['lib','template','oracles']:
@@ -34,7 +39,7 @@ def main():
         for folder in ['static','banner']:
             (root/folder).symlink_to(ROOT/folder,target_is_directory=True)
         (root/'data').mkdir();shutil.copy2(ROOT/'data/config.php',root/'data/config.php')
-        for file in ['images.php','index.php','settings.php','news.php','web.php']:
+        for file in ['images.php','index.php','settings.php','news.php','web.php','music.php']:
             shutil.copy2(ROOT/file,root/file)
         (root/'scraper').mkdir()
         (root/'scraper/google.php').write_text('''<?php
@@ -61,6 +66,12 @@ class brave {
  public function web($get){return ['status'=>'ok','npt'=>null,'web'=>[['title'=>'Brave web fallback','url'=>'https://example.org/source','description'=>'A neutral result','date'=>null,'thumb'=>['url'=>null,'ratio'=>null],'sublink'=>[],'table'=>[]]],'spelling'=>['type'=>'no_correction'],'answer'=>[],'image'=>[],'video'=>[],'news'=>[],'related'=>[]];}
 }
 ''')
+        (root/'scraper/sc.php').write_text('''<?php
+class sc {
+ public function getfilters($page){return [];}
+ public function music($get){throw new RuntimeException('Offline music fixture unavailable');}
+}
+''')
         source=(ROOT/'scraper/reddit.php').read_text().replace('class reddit extends','class reddit_adapter extends')
         fixture=(ROOT/'tests/fixtures/reddit-http.php').read_text()
         (root/'scraper/reddit.php').write_text(source+'\n'+fixture.split('<?php',1)[1])
@@ -69,7 +80,7 @@ class brave {
         # Isolated media controller with fixed local bytes; no resolver/transport bypass in production.
         media=root/'media';(media/'lib').mkdir(parents=True);(media/'data').mkdir()
         shutil.copy2(ROOT/'proxy.php',media/'proxy.php');shutil.copy2(ROOT/'data/config.php',media/'data/config.php')
-        for file in ['animated_preview.php','image_poster.php','security_headers_minimal.php']:
+        for file in ['animated_preview.php','image_poster.php','security_headers_minimal.php','thumbnail_png.php']:
             shutil.copy2(ROOT/'lib'/file,media/'lib'/file)
         shutil.copytree(ROOT/'tests/fixtures/motion',media/'fixtures')
         (media/'lib/curlproxy.php').write_text('''<?php
@@ -79,7 +90,7 @@ class proxy {
  public function get($url,$type,$headers=true,$referer=null,$redirect=0,$max=0,$budget=null,$accept=null){
   $file=basename(parse_url($url,PHP_URL_PATH));
   if (!in_array($file,['two.gif','two.webp','two.png','static.webp'],true)) throw new RuntimeException('Unknown fixture');
-  return ['body'=>file_get_contents('fixtures/'.$file),'headers'=>[]];
+  return ['http'=>['code'=>200],'body'=>file_get_contents('fixtures/'.$file),'headers'=>[]];
  }
  public function getfilenameheader($headers,$url,$type=null){}
  public function do404(){http_response_code(404);exit;}
@@ -94,6 +105,7 @@ if ($path==='/') {require 'index.php';return true;}
 if ($path==='/images') {require 'images.php';return true;}
 if ($path==='/news') {require 'news.php';return true;}
 if ($path==='/web') {require 'web.php';return true;}
+if ($path==='/music') {require 'music.php';return true;}
 if ($path==='/proxy-fixture') {chdir('media');require 'proxy.php';return true;}
 if ($path==='/settings') {require 'settings.php';return true;}
 http_response_code(404);return true;
@@ -102,22 +114,26 @@ http_response_code(404);return true;
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
         env=dict(os.environ,PHP_CLI_SERVER_WORKERS='4')
         with (root/'server.log').open('w+') as log:
-            server=subprocess.Popen(['php','-d','disable_functions=curl_exec,curl_multi_exec,dns_get_record,gethostbynamel,gethostbyname,fsockopen,pfsockopen,stream_socket_client,socket_connect','-d','allow_url_fopen=0','-d','apc.enable_cli=1','-d','display_errors=0','-d','log_errors=1','-d','error_log=/dev/stderr','-d','error_reporting=-1','-S',f'127.0.0.1:{port}','router.php'],cwd=root,env=env,stdout=log,stderr=log,start_new_session=True)
+            server=subprocess.Popen(['php','-d','output_buffering=0','-d','disable_functions=curl_exec,curl_multi_exec,dns_get_record,gethostbynamel,gethostbyname,fsockopen,pfsockopen,stream_socket_client,socket_connect','-d','allow_url_fopen=0','-d','apc.enable_cli=1','-d','display_errors=0','-d','log_errors=1','-d','error_log='+str(root/'php-errors.log'),'-d','error_reporting=-1','-S',f'127.0.0.1:{port}','router.php'],cwd=root,env=env,stdout=log,stderr=log,start_new_session=True)
             base=f'http://127.0.0.1:{port}'
             def request(path, cookie=None, raw=False):
                 req=urllib.request.Request(base+path,headers={'User-Agent':'Mozilla/5.0 SecuritySearch-local-tests', **({'Cookie':cookie} if cookie else {})})
                 try: response=urllib.request.urlopen(req,timeout=8)
                 except urllib.error.HTTPError as error:response=error
                 with response:return response.status,response.headers,response.read() if raw else response.read().decode()
-            def reset():request('/fixture-reset')
+            def reset():
+                code,_,_=request('/fixture-reset')
+                require_status(code,200,'reset')
             def calls():return json.loads(request('/fixture-stats')[2])['calls']
             def search(query='GNU Guix', view='filmstrip', cookie=None):
                 code,headers,html=request('/images?s='+urllib.parse.quote(query)+'&view='+view+'&quality=high&format=gif&newer=2025-01-01',cookie)
-                assert code==200 and 'Refresh' not in headers and 'Automatic pages' not in html
+                require_status(code,200,'images')
+                assert 'Refresh' not in headers and 'Automatic pages' not in html
                 return headers,html,Links(html).next
             def append(url):
                 code,headers,body=request(url+'&append=1')
-                assert code==200 and headers['Content-Type'].startswith('application/json') and 'Refresh' not in headers
+                require_status(code,200,'append')
+                assert headers['Content-Type'].startswith('application/json') and 'Refresh' not in headers
                 assert headers['Cache-Control']=='private, no-store'
                 return json.loads(body)
             try:
@@ -126,6 +142,12 @@ http_response_code(404);return true;
                         if request('/')[0]==200:break
                     except OSError:time.sleep(.05)
                 else:raise RuntimeError('Local PHP server did not start')
+                code,headers,html=request('/music?s=0&scraper=sc')
+                assert code==503 and headers['Cache-Control']=='private, no-store' and headers['Retry-After']=='30'
+                assert 'Refresh' not in headers and '/music?s=0' in html
+                # Non-string input is normalized before provider and oracle use.
+                code,headers,html=request('/web?s%5B%5D=bad&scraper=brave')
+                assert code==200, 'Normalized array query must not reach string-only oracles'
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
@@ -135,12 +157,12 @@ http_response_code(404);return true;
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v34' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v40' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']
                 headers,html,url=search(cookie='image_infinite=no; image_motion=no; theme=Lain')
-                assert '<script' not in html and url and '/static/themes/Lain.css?v34' in html
+                assert '<script' not in html and url and '/static/themes/Lain.css?v40' in html
                 reset();headers,html,url=search()
                 for number in range(2,16):
                     data=append(url)
@@ -214,11 +236,18 @@ http_response_code(404);return true;
                 reset()
                 subprocess.run(['python3',str(ROOT/'scripts/benchmark-http.py'),'--url',base+'/','--requests','50','--concurrency','4'],check=True)
                 log.flush();log.seek(0);errors=log.read()
+                if (root/'php-errors.log').exists():errors+='\n'+(root/'php-errors.log').read_text()
                 assert not any(marker in errors for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error','OFFLINE_NETWORK_ATTEMPT']), 'PHP runtime diagnostic in controller tests'
             finally:
                 log.flush();log.seek(0)
-                diagnostics=[line for line in log.read().splitlines() if any(marker in line for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error','OFFLINE_NETWORK_ATTEMPT'])]
+                errors=log.read()
+                if (root/'php-errors.log').exists():errors+='\n'+(root/'php-errors.log').read_text()
+                diagnostics=[line for line in errors.splitlines() if any(marker in line for marker in ['PHP Warning','PHP Fatal','PHP Deprecated','PHP Parse error','OFFLINE_NETWORK_ATTEMPT'])]
                 if diagnostics:print('\n'.join(diagnostics))
                 os.killpg(server.pid,signal.SIGTERM)
                 server.wait(timeout=10)
-if __name__=='__main__':main()
+if __name__=='__main__':
+    try:main()
+    except RuntimePrerequisiteError as error:
+        print(str(error),file=sys.stderr)
+        sys.exit(2)

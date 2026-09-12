@@ -1,5 +1,7 @@
 <?php
 include_once __DIR__ . "/lib/security_headers.php";
+// Keep recovery status and headers writable after the search header is rendered.
+ob_start();
 /*
 	Initialize request dependencies
 */

@@ -9,12 +9,14 @@ if(!isset($_GET["s"]) || !is_string($_GET["s"]) || strlen($_GET["s"]) > 300){
 
 include "data/config.php";
 require_once __DIR__."/lib/favicon_policy.php";
+require_once __DIR__."/lib/favicon_cache.php";
 new favicon($_GET["s"]);
 
 class favicon{
 	private $proxy;
 	private $filename;
-    private $budget;
+    private $budget = null;
+    private bool $remote_attempted = false;
     private function fetch($url, $type = proxy::req_web, $all = false, $referer = null) {
         if ($this->budget === null) {
             $this->budget = (object)['deadline'=>hrtime(true)+8000000000,'remaining_bytes'=>2097152,'remaining_wire_bytes'=>2097152];
@@ -40,23 +42,13 @@ class favicon{
 		$filename = str_replace(["https://", "http://"], "", $url);
 		header("Content-Disposition: inline; filename=\"{$filename}.png\"");
 		
-		include "lib/curlproxy.php";
-		$this->proxy = new proxy(false);
-		
-		$this->filename = parse_url($url, PHP_URL_HOST);
-		
-		/*
-			Check if we have the favicon stored locally
-		*/
-		$icon_path = "icons/" . $filename . ".png";
-		if(is_file($icon_path)){
-			$icon = file_get_contents($icon_path);
-			if($icon !== false && $icon !== ""){
-				$this->success_headers(strlen($icon));
-				echo $icon;
-				return;
-			}
-		}
+        $this->filename = parse_url($url, PHP_URL_HOST);
+        // Disk hits need neither transport initialization nor remote admission.
+        $icon = favicon_cache::read(__DIR__ . '/icons', $this->filename);
+        if ($icon !== null) {
+            $this->send_icon($icon);
+            return;
+        }
 
 		// A failed favicon is cosmetic; do not let repeated failures monopolize
 		// PHP workers needed for actual web/image/news searches.
@@ -69,6 +61,8 @@ class favicon{
 			header("X-Error: Favicon refresh is already busy");
 			$this->defaulticon();
 		}
+		require_once __DIR__."/lib/curlproxy.php";
+        $this->proxy = new proxy(false);
 		$this->remote_attempted=true;
 		register_shutdown_function(static function() use ($lease){ favicon_policy::release($lease); });
 		$this->budget=(object)['deadline'=>hrtime(true)+favicon_policy::REMOTE_BUDGET_NS,'remaining_bytes'=>2097152,'remaining_wire_bytes'=>2097152];
@@ -284,8 +278,7 @@ class favicon{
 				if(is_file($tmp)) unlink($tmp);
 			}
 			favicon_policy::clear_failure($this->filename);
-			$this->success_headers(strlen($image));
-			echo $image;
+			$this->send_icon($image);
 			
 		}catch(ImagickException $error){
 			
@@ -390,16 +383,22 @@ class favicon{
             if (is_file($tmp)) { unlink($tmp); }
         }
 		favicon_policy::clear_failure($this->filename);
-		$this->success_headers(strlen($image['body']));
-		
-		echo $image["body"];
+		$this->send_icon($image["body"]);
 		die();
 	}
 	
-	private function success_headers(int $length): void {
-		header('Cache-Control: public, max-age='.favicon_policy::SUCCESS_BROWSER_TTL.', stale-while-revalidate=604800');
-		header('Content-Length: '.$length);
-	}
+	private function send_icon(string $image): void {
+        $etag = favicon_cache::etag($image);
+        header('Cache-Control: public, max-age='.favicon_policy::SUCCESS_BROWSER_TTL.', stale-while-revalidate=604800');
+        header('ETag: '.$etag);
+        if (favicon_cache::not_modified($_SERVER, $etag)) {
+            http_response_code(304);
+            header_remove('Content-Length');
+            return;
+        }
+        header('Content-Length: '.strlen($image));
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'HEAD') echo $image;
+    }
 
 	private function defaulticon(){
 		if($this->remote_attempted && isset($this->filename) && is_string($this->filename)) favicon_policy::mark_failure($this->filename);

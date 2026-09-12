@@ -28,6 +28,16 @@ cp "$FOURGET_SRC/docker/apache/fast-home.conf" /etc/apache2/conf.d/zz-securityse
 
 php ./docker/gen_config.php
 
+# Fixed CSS/JS are compressed once. Failure removes prepared sidecars and uses
+# the original static files; no visitor request performs this preparation.
+cp "$FOURGET_SRC/docker/apache/precompressed-assets.conf" /etc/apache2/conf.d/zz-securitysearch-assets.conf
+if [ "${SECURITYSEARCH_PRECOMPRESS_ASSETS:-1}" != "0" ] && php ./lib/build_static_assets.php --build; then
+        echo "Public CSS/JS precompression ready."
+else
+        php ./lib/build_static_assets.php --clean || exit 1
+        echo "Original static assets retained; precompression disabled."
+fi
+
 # Compile fixed public templates/CSS once, before Apache handles any requests.
 # Explicit 0 opts out. Failure restores the original filesystem renderer.
 if [ "${SECURITYSEARCH_RENDER_BUNDLE:-1}" != "0" ] && php ./lib/build_view_resources.php --build; then

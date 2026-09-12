@@ -1,51 +1,52 @@
-# Publicar SecuritySearch v0.9.19
+# Publicação — v0.9.40
 
-O kit contém fonte completo e SHA-256, bundle Git e SHA-256, notas bilíngues, script/guias de deploy, este guia e `publish-securitysearch-v0.9.19.fish`. O bundle inclui o commit de remoção no Codeberg e a nova versão, com base em `34ac6854420a0dd41b05b1c558ce2d879068bf23`. Serve para o checkout existente em `~/securitysearch`, inclusive após o fast-forward para `0751f14`.
+Este é o guia atual. Documentos antigos numerados são históricos.
+Use primeiro a [atualização direta da v0.9.30](UPGRADE-0.9.30-to-0.9.40.md).
 
-## Comando fish
-
-Após verificar e extrair o kit, execute dentro dele:
-
-```fish
-fish ./publish-securitysearch-v0.9.19.fish ~/securitysearch
-```
-
-Requer Git, fish, Python 3 e sha256sum. O launcher verifica os hashes fixados, exige `main` limpo, confere bundle/tag, cria branch de backup e atualiza por fast-forward. O histórico anterior permanece. Checkout com alterações, branch divergente ou HEAD destacado interrompe a importação com explicação. Não há reset, stash ou resolução automática de conflitos. O arquivo de fonte sozinho não contém metadados Git; use o bundle para atualizar o clone existente.
-
-Digite separadamente o token de cada host no prompt oculto. O token permanece em memória; o helper temporário do Git não contém o segredo. Não coloque tokens em comandos, documentos ou URLs de remotes. O publicador desativa armazenamento de credenciais e rastreamento HTTP detalhado.
-
-| Host | Repositório | Acesso do token |
-|---|---|---|
-| codeberg.org | berkeley/securitysearch | escrita no repositório |
-| github.com | cristiancmoises/securitysearch | Contents write; acesso a workflows se os arquivos alterados exigirem |
-| git.securityops.co | cristiancmoises/securitysearch | escrita no repositório |
-| git.securityops.com.br | cristiancmoises/securitysearch | escrita no repositório |
-
-Os quatro repositórios precisam existir. São enviados `main` e a tag anotada `v0.9.19` por push normal. A tag remota é conferida antes da criação do release. Branch/tag incompatível interrompe aquele host, sem impedir a tentativa nos demais.
-
-## Arquivos e retomada
-
-Cada release recebe `securitysearch-v0.9.19.tar.gz` e seu `.sha256`. O arquivo precisa corresponder ao fonte da tag. O kit/bundle é material de importação; os assets publicados são o fonte e checksum. Releases novos começam como rascunho e só ficam públicos depois da verificação dos dois arquivos. Arquivos idênticos são reutilizados; ausentes podem ser enviados na próxima execução. Conteúdo diferente com o mesmo nome, ou tag conflitante, é preservado e informado.
-
-Após falha temporária, rode novamente o mesmo launcher. Com a versão já importada e o checkout limpo, também pode executar:
+O launcher de deploy cria o commit normal sobre seu histórico `main`. Para somente
+aplicar o patch revisado e criar esse commit localmente:
 
 ```fish
-python3 ~/securitysearch/scripts/publish-release.py --assets /caminho/absoluto/securitysearch-publication-v0.9.19
+begin
+    cd "$HOME/Downloads"
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --prepare-only
+end
 ```
 
-404 pode indicar repositório ausente ou falta de acesso. Erro de gateway não comprova token inválido. Os releases públicos são criados quando você roda o comando com seus tokens; não foram publicados neste ambiente.
+Esse modo não usa SSH, temas, build, tag ou push. Não executa `git add .`.
+Bases desconhecidas/sujas/shallow e branches diferentes de main são recusadas.
+Repetir sobre a árvore-alvo não gera commit duplicado. Falhas preservam staged para inspeção.
+A identidade e a configuração de assinatura Git do usuário não são alteradas.
 
-## Recriar e fazer deploy
+Depois da auditoria nativa e de `DEPLOY COMPLETE`, execute o publicador separado:
 
-No fonte limpo, com a tag anotada apontando para o commit correto:
-
-```sh
-./release.sh 0.9.19
-python3 scripts/build-publication-kit.py
+```fish
+begin
+    cd "$HOME/Downloads"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+end
 ```
 
-Os arquivos gerados ficam em `dist/`, fora da imagem da aplicação. A captura JPEG está no próprio repositório e os dois READMEs usam link relativo compatível com as quatro forges.
+O script verifica produção, commit/árvore, imagem, runtime, 119 comandos completos e
+evidências reais de Google Web/Images, RSS e Binternet. Preparação, audit-only, diagnóstico
+coletado e endpoint saudável isolado não autorizam publicação.
 
-Publicar Git/releases não faz deploy no VPS. Para o IONOS, use `scripts/deploy-ionos.fish` com o fonte e checksum em `~/Downloads`. São mantidos SSH 5119, root@securityops.co, bind privado e rollback. Veja [operações](OPERATIONS-0.9.19.pt-BR.md) e o [guia completo em inglês](PUBLISHING.md).
+Destinos: `github.com/cristiancmoises/securitysearch`, `codeberg.org/berkeley/securitysearch`,
+`git.securityops.co/cristiancmoises/securitysearch` e
+`git.securityops.com.br/cristiancmoises/securitysearch`.
+Envia `main`, a tag anotada imutável `v0.9.40`, release não-prerelease, tar.gz e SHA-256.
+O bundle incremental de recuperação mantém a base v0.9.30 e permanece como material local;
+os assets públicos normais são tar.gz e checksum. Usa seu histórico real, não reconstruções sintéticas.
 
-A verificação aceita downloads assinados dos hosts de assets conhecidos do GitHub sem enviar o token. Um redirecionamento do Forgejo para armazenamento externo desconhecido interrompe a verificação desse host; revise a configuração do armazenamento antes de tentar novamente.
+Não move tags anteriores, não sobrescreve assets conflitantes e não força push ou reescreve
+histórico. Arte privada restrita e prompts são barrados pelo empacotador. Tokens são
+informados localmente e não são salvos nem impressos. TLS continua validado.
+
+Os quatro hosts são independentes: uma falha pode deixar alguns atualizados. Reexecute
+com os mesmos commit/tag/assets ou selecione `--host git.securityops.com.br`.
+Resultados parciais idênticos são reutilizados; conflitos bloqueiam. `--verify-only`
+verifica a produção sem publicar. O rótulo estável da release não certifica ausência de bugs.

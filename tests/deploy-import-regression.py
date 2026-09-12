@@ -52,7 +52,7 @@ class ImportAndPack(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(prefix='securitysearch-import-')
         self.root = Path(self.temp.name) / 'source'
         (self.root / 'scripts').mkdir(parents=True)
-        for name in ('deploy-ionos.py', 'operator_themes.py'):
+        for name in ('deploy-ionos.py', 'operator_themes.py', 'production_guard.py'):
             shutil.copy2(ROOT / 'scripts' / name, self.root / 'scripts' / name)
         self.path = self.root / 'scripts/deploy-ionos.py'
         self.module = load(self.path)

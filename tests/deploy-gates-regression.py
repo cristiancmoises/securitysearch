@@ -8,25 +8,26 @@ from pathlib import Path
 import subprocess
 import tempfile
 from unittest.mock import patch
+from audit_fixture import captured, transcript
 spec=importlib.util.spec_from_file_location('deploy',Path(__file__).parents[1]/'scripts/deploy-ionos.py');m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 for status in [0,1]:
  with tempfile.TemporaryDirectory() as d:
-  calls=[];stderr=io.StringIO()
+  calls=[];stderr=io.StringIO();output=transcript().decode() if status==0 else 'fixture audit output'
   def run(*args,capture=False):calls.append(args);return 'a'*64 if args[:2]==('docker','create') else ''
-  with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':status}}),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],status,'fixture audit output')):
+  with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':status,'Running':False,'Status':'exited'}}),patch.object(m,'audit_capture',side_effect=captured(output.encode(),returncode=status)):
    try:m.offline_audit('image',Path(d));assert status==0
    except RuntimeError:assert status!=0
   create=next(x for x in calls if x[:2]==('docker','create'))
   assert create[2:4]==('--network','none') and '-e' not in create and '-v' not in create
   assert calls[-1]==('docker','rm','--force','a'*64)
-  assert (Path(d)/'offline-audit.log').read_text()=='fixture audit output'
+  assert (Path(d)/'offline-audit.log').read_text()==output
   assert ('fixture audit output' in stderr.getvalue()) == (status != 0)
 # The complete private log is retained; only a bounded tail goes to the terminal.
 with tempfile.TemporaryDirectory() as d:
  calls=[];stderr=io.StringIO()
  output='first-line-must-not-be-printed\n'+'line\n'*140+'LAST-FAILURE\n'
  def run(*args,capture=False):calls.append(args);return 'b'*64 if args[:2]==('docker','create') else ''
- with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':1}}),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1,output)):
+ with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':1,'Running':False,'Status':'exited'}}),patch.object(m,'audit_capture',side_effect=captured(output.encode(),returncode=1)):
   try:m.offline_audit('image',Path(d));raise AssertionError('Failed audit allowed')
   except RuntimeError as error:assert 'production is unchanged' in str(error)
  assert 'LAST-FAILURE' in stderr.getvalue() and 'first-line-must-not-be-printed' not in stderr.getvalue()
@@ -56,7 +57,7 @@ assert '4 additional failures' in m.audit_failure_excerpt(many)
 with tempfile.TemporaryDirectory() as d:
  stderr=io.StringIO()
  def run(*args,capture=False):return 'c'*64 if args[:2]==('docker','create') else ''
- with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':1}}),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1,structured)):
+ with contextlib.redirect_stderr(stderr),patch.object(m,'run',side_effect=run),patch.object(m,'inspect',return_value={'State':{'ExitCode':1,'Running':False,'Status':'exited'}}),patch.object(m,'audit_capture',side_effect=captured(structured.encode(),returncode=1)):
   try:m.offline_audit('image',Path(d));raise AssertionError('Failed audit allowed')
   except RuntimeError:pass
  assert (Path(d)/'offline-audit.log').read_text()==structured

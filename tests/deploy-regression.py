@@ -12,7 +12,7 @@ from unittest.mock import patch
 spec=importlib.util.spec_from_file_location('deploy',Path(__file__).parents[1]/'scripts/deploy-ionos.py')
 m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
 OLD_ID='a'*64
-old={'Id':OLD_ID,'Name':'/security-search','State':{'Running':True},'Config':{'Image':'old','Env':['EXAMPLE=preserved'],'Volumes':{m.APP+'/icons':{}},'Labels':{'com.docker.compose.project':'old','custom':'preserved'}},
+old={'Id':OLD_ID,'Image':'sha256:'+'b'*64,'Created':'2026-09-01T00:00:00Z','RestartCount':0,'Name':'/security-search','State':{'Running':True,'Status':'running','Health':{'Status':'healthy'},'StartedAt':'2026-09-01T00:00:00Z'},'Config':{'Image':'old','Env':['EXAMPLE=preserved'],'Volumes':{m.APP+'/icons':{}},'Labels':{'com.docker.compose.project':'old','custom':'preserved'}},
  'HostConfig':{'Binds':None,'NetworkMode':'original-net','RestartPolicy':{'Name':'always','MaximumRetryCount':0},'PortBindings':{'80/tcp':[{'HostIp':'172.17.0.1','HostPort':'5140'}]}},
  'NetworkSettings':{'Networks':{'original-net':{'Aliases':['security-search'],'IPAMConfig':None}}},
  'Mounts':[{'Type':'volume','Name':'existing-anonymous-volume','Destination':m.APP+'/icons','RW':True}]}
@@ -64,18 +64,27 @@ class Engine:
   if cid=='candidate' and self.mode=='candidate_readiness_failure':raise RuntimeError('Simulated rejected candidate identity')
   if cid=='replacement' and self.mode in ('readiness_failure','cleanup_failure'):raise RuntimeError('Simulated failed replacement readiness')
 
-for mode in ['success','candidate_readiness_failure','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create','offline_audit_failure','live_audit_failure','news_audit_failure']:
+for mode in ['success','candidate_readiness_failure','readiness_failure','cleanup_failure','lost_candidate_create','lost_rename','lost_replacement_create','offline_audit_failure','live_audit_failure','news_audit_failure','receipt_failure','production_config_drift','production_restarted','production_replaced']:
  engine=Engine(mode)
+ def live_binternet(*args):
+  if mode=='live_audit_failure':raise RuntimeError('Live gate failed')
+  if mode=='production_config_drift':engine.containers[OLD_ID]['Config']['Env'].append('ADMIN_CHANGE=preserved')
+  if mode=='production_restarted':engine.containers[OLD_ID]['RestartCount']=1
+  if mode=='production_replaced':
+   external=copy.deepcopy(engine.containers[OLD_ID]);external['Id']='e'*64
+   engine.containers[OLD_ID]['Name']='/retired-by-administrator'
+   engine.containers[external['Id']]=external
  def run(*args,capture=False):
   return json.dumps({'VERSION':19,'DEFAULT_THEME':'Lain','SERVER_NAME':'original','API_ENABLED':True}) if 'php' in args else ''
- with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m,'offline_audit',side_effect=RuntimeError('Audit failed') if mode=='offline_audit_failure' else None),patch.object(m,'live_news_gate',return_value=('bing','en-US'),side_effect=RuntimeError('News gate failed') if mode=='news_audit_failure' else None),patch.object(m,'verify_news_config'),patch.object(m,'live_binternet_gate',side_effect=RuntimeError('Live gate failed') if mode=='live_audit_failure' else None),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
+ with tempfile.TemporaryDirectory() as temp,patch.object(m,'BACKUP_ROOT',Path(temp)/'backups'),patch.object(m,'LOCK_PATH',str(Path(temp)/'lock')),patch.object(m,'api',side_effect=engine.api),patch.object(m,'run',side_effect=run),patch.object(m,'healthy',side_effect=engine.healthy),patch.object(m,'persist_release',side_effect=RuntimeError('Receipt persistence failed') if mode=='receipt_failure' else None),patch.object(m,'offline_audit',side_effect=RuntimeError('Audit failed') if mode=='offline_audit_failure' else None),patch.object(m,'live_news_gate',return_value=('bing','en-US'),side_effect=RuntimeError('News gate failed') if mode=='news_audit_failure' else None),patch.object(m,'verify_news_config'),patch.object(m,'live_binternet_gate',side_effect=live_binternet),patch.object(m.os,'geteuid',return_value=0),patch.object(m.shutil,'which',return_value='/fixture/program'),patch.object(m.subprocess,'run',return_value=subprocess.CompletedProcess([],1)):
   failed=False
   try:m.main()
   except RuntimeError:failed=True
   assert failed==(mode!='success')
   previous=engine.containers[OLD_ID]
-  if mode in ('candidate_readiness_failure','offline_audit_failure','live_audit_failure','news_audit_failure'):
-   assert previous['State']['Running'] and previous['Name']=='/security-search'
+  if mode in ('candidate_readiness_failure','offline_audit_failure','live_audit_failure','news_audit_failure','production_config_drift','production_restarted','production_replaced'):
+   assert previous['State']['Running']
+   if mode!='production_replaced':assert previous['Name']=='/security-search'
    assert not any(method=='POST' and '/'+OLD_ID+'/' in url for method,url,data in engine.calls),'Audit failure touched production'
   assert 'candidate' not in engine.containers,'Candidate leaked after response loss'
   if mode=='success':
@@ -89,7 +98,10 @@ for mode in ['success','candidate_readiness_failure','readiness_failure','cleanu
   else:
    assert previous['State']['Running'],'Previous container was not restarted'
    assert previous['HostConfig']['RestartPolicy']==old['HostConfig']['RestartPolicy'],'Original restart policy not restored'
-   if mode!='cleanup_failure':assert previous['Name']=='/security-search'
+   if mode not in ('cleanup_failure','production_replaced'):assert previous['Name']=='/security-search'
+   if mode=='production_replaced':assert engine.find('security-search')['Id']=='e'*64
+   if mode=='production_config_drift':assert 'ADMIN_CHANGE=preserved' in previous['Config']['Env']
+   if mode=='production_restarted':assert previous['RestartCount']==1
   if mode not in ('candidate_readiness_failure','lost_candidate_create','offline_audit_failure','live_audit_failure','news_audit_failure'):
    rollback=next((Path(temp)/'backups').glob('*/rollback.sh'));body=rollback.read_text()
    assert 'flock -n 9' in body and 'docker update --restart=always' in body and 'current_image=' in body
@@ -109,7 +121,7 @@ print('PASS: shared Apache/PHP/ImageMagick and application configuration mounts 
 for failure in [None,'version','theme','fpm_runtime','theme_asset','script','csp','image_csp','image_asset','motion_asset','adapters']:
  responses=['20|Tron' if failure=='version' else (f'{m.ASSET_VERSION}|Lain' if failure=='theme' else f'{m.ASSET_VERSION}|Black'),
   'broken' if failure=='fpm_runtime' else 'fpm',
-  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v34' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
+  'In Code We Trust. zupt-web.securityops.co '+('/static/themes/Lain.css?v40' if failure=='theme_asset' else '<style data-home-style="base"></style><style data-home-style="black"></style><style data-home-style="controls"></style>' )+('<script src="x"></script>' if failure=='script' else ''),
   "Content-Security-Policy: script-src 'self'" if failure=='csp' else "Content-Security-Policy: script-src 'none'; connect-src 'none'\nX-SecuritySearch-Render: static-home\nCache-Control: public, max-age=60, stale-while-revalidate=30\nVary: Cookie, Authorization",
   "script-src 'none'" if failure=='image_csp' else "script-src 'self'; connect-src 'self'",
   'not-ready' if failure=='image_asset' else 'IntersectionObserver createDocumentFragment',

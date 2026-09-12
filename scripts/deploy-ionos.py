@@ -22,8 +22,8 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.30'
-ASSET_VERSION = 34
+VERSION = '0.9.40'
+ASSET_VERSION = 40
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -236,37 +236,58 @@ def audit_failure_excerpt(output):
     return '\n\n'.join(pieces)[:24000]
 
 
-def offline_audit(image, backup):
-    """Run every checked-in suite in an isolated disposable container.
+def audit_capture(argv, backup):
+    return deployment_module('audit_stream').capture(argv, backup)
 
-    No production environment, volumes, network or private runtime files are
-    attached. Test dependencies go into a separate audit image, never production.
+
+def offline_audit(image, backup):
+    """Require bounded, complete native evidence before any candidate/provider/cutover.
+
+    The audit container has no production environment, mounts, or network. Its
+    output is streamed to an exclusive private log. Timeout/overflow/incomplete
+    transcripts fail closed even if an exit status happens to be zero.
     """
+    evidence = deployment_module('audit_evidence')
+    commands = evidence.source_commands(ROOT)
+    records = deployment_module('deployment_state')
+    expected_identity = records.identity(backup)
     audit_image = image + '-audit'
     with tempfile.TemporaryDirectory(prefix='securitysearch-audit-build-') as temp:
         context = Path(temp)
         (context/'Dockerfile').write_text('FROM '+image+'\nRUN apk add --no-cache python3 nodejs git fish\n')
         run('docker','build','-t',audit_image,str(context))
-    cid = run('docker','create','--network','none','--entrypoint','/bin/sh',
+    cid = run('docker','create','--network','none','--log-driver','none','--entrypoint','/bin/sh',
               '--workdir',APP,audit_image,'-c','exec 2>&1; sh scripts/test.sh --keep-going',capture=True).strip()
     if not re.fullmatch(r'[a-f0-9]{64}',cid):
         raise RuntimeError('The isolated audit container could not be created.')
     try:
-        # ROOT is the clean git archive extracted by deploy-securitysearch.fish.
-        # Copy tests explicitly; production .dockerignore rightly excludes them.
         run('docker','cp',str(ROOT)+'/.',cid+':'+APP)
-        result = subprocess.run(['docker','start','--attach',cid],text=True,
-                                stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-        (backup/'offline-audit.log').write_text(result.stdout or '')
-        code = inspect(cid)['State'].get('ExitCode',1)
-        if result.returncode != 0 or code != 0:
-            # The complete log above is retained regardless of output truncation.
-            excerpt = audit_failure_excerpt(result.stdout)
-            print('\n--- Offline audit failure: failing commands (max 24,000 characters; tail if unstructured) ---', file=sys.stderr, flush=True)
-            print(excerpt, file=sys.stderr, flush=True)
+        capture, raw = audit_capture(['docker','start','--attach',cid], backup)
+        state = inspect(cid).get('State') or {}
+        code = state.get('ExitCode')
+        reason = 'complete'
+        proof = None
+        if (capture.get('reason') != 'completed' or type(capture.get('returncode')) is not int
+                or capture['returncode'] != 0 or type(code) is not int or code != 0
+                or state.get('Running') is not False or state.get('Status') != 'exited'):
+            reason = 'execution_not_successful'
+        else:
+            try:
+                proof = evidence.validate_log(raw, commands)
+            except evidence.EvidenceError as error:
+                reason = str(error)
+        report = {'schema': 1, 'version': VERSION, 'status': 'ok' if proof else 'failed',
+                  'reason': reason, 'container': cid, 'audit_image': audit_image,
+                  'capture': capture, 'container_exit': code, 'proof': proof}
+        records.write_record(backup, 'offline-audit-result.json', report, expected_identity)
+        if proof is None:
+            print('\n--- Offline audit failed: '+reason+'; complete or bounded partial log retained ---',
+                  file=sys.stderr, flush=True)
+            print(audit_failure_excerpt(raw.decode('utf-8', errors='replace')), file=sys.stderr, flush=True)
             raise RuntimeError('Offline audit failed; production is unchanged. Inspect '+str(backup/'offline-audit.log'))
-        print('All offline release suites passed in the isolated runtime.',flush=True)
+        print('All '+str(len(commands))+' offline release commands verified in order with zero failures.', flush=True)
     finally:
+        # Kill only the exact disposable audit container, also after timeout or interruption.
         run('docker','rm','--force',cid)
 
 
@@ -575,6 +596,84 @@ def validate_operator_pack(directory):
     return validator(directory)
 
 
+def deployment_module(name):
+    # Load by path so source archives and importlib-based tests behave identically.
+    spec = importlib.util.spec_from_file_location(name, ROOT/'scripts'/(name+'.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def persist_release(backup, receipt, expected_identity):
+    deployment_module('deployment_state').write_record(backup, 'release.json', receipt, expected_identity)
+
+
+def cleanup_before_build(backup, lock_fd, expected_identity, expected_container_id):
+    if os.environ.get('SECURITYSEARCH_CLEAN_OLDER') != '1':
+        return
+    if os.environ.get('SECURITYSEARCH_CONTAINER', 'security-search') != 'security-search':
+        raise RuntimeError('Targeted cleanup requires the explicit security-search container.')
+    records = deployment_module('deployment_state')
+    cleanup = deployment_module('predeploy_cleanup')
+    local = cleanup.inspect(cleanup.docker, 'container', 'security-search')
+    if local.get('Id') != expected_container_id:
+        raise RuntimeError('Docker context differs from the local production container; no cleanup allowed.')
+    def record(value):
+        records.write_record(backup, 'predeploy-cleanup.json', value, expected_identity)
+    print('Pre-build cleanup: stopped old SecuritySearch only; current service, newest rollback and shared data protected.', flush=True)
+    result = cleanup.run_cleanup(VERSION, execute=True, lock_fd=lock_fd, record=record)
+    print('Old Docker objects removed: '+str(len(result['removed_containers']))+' containers, '+str(len(result['removed_images']))+' images.', flush=True)
+    docker_root = run('docker', 'info', '--format', '{{.DockerRootDir}}', capture=True).strip()
+    if not docker_root.startswith('/') or '\n' in docker_root or len(docker_root) > 4096:
+        raise RuntimeError('Cannot verify Docker storage capacity.')
+    for storage in (str(ROOT), docker_root):
+        usage = shutil.disk_usage(storage)
+        fs = os.statvfs(storage)
+        if usage.free < 2*1024*1024*1024 or fs.f_favail < 10000:
+            raise RuntimeError('Insufficient build space after targeted cleanup: at least 2 GiB and 10000 inodes required on source and Docker storage. No global prune attempted.')
+
+
+def audit_only(name, old):
+    """Build/audit with in-memory Docker metadata checks, no PHP config export or cutover."""
+    guard = deployment_module('production_guard')
+    snapshot = guard.snapshot(old)
+    observed = run('docker','inspect','--type','container','--format','{{.Id}}',name,capture=True).strip()
+    if observed != old['Id']:
+        raise RuntimeError('Docker context differs from local production; audit-only stopped.')
+    docker_root = run('docker','info','--format','{{.DockerRootDir}}',capture=True).strip()
+    if not docker_root.startswith('/') or '\n' in docker_root or len(docker_root) > 4096:
+        raise RuntimeError('Cannot verify Docker build storage.')
+    for storage in (str(ROOT), docker_root):
+        if shutil.disk_usage(storage).free < 2*1024**3 or os.statvfs(storage).f_favail < 10000:
+            raise RuntimeError('Audit-only requires 2 GiB and 10000 free inodes. No cleanup was attempted.')
+    stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    suffix = os.urandom(6).hex()
+    backup = BACKUP_ROOT/('audit-only-'+stamp+'-'+suffix)
+    backup.mkdir(parents=True, mode=0o700)
+    records = deployment_module('deployment_state')
+    identity = records.identity(backup)
+    image = 'security-search-audit-only:v'+VERSION+'-'+stamp.lower()+'-'+suffix
+    report = {'schema': 1, 'version': VERSION, 'mode': 'audit-only', 'status': 'started',
+              'image': image, 'production_container': old['Id'], 'deployed': False,
+              'published': False, 'live_probes': 'not_run', 'old_object_cleanup': False}
+    records.write_record(backup, 'audit-only.json', report, identity)
+    (backup/'source-directory.txt').write_text(str(ROOT)+'\n')
+    try:
+        guard.verify(snapshot, inspect(name))
+        print('AUDIT ONLY: build and isolated native tests; no old-object cleanup or production replacement.', flush=True)
+        run('docker','build','--pull','-t',image,str(ROOT))
+        offline_audit(image, backup)
+        guard.verify(snapshot, inspect(name))
+        report['status'] = 'ok'
+        records.write_record(backup, 'audit-only.json', report, identity)
+    except (Exception, KeyboardInterrupt):
+        report['status'] = 'failed'
+        records.write_record(backup, 'audit-only.json', report, identity)
+        raise
+    print('AUDIT ONLY COMPLETE — NOT DEPLOYED. Evidence: '+str(backup), flush=True)
+    return backup
+
+
 def main():
     if os.geteuid() != 0:
         raise RuntimeError('Run this updater as root on the IONOS Docker host.')
@@ -586,13 +685,22 @@ def main():
             raise RuntimeError('Required host program is missing: '+program)
     os.umask(0o077)
     lock = open(LOCK_PATH,'w')
-    fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    try:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+    except BaseException:
+        lock.close()
+        raise
     name = os.environ.get('SECURITYSEARCH_CONTAINER','security-search')
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',name):
         raise RuntimeError('Invalid existing container name.')
     old = inspect(name)
     if not old['State'].get('Running'):
         raise RuntimeError('The existing container must be running before this update.')
+    if os.environ.get('SECURITYSEARCH_AUDIT_ONLY') == '1':
+        try:
+            return audit_only(name, old)
+        finally:
+            lock.close()
     host = old['HostConfig']
     if host.get('AutoRemove') or host.get('Privileged') or host.get('NetworkMode') in ('host','none') or host.get('NetworkMode','').startswith('container:'):
         raise RuntimeError('This updater requires a normal retained container on Docker bridge networks.')
@@ -610,9 +718,13 @@ def main():
         masks_runtime = dest in ('', '/', '/etc', '/usr', '/usr/local') or any(dest == base or dest.startswith(base+'/') for base in ('/etc/apache2','/etc/php84','/etc/ImageMagick-7','/usr/lib','/bin','/usr/local/etc','/usr/local/bin','/usr/bin','/sbin'))
         if masks_runtime or (masks_app and not safe_data):
             raise RuntimeError('An existing source/configuration mount would mask the update. Existing container was not changed.')
+    production_guard = deployment_module('production_guard')
+    production_snapshot = production_guard.snapshot(old)
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%dT%H%M%SZ')
     backup = BACKUP_ROOT/stamp
     backup.mkdir(parents=True, mode=0o700)
+    backup_identity = google_backup_identity(backup)
+    source_identity = (ROOT.stat().st_dev, ROOT.stat().st_ino)
     (backup/'container.json').write_text(json.dumps(old,indent=2))
     (backup/'source-directory.txt').write_text(str(ROOT)+'\n')
     image = 'security-search:v'+VERSION+'-'+stamp.lower()
@@ -667,6 +779,8 @@ def main():
             target.parent.mkdir(exist_ok=True)
             run('docker','cp','-a',old['Id']+':'+destination,str(target))
             old['_private_binds'].append(str(target)+':'+destination+':ro')
+    production_guard.verify(production_snapshot, inspect(name))
+    cleanup_before_build(backup, lock.fileno(), backup_identity, old['Id'])
     print('Building the new image while the current service stays online.',flush=True)
     run('docker','build','--pull','-t',image,str(ROOT))
     offline_audit(image,backup)
@@ -686,6 +800,9 @@ def main():
             live_google_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')
         candidate = None
+        assert_google_backup(backup, backup_identity)
+        if (ROOT.stat().st_dev, ROOT.stat().st_ino) != source_identity:
+            raise RuntimeError('Source directory changed; cutover is forbidden.')
         # Store the recovery command before stopping production.
         rollback = backup/'rollback.sh'
         import shlex
@@ -706,6 +823,9 @@ def main():
             'docker update --restart='+q(restart_option)+' "$old_id" >/dev/null\n'+
             'docker start "$old_id"\n')
         rollback.chmod(0o700)
+        # The candidate may have spent minutes in provider backoff. Never cut over
+        # using an old snapshot after another operator changed the live container.
+        production_guard.verify(production_snapshot, inspect(name))
         print('Candidate passed readiness. Replacing the service; this causes a short interruption.',flush=True)
         stopped = True
         # A retained rollback container must not restart after a Docker reboot.
@@ -719,8 +839,9 @@ def main():
         verify_news_config(replacement, selected_news, selected_market)
         # Verify the preserved host binding, beyond container-internal health.
         run('curl','-fsS','--max-time','10','-o','/dev/null','http://172.17.0.1:5140/')
+        # Persistence is part of the transaction: a failed receipt must roll back.
+        persist_release(backup, {'image':image,'container':replacement,'rollback_container':rollback_name,'news_source':selected_news,'news_market':selected_market}, backup_identity)
         committed = True
-        (backup/'release.json').write_text(json.dumps({'image':image,'container':replacement,'rollback_container':rollback_name,'news_source':selected_news,'news_market':selected_market},indent=2))
         print('Deployment healthy at 172.17.0.1:5140. NPM upstream remains unchanged.')
         print('Rollback: bash '+str(rollback))
         print('Retain '+str(backup)+'; the running service may mount its private data snapshots.')

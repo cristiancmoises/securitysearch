@@ -78,7 +78,7 @@ function securitysearch_build_home_snapshot(): string {
     $gzip_target=securitysearch_home_snapshot_gzip_path();
     if (is_link($gzip_target)) throw new RuntimeException('Refused linked compressed anonymous-home artifact.');
     if (function_exists('gzencode')) {
-        $gzip=gzencode($html,6,ZLIB_ENCODING_GZIP);
+        $gzip=gzencode($html,9,ZLIB_ENCODING_GZIP);
         if (!is_string($gzip) || strlen($gzip)<64 || strlen($gzip)>=strlen($html))
             throw new RuntimeException('Anonymous-home gzip artifact validation failed.');
         securitysearch_publish_home_artifact($gzip_target,$gzip);

@@ -3,6 +3,9 @@
 $root=sys_get_temp_dir().'/securitysearch-config-'.bin2hex(random_bytes(6));
 mkdir($root,0700);mkdir($root.'/docker');mkdir($root.'/data');mkdir($root.'/data/captcha');
 copy('docker/gen_config.php',$root.'/docker/gen_config.php');copy('data/config.php',$root.'/data/config.php');
+preg_match('/const\s+VERSION\s*=\s*([0-9]+)\s*;/',file_get_contents('data/config.php'),$version_match);
+if(!isset($version_match[1])) throw new RuntimeException('Source asset marker missing');
+$expected_asset=(int)$version_match[1];
 $marker='operator "quoted" $value \\ literal';
 putenv('FOURGET_NEWS_RSS_PRIMARY=bing');putenv('FOURGET_NEWS_RSS_MARKET=pt-BR');
 putenv('FOURGET_SERVER_NAME='.$marker);putenv('FOURGET_API_ENABLED=false');putenv('FOURGET_UNKNOWN=ignored');putenv('FOURGET_REDLIB_FALLBACKS=false');putenv('FOURGET_REDLIB_PRIMARY=https://redlib.nadeko.net');
@@ -11,7 +14,7 @@ try {
  fclose($pipes[0]);$output=stream_get_contents($pipes[1]);$error=stream_get_contents($pipes[2]);fclose($pipes[1]);fclose($pipes[2]);
  if(proc_close($p)!==0){throw new RuntimeException('Configuration generator failed: '.$error);}
  require $root.'/data/config.php';
- if(config::NEWS_RSS_PRIMARY!=='bing' || config::NEWS_RSS_MARKET!=='pt-BR' || config::DEFAULT_SCRAPER_NEWS!=='newswire' || config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::REDLIB_FALLBACKS!==false || config::REDLIB_PRIMARY!=='https://redlib.nadeko.net' || config::VERSION!==34 || config::DEFAULT_THEME!=="Black"){throw new RuntimeException('Configuration literals/types changed');}
+ if(config::NEWS_RSS_PRIMARY!=='bing' || config::NEWS_RSS_MARKET!=='pt-BR' || config::DEFAULT_SCRAPER_NEWS!=='newswire' || config::SERVER_NAME!==$marker || config::API_ENABLED!==false || defined('config::UNKNOWN') || config::REDLIB_FALLBACKS!==false || config::REDLIB_PRIMARY!=='https://redlib.nadeko.net' || config::VERSION!==$expected_asset || config::DEFAULT_THEME!=="Black"){throw new RuntimeException('Configuration literals/types changed');}
  echo "PASS: quoted literals, boolean API disable, unknown environment keys and version integrity.\n";
 } finally {
  unlink($root.'/docker/gen_config.php');unlink($root.'/data/config.php');rmdir($root.'/data/captcha');rmdir($root.'/data');rmdir($root.'/docker');rmdir($root);

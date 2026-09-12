@@ -1,0 +1,52 @@
+{
+  "baseline": "0.9.38",
+  "version": "0.9.40",
+  "files": {
+    "lib/frontend.php": {
+      "old_sha256": "2bddc610b5ccfe1d1074482a805b1df9730e61033a1fb361aa17c28ee4cd9c31",
+      "new_sha256": "b442befaf4b98d7bfae6cde234e47ef4c13d3e2f9054f34bfc22a2cc73bcd363",
+      "edits": [
+        {
+          "before": "\t\t\t\t$value == null ||\n\t\t\t\t$value == false ||\n\t\t\t\t$key == \"npt\" ||\n\t\t\t\t$key == \"extendedsearch\" ||\n\t\t\t\t$value == \"any\" ||\n\t\t\t\t$value == \"all\" ||\n\t\t\t\t$key == \"spellcheck\" ||",
+          "after": "\t\t\t\t$value === null ||\n\t\t\t\t$value === false ||\n\t\t\t\t$value === \"\" ||\n\t\t\t\t$key === \"npt\" ||\n\t\t\t\t$key === \"extendedsearch\" ||\n\t\t\t\t// \"0\", \"all\" and \"any\" are valid search terms. Only filters use sentinels.\n\t\t\t\t($key !== \"s\" && ($value === \"any\" || $value === \"all\")) ||\n\t\t\t\t$key === \"spellcheck\" ||"
+        },
+        {
+          "before": "return http_build_query($out);",
+          "after": "return http_build_query($out, '', '&', PHP_QUERY_RFC1738);"
+        },
+        {
+          "before": "return $page . \"?\" . $query . \"&npt=\" . $npt;",
+          "after": "// Encode the continuation as one value; it must not add or replace filters.\n\t\treturn $page . \"?\" . $query . ($query === \"\" ? \"\" : \"&\") . \"npt=\" . rawurlencode($npt);"
+        }
+      ]
+    },
+    "web.php": {
+      "old_sha256": "1f5b0c60303417f3f12629426f3f141fff8390116163c169115e493b968aed64",
+      "new_sha256": "fcde712226c4d1cb1e639ea9583378371ab9ec67e0f9420d4deb3093f598c962",
+      "edits": [
+        {
+          "before": "$oracle->check_query($_GET[\"s\"])",
+          "after": "$oracle->check_query($get[\"s\"])"
+        },
+        {
+          "before": "$oracle->generate_response($_GET[\"s\"])",
+          "after": "$oracle->generate_response($get[\"s\"])"
+        },
+        {
+          "before": "htmlspecialchars($_GET[\"s\"] ?? \"\")",
+          "after": "htmlspecialchars($get[\"s\"])"
+        }
+      ]
+    },
+    "music.php": {
+      "old_sha256": "9700458226dff066d5649be97fecc2232ac2c64b944a96d2365571e0177e99f7",
+      "new_sha256": "cebe7d9384c185b6b576214183f71fa0b2927f1303eeb7b811604b936ef804a1",
+      "edits": [
+        {
+          "before": "include_once __DIR__ . \"/lib/security_headers.php\";",
+          "after": "include_once __DIR__ . \"/lib/security_headers.php\";\n// Keep recovery status and headers writable after the search header is rendered.\nob_start();"
+        }
+      ]
+    }
+  }
+}

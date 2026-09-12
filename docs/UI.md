@@ -1,3 +1,5 @@
+> **Current v0.9.40 operations:** [documentation index](INDEX.md) and [direct upgrade from v0.9.30](UPGRADE-0.9.30-to-0.9.40.md). Existing IONOS installations should use the guarded update, not generic fresh-install commands. Older version-specific examples below are reference/history, not current acceptance evidence.
+
 # Interface behavior — v0.9.19
 
 The homepage and result header place four 14 px SVG actions inside the right edge of the search bar in a horizontal row: Search, Search Image, Search Pinterest and Search YouTube. Native form destinations, full accessible names, focus labels and 28 px desktop / 44 px coarse-pointer targets remain. Tron is the default; explicit saved themes are honored. The input reserves room for the actions. The black/cyan CSS background does not request the old 12 MB GIF. Wiki/Git in the homepage footer are plain links, without the rectangle.

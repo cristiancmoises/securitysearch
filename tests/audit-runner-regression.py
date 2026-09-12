@@ -63,7 +63,7 @@ class Runner(unittest.TestCase):
 
     def test_real_suite_and_docker_acceptance_are_not_shortened(self):
         commands = [line for line in BODY.splitlines() if line.startswith('run_test ')]
-        self.assertEqual(len(commands), 81)
+        self.assertEqual(len(commands), 119)
         self.assertEqual(len(set(commands)), len(commands))
         for name in ['native-runtime.php', 'operator-archive-regression.py',
                      'deploy-import-regression.py', 'deploy-regression.py', 'http-regression.py',
@@ -74,7 +74,8 @@ class Runner(unittest.TestCase):
             self.assertTrue(any(name in command for command in commands), name)
         deploy = (ROOT / 'scripts/deploy-ionos.py').read_text()
         self.assertIn('sh scripts/test.sh --keep-going', deploy)
-        self.assertIn('if result.returncode != 0 or code != 0:', deploy)
+        self.assertIn("capture['returncode'] != 0 or type(code) is not int or code != 0", deploy)
+        self.assertIn('evidence.validate_log(raw, commands)', deploy)
         self.assertIn("'--network','none'", deploy)
 
 

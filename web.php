@@ -49,8 +49,8 @@ include("oracles/numerics.php");
 $oracles = [new calculator(), new encoder(), new time(), new numerics()];
 $fortune = "";
 foreach ($oracles as $oracle) {
-	if ($oracle->check_query($_GET["s"])) {
-		$resp = $oracle->generate_response($_GET["s"]);
+	if ($oracle->check_query($get["s"])) {
+		$resp = $oracle->generate_response($get["s"]);
 		if ($resp != "") {
 			$fortune .= "<div class=\"infobox\">";
 			foreach ($resp as $title => $r) {
@@ -104,7 +104,7 @@ if($results["spelling"]["type"] != "no_correction"){
 */
 if(count($results["web"]) === 0){
 
-	$query = htmlspecialchars($_GET["s"] ?? "");
+	$query = htmlspecialchars($get["s"]);
 
 	$payload["left"] .=
 		'<div class="web-empty">' .

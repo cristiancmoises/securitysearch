@@ -71,6 +71,11 @@ try{
 			"image/gif,image/apng,image/png,image/webp;q=0.9,*/*;q=0.1"
 		);
 
+        // Error/challenge images are not successful animation results.
+        if (($payload["http"]["code"] ?? null) !== 200) {
+            throw new Exception("Remote image response is not a complete success");
+        }
+
 		$finfo = new finfo(FILEINFO_MIME_TYPE);
 		$mime = $finfo->buffer($payload["body"]);
 		$allowed_mimes = [
@@ -218,12 +223,29 @@ try{
 	
 	// resize image ourselves
 	$payload = $proxy->get($_GET["i"], $proxy::req_image, true, null, 0, 16777216);
+    // Do not decode or display an upstream error image as a successful result.
+    if (($payload["http"]["code"] ?? null) !== 200) {
+        throw new Exception("Remote image response is not a complete success");
+    }
 	$resize_finfo = new finfo(FILEINFO_MIME_TYPE);
 	$resize_mime = strtolower((string)$resize_finfo->buffer($payload["body"]));
 	if(!in_array($resize_mime, ["image/jpeg", "image/png", "image/gif", "image/webp", "image/avif"], true)){
 
 		throw new Exception("Remote thumbnail returned an unsupported raster format");
 	}
+
+    // An opaque, metadata-free PNG already inside the thumb dimensions does
+    // not need lossy JPEG conversion. Never use this for posters or other sizes.
+    if (!$still_preview && $_GET["s"] === "thumb" && $resize_mime === "image/png") {
+        require_once __DIR__."/lib/thumbnail_png.php";
+        if (thumbnail_png::eligible($payload["body"])) {
+            $proxy->getfilenameheader($payload["headers"], $_GET["i"], "png");
+            header("Content-Type: image/png");
+            header("Content-Length: " . strlen($payload["body"]));
+            echo $payload["body"];
+            die();
+        }
+    }
 
 	// Image grids already request a provider thumbnail. Relaying a genuinely
 	// small JPEG or a structurally validated animation avoids an unnecessary
