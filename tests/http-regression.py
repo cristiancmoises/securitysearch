@@ -30,6 +30,75 @@ class Links(HTMLParser):
         if tag=='a' and attrs.get('class') in ['nextpage img','nextpage']:self.next=attrs['href']
 
 
+class HomeActions(HTMLParser):
+    """Inspect real native submit controls in the homepage toolbar, not text labels."""
+    def __init__(self, html):
+        super().__init__()
+        self.depth = 0
+        self.toolbars = 0
+        self.buttons = []
+        self.current = None
+        self.icons = 0
+        self.feed(html)
+        self.close()
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'div':
+            if self.depth:
+                self.depth += 1
+            elif 'search-actions' in attrs.get('class', '').split():
+                self.depth = 1
+                self.toolbars += 1
+        if not self.depth:
+            return
+        if tag == 'button':
+            if self.current is not None:
+                raise AssertionError('HTTP_HOME_ACTIONS: nested button')
+            self.current = {'attrs': attrs, 'icons': 0}
+            self.buttons.append(self.current)
+        elif tag == 'svg' and 'search-action-icon' in attrs.get('class', '').split():
+            self.icons += 1
+            if self.current is None:
+                raise AssertionError('HTTP_HOME_ACTIONS: icon outside button')
+            self.current['icons'] += 1
+
+    def handle_endtag(self, tag):
+        if tag == 'button' and self.depth:
+            self.current = None
+        elif tag == 'div' and self.depth:
+            self.depth -= 1
+
+
+def require_homepage_toolbar(html):
+    """Keep exact v0.9.42 actions, routes and Black-theme expectations mandatory."""
+    if 'data-home-style="black"' not in html:
+        raise AssertionError('HTTP_HOME_THEME: Black homepage marker missing')
+    if '/static/themes/Black.css' in html:
+        raise AssertionError('HTTP_HOME_THEME: unexpected external Black stylesheet')
+    expected = [
+        ('Search', None, None, None),
+        ('Search Image', '/images', 'destination', 'images'),
+        ('Search Pinterest', '/images', 'destination', 'binternet'),
+        ('Search DeviantArt', '/images', 'destination', 'skunkyart'),
+        ('Search YouTube', '/videos', 'destination', 'invidious'),
+    ]
+    toolbar = HomeActions(html)
+    if toolbar.toolbars != 1 or toolbar.depth != 0 or toolbar.current is not None:
+        raise AssertionError('HTTP_HOME_ACTIONS: expected one complete toolbar')
+    if len(toolbar.buttons) != 5 or toolbar.icons != 5:
+        raise AssertionError('HTTP_HOME_ACTIONS: expected five buttons and five icons')
+    actual = []
+    for button in toolbar.buttons:
+        attrs = button['attrs']
+        if (attrs.get('type') != 'submit' or 'disabled' in attrs or button['icons'] != 1
+                or attrs.get('formmethod', 'get').lower() != 'get'):
+            raise AssertionError('HTTP_HOME_ACTIONS: expected enabled GET submit with one icon')
+        actual.append(tuple(attrs.get(k) for k in ('aria-label', 'formaction', 'name', 'value')))
+    if actual != expected:
+        raise AssertionError('HTTP_HOME_ACTIONS: destination, label or order mismatch')
+
+
 def main():
     require_native_runtime(ROOT)
     with tempfile.TemporaryDirectory(prefix='securitysearch-http-') as temp:
@@ -150,8 +219,8 @@ http_response_code(404);return true;
                 assert code==200, 'Normalized array query must not reach string-only oracles'
                 reset();code,headers,html=request('/')
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
-                assert all(label in html for label in ['Search Image','Search Pinterest','Search YouTube','In Code We Trust.'])
-                assert 'data-home-style="black"' in html and '/static/themes/Black.css' not in html and html.count('class="search-action-icon"')==4
+                assert all(label in html for label in ['Search Image','Search Pinterest','Search DeviantArt','Search YouTube','In Code We Trust.'])
+                require_homepage_toolbar(html)
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
