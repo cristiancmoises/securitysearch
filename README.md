@@ -57,10 +57,10 @@ Save the deployment launcher and its `.sha256` directly in `~/Downloads`, then:
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --check-only
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --audit-only
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --check-only
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --audit-only
 end
 ```
 
@@ -78,7 +78,7 @@ It never tags or pushes, and failure does not discard your staged work.
 After reviewing a successful native audit, run the verified deployment launcher without flags:
 
 ```fish
-fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
+fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
 ```
 
 Target: `root@securityops.co`, SSH port `5119`, existing container `security-search`.
@@ -109,9 +109,9 @@ v0.9.24 tag and v0.9.30, are never retargeted.
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
 end
 ```
 
@@ -127,7 +127,7 @@ The stable release flag is metadata, not a guarantee of bug-free or completed 1.
 
 ## Diagnostics, tests and limits
 
-`securitysearch-audit-diagnostics-0.9.40.fish` collects a filtered retained audit report without
+`securitysearch-audit-diagnostics-0.9.40-r2.fish` collects a filtered retained audit report without
 building. `--explain-latest` and `--explain-report FILE` read local reports without SSH.
 Reports and checksum sidecars are mode 0600; raw queries, provider bodies, arbitrary logs and
 credentials are excluded. Collection exit 0 means **collected**, not **audit passed**.
@@ -157,3 +157,10 @@ private artwork and synthetic reconstruction history are not shipped in it.
 [Release notes](docs/RELEASE-0.9.40.md) · [Audit contract](docs/AUDIT-0.9.40.md) ·
 [Performance scope](docs/PERFORMANCE-0.9.40.md) · [Providers](docs/PROVIDERS.md) ·
 [License](license.txt).
+
+
+## Native audit repair r2 (includes r1)
+
+For the 115/4 native-audit failure, use **securitysearch-v0.9.40-deploy-ionos-r2.fish** and the paired **securitysearch-v0.9.40-publish-four-remotes-r2.fish** in place of the original launchers above. Run `--check-only` then `--audit-only`; 119/0 and all live gates remain mandatory. The application version stays 0.9.40. See [r1 repair details](docs/AUDITFIX-0.9.40-r1.md).
+
+Revision r2 also restores configuration after oversized generated output without masking the original fixture error. Each comparison reads at most the captured original length plus one byte. See [r2 cleanup details](docs/AUDITFIX-0.9.40-r2.md). Native 119/0 acceptance is still required.

@@ -32,3 +32,10 @@ NPM, ports, volumes, networks, private configuration, backups and protected roll
 are preserved. No global cleanup, force-push, reset, rebase, tag movement or private-art upload.
 
 See [troubleshooting](TROUBLESHOOTING-0.9.40.md) and [publication](PUBLISHING.md).
+
+
+## Native audit repair r2 (includes r1)
+
+For the 115/4 native-audit failure, use **securitysearch-v0.9.40-deploy-ionos-r2.fish** and the paired **securitysearch-v0.9.40-publish-four-remotes-r2.fish** in place of the original launchers above. Run `--check-only` then `--audit-only`; 119/0 and all live gates remain mandatory. The application version stays 0.9.40. See [r1 repair details](AUDITFIX-0.9.40-r1.md).
+
+Revision r2 also restores configuration after oversized generated output without masking the original fixture error. Each comparison reads at most the captured original length plus one byte. See [r2 cleanup details](AUDITFIX-0.9.40-r2.md). Native 119/0 acceptance is still required.

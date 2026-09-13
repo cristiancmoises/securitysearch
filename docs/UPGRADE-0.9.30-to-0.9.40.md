@@ -11,9 +11,9 @@ Only GitHub was independently queried; IONOS and the other remotes remain subjec
 ## Files and paths
 
 Save each launcher and matching `.sha256` directly in `~/Downloads`:
-`securitysearch-v0.9.40-deploy-ionos.fish`,
-`securitysearch-v0.9.40-publish-four-remotes.fish`, and
-`securitysearch-audit-diagnostics-0.9.40.fish`.
+`securitysearch-v0.9.40-deploy-ionos-r2.fish`,
+`securitysearch-v0.9.40-publish-four-remotes-r2.fish`, and
+`securitysearch-audit-diagnostics-0.9.40-r2.fish`.
 All three are self-contained. The complete update kit contains the same scripts, helpers,
 cumulative/incremental patches, current documentation, review sources and validation evidence.
 It is not a fresh-install application archive. Do not overlay the review source subset on production.
@@ -67,3 +67,10 @@ mova tags antigas. `--prepare-only` aplica o patch e cria apenas o commit local;
 `--audit-only` constrói/testa na VPS sem substituir a produção; o modo normal exige
 119/0 e provedores reais antes da troca; o publicador separado só roda depois de
 `DEPLOY COMPLETE`. Trabalho staged após falha é preservado para inspeção, nunca apagado.
+
+
+## Native audit repair r2 (includes r1)
+
+For the 115/4 native-audit failure, use **securitysearch-v0.9.40-deploy-ionos-r2.fish** and the paired **securitysearch-v0.9.40-publish-four-remotes-r2.fish** in place of the original launchers above. Run `--check-only` then `--audit-only`; 119/0 and all live gates remain mandatory. The application version stays 0.9.40. See [r1 repair details](AUDITFIX-0.9.40-r1.md).
+
+Revision r2 also restores configuration after oversized generated output without masking the original fixture error. Each comparison reads at most the captured original length plus one byte. See [r2 cleanup details](AUDITFIX-0.9.40-r2.md). Native 119/0 acceptance is still required.

@@ -39,11 +39,15 @@ class proxy {const req_web=0;const req_image=1;
   except subprocess.TimeoutExpired:cls.proc.kill();cls.proc.wait(timeout=3)
   cls.log.close();cls.tmp.cleanup()
  def setUp(self):
-  self.file=self.root/'icons/fixture.invalid.png'
+  # A previous miss legitimately persists a negative APCu entry for 60 seconds.
+  # Isolate independent cases by host instead of disabling APCu or clearing it.
+  self.host=self._testMethodName.replace('_','-')+'.fixture.invalid'
+  self.file=self.root/'icons'/(self.host+'.png')
   if self.file.exists() or self.file.is_symlink():self.file.unlink()
   self.data=(ROOT/'lib/favicon404.png').read_bytes();self.file.write_bytes(self.data)
   for n in ('transport-imported','transport-called'):(self.root/'lib'/n).unlink(missing_ok=True)
- def request(self,method='GET',headers=None,path='/favicon.php?s=https://fixture.invalid'):
+ def request(self,method='GET',headers=None,path=None):
+  if path is None:path='/favicon.php?s=https://'+self.host
   c=http.client.HTTPConnection('127.0.0.1',self.port,timeout=3)
   try:
    c.request(method,path,headers=headers or {});r=c.getresponse();return r.status,{k.lower():v for k,v in r.getheaders()},r.read()
@@ -87,4 +91,19 @@ class proxy {const req_web=0;const req_image=1;
  def test_warning_free_invalid_target(self):
   st,h,b=self.request(path='/favicon.php?s=404');self.assertEqual(st,404)
   text=(self.root/'php.log').read_text();self.assertNotIn('Undefined property',text);self.assertNotIn('Undefined variable',text)
+ def test_valid_disk_hit_after_failed_refresh(self):
+  self.file.write_bytes(b'not-png')
+  st,h,b=self.request();self.assertEqual(st,404)
+  self.assertTrue((self.root/'lib/transport-called').exists())
+  self.file.write_bytes(self.data)
+  for n in ('transport-imported','transport-called'):(self.root/'lib'/n).unlink(missing_ok=True)
+  st,h,b=self.request();self.assertEqual(st,200);self.assertEqual(b,self.data);self.clean_hit()
+ def test_distinct_host_miss_is_not_suppressed_by_previous_host(self):
+  self.file.write_bytes(b'not-png')
+  st,h,b=self.request();self.assertEqual(st,404)
+  self.assertTrue((self.root/'lib/transport-called').exists())
+  for n in ('transport-imported','transport-called'):(self.root/'lib'/n).unlink(missing_ok=True)
+  other='other-'+self.host
+  st,h,b=self.request(path='/favicon.php?s=https://'+other);self.assertEqual(st,404)
+  self.assertTrue((self.root/'lib/transport-called').exists())
 if __name__=='__main__':unittest.main(verbosity=2)

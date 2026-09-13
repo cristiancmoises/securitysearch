@@ -1,5 +1,23 @@
 # SecuritySearch v0.9.40 — direct v0.9.30 upgrade
 
+## 0.9.40 — native-audit repair r2
+
+Fix a reproduced cleanup failure when the native fixture leaves generated configuration
+larger than the 1 MiB source-capture bound. Compare at most original length plus one byte,
+restore exact bytes/mode, and propagate the original fixture exception. Keep the original
+capture limit, linked/replaced-file refusal, all 119 commands and native/live acceptance.
+Add ten regression cases, including sparse output, short reads and exception preservation.
+No visitor-path changes or evidence of an oversized IONOS configuration are claimed.
+See [r2 details](docs/AUDITFIX-0.9.40-r2.md).
+
+## 0.9.40 — native-audit repair r1
+
+Restore source configuration after the real native homepage fixture; isolate favicon HTTP
+cases by host without disabling APCu. Keep the 119-command inventory, runtime hash manifests,
+production code and deployment/publication gates unchanged. See
+[the repair notes](docs/AUDITFIX-0.9.40-r1.md) for the 115/4 failure and validation scope.
+
+
 Date: 2026-09-12. Application identifier 0.9.40; asset identifier 40.
 Implemented deployment candidate, not an assertion of IONOS acceptance or publication.
 No v0.9.39 installation/tag is needed; its unpublished search-state work is included here.

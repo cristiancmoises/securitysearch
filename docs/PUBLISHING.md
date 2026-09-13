@@ -11,9 +11,9 @@ To do only that step, run:
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --prepare-only
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --prepare-only
 end
 ```
 
@@ -32,9 +32,9 @@ image, complete 119-command transcript/execution and retained Google Web/Images/
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
 end
 ```
 
@@ -65,3 +65,12 @@ conflicts are never overwritten. `--verify-only` performs deployed verification 
 
 References: [Git push semantics](https://git-scm.com/docs/git-push),
 [Fish syntax-check mode](https://fishshell.com/docs/current/cmds/fish.html).
+
+
+## Native audit repair r2 (includes r1)
+
+For the 115/4 native-audit failure, use **securitysearch-v0.9.40-deploy-ionos-r2.fish** and the paired **securitysearch-v0.9.40-publish-four-remotes-r2.fish** in place of the original launchers above. Run `--check-only` then `--audit-only`; 119/0 and all live gates remain mandatory. The application version stays 0.9.40. See [r1 repair details](AUDITFIX-0.9.40-r1.md).
+
+The superseded `securitysearch-v0.9.40-publish-four-remotes.fish` pins the original tree; do not use it for the r2 repair.
+
+Revision r2 also restores configuration after oversized generated output without masking the original fixture error. Each comparison reads at most the captured original length plus one byte. See [r2 cleanup details](AUDITFIX-0.9.40-r2.md). Native 119/0 acceptance is still required.

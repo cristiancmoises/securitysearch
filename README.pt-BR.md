@@ -57,10 +57,10 @@ Salve o script de deploy e seu `.sha256` diretamente em `~/Downloads`:
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --check-only
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --audit-only
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --check-only
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --audit-only
 end
 ```
 
@@ -78,7 +78,7 @@ Reexecutar na árvore-alvo exata não cria outro commit; uma falha não apaga tr
 Depois de revisar uma auditoria nativa aprovada, execute o script verificado sem opções:
 
 ```fish
-fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
+fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
 ```
 
 Destino: `root@securityops.co`, porta SSH `5119`, contêiner `security-search`.
@@ -107,9 +107,9 @@ A tag existente `v0.9.30` não é movida.
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
 end
 ```
 
@@ -124,7 +124,7 @@ pode deixar publicação parcial. Reexecute o mesmo script ou selecione um `--ho
 
 ## Diagnósticos e testes
 
-`securitysearch-audit-diagnostics-0.9.40.fish` coleta um relatório filtrado sem reconstruir.
+`securitysearch-audit-diagnostics-0.9.40-r2.fish` coleta um relatório filtrado sem reconstruir.
 `--explain-latest` e `--explain-report ARQUIVO` leem evidências locais sem SSH.
 JSON e checksum usam modo 0600; consultas, corpos de provedores, logs arbitrários e credenciais
 não são incluídos. Coleta com saída 0 significa **coletado**, não **auditoria aprovada**.
@@ -150,3 +150,10 @@ tipográficas inalteradas, arte privada e histórico sintético de reconstruçã
 [Problemas comuns](docs/TROUBLESHOOTING-0.9.40.md) · [Changelog](CHANGELOG.md) ·
 [Notas](docs/RELEASE-0.9.40.md) · [Auditoria](docs/AUDIT-0.9.40.md) ·
 [Desempenho](docs/PERFORMANCE-0.9.40.md) · [Licença](license.txt).
+
+
+## Correção r2 da auditoria nativa (inclui r1)
+
+Para a falha nativa 115/4, substitua os launchers anteriores por **securitysearch-v0.9.40-deploy-ionos-r2.fish** e **securitysearch-v0.9.40-publish-four-remotes-r2.fish**. Execute `--check-only` e depois `--audit-only`; 119/0 e todas as verificações reais continuam obrigatórias. A versão do aplicativo permanece 0.9.40. Consulte os [detalhes da correção r1](docs/AUDITFIX-0.9.40-r1.md).
+
+A revisão r2 também restaura a configuração após uma geração maior que o limite de captura, sem ocultar a falha original do teste. O comparador lê no máximo o tamanho do original mais um byte por comparação. Consulte a [correção r2](docs/AUDITFIX-0.9.40-r2.md). A auditoria nativa 119/0 continua obrigatória.

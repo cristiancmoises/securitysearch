@@ -31,3 +31,10 @@ Sucesso na coleta não autoriza deploy/publicação. NPM, portas, volumes, redes
 privada, backups e rollback protegido são mantidos. Não há prune global ou reescrita do histórico.
 
 Consulte [problemas comuns](TROUBLESHOOTING-0.9.40.md) e [publicação](PUBLISHING.pt-BR.md).
+
+
+## Correção r2 da auditoria nativa (inclui r1)
+
+Para a falha nativa 115/4, substitua os launchers anteriores por **securitysearch-v0.9.40-deploy-ionos-r2.fish** e **securitysearch-v0.9.40-publish-four-remotes-r2.fish**. Execute `--check-only` e depois `--audit-only`; 119/0 e todas as verificações reais continuam obrigatórias. A versão do aplicativo permanece 0.9.40. Consulte os [detalhes da correção r1](AUDITFIX-0.9.40-r1.md).
+
+A revisão r2 também restaura a configuração após uma geração maior que o limite de captura, sem ocultar a falha original do teste. O comparador lê no máximo o tamanho do original mais um byte por comparação. Consulte a [correção r2](AUDITFIX-0.9.40-r2.md). A auditoria nativa 119/0 continua obrigatória.

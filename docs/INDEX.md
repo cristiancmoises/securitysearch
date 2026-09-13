@@ -18,3 +18,7 @@ older documents are historical records, not commands to run before v0.9.40.
 Do not replace an existing deployment with generic fresh-install examples. No document
 in this tree certifies IONOS acceptance. Follow the delivered candidate-specific validation
 report and retain the native deployment evidence. Prompts remain outside the source repository.
+
+[Native audit repair r1 / Correção da auditoria](AUDITFIX-0.9.40-r1.md).
+
+[Native fixture cleanup r2 / Restauração da configuração](AUDITFIX-0.9.40-r2.md).

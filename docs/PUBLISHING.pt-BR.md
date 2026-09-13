@@ -9,9 +9,9 @@ aplicar o patch revisado e criar esse commit localmente:
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos.fish" --prepare-only
+    and sha256sum --check securitysearch-v0.9.40-deploy-ionos-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --prepare-only
 end
 ```
 
@@ -25,9 +25,9 @@ Depois da auditoria nativa e de `DEPLOY COMPLETE`, execute o publicador separado
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes-r2.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
 end
 ```
 
@@ -50,3 +50,12 @@ Os quatro hosts são independentes: uma falha pode deixar alguns atualizados. Re
 com os mesmos commit/tag/assets ou selecione `--host git.securityops.com.br`.
 Resultados parciais idênticos são reutilizados; conflitos bloqueiam. `--verify-only`
 verifica a produção sem publicar. O rótulo estável da release não certifica ausência de bugs.
+
+
+## Correção r2 da auditoria nativa (inclui r1)
+
+Para a falha nativa 115/4, substitua os launchers anteriores por **securitysearch-v0.9.40-deploy-ionos-r2.fish** e **securitysearch-v0.9.40-publish-four-remotes-r2.fish**. Execute `--check-only` e depois `--audit-only`; 119/0 e todas as verificações reais continuam obrigatórias. A versão do aplicativo permanece 0.9.40. Consulte os [detalhes da correção r1](AUDITFIX-0.9.40-r1.md).
+
+The superseded `securitysearch-v0.9.40-publish-four-remotes.fish` pins the original tree; do not use it for the r2 repair.
+
+A revisão r2 também restaura a configuração após uma geração maior que o limite de captura, sem ocultar a falha original do teste. O comparador lê no máximo o tamanho do original mais um byte por comparação. Consulte a [correção r2](AUDITFIX-0.9.40-r2.md). A auditoria nativa 119/0 continua obrigatória.
