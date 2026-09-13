@@ -227,7 +227,7 @@ class GitAndArchiveTests(unittest.TestCase):
         self.build_archive()
 
     def git(self, repo, *args):
-        result = subprocess.run(["git", "-C", str(repo), *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=p.safe_environment(), check=True)
+        result = subprocess.run(["git", "-C", str(repo), "-c", "gc.auto=0", "-c", "gc.autoDetach=false", "-c", "maintenance.auto=false", *args], stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=p.safe_environment(), check=True)
         return result.stdout
 
     def build_archive(self):
@@ -398,8 +398,9 @@ class PackageTests(unittest.TestCase):
         self.output = self.root / "release"
 
     def g(self, *args):
-        return subprocess.check_output(["git", "-C", str(self.repo), *args], stderr=subprocess.DEVNULL,
-                                       env=p.safe_environment())
+        return subprocess.check_output(["git", "-C", str(self.repo), "-c", "gc.auto=0",
+                                       "-c", "gc.autoDetach=false", "-c", "maintenance.auto=false", *args],
+                                       stderr=subprocess.DEVNULL, env=p.safe_environment())
 
     def test_package_checksum_provenance_bundle_and_repeat(self):
         self.builder.package(self.repo, self.output)
