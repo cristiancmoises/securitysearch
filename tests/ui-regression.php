@@ -10,20 +10,20 @@ verify(!file_exists('lib/image_flow.php'),'Timer snapshots removed');
 foreach (['home.html','header.html'] as $template) {
  $html=$f->load($template);$dom=new DOMDocument();$dom->loadHTML($html);$xp=new DOMXPath($dom);
  $buttons=$xp->query('//div[contains(@class,"search-actions")]/button');
- verify($buttons->length===4,'Four native search actions');
+ verify($buttons->length===5,'Five native search actions');
  foreach ($buttons as $button) {
   verify($button->getAttribute('aria-label')===trim($button->textContent),'Icon button retains full accessible name');
   $icons=$button->getElementsByTagName('svg');
   verify($icons->length===1 && $icons[0]->getAttribute('aria-hidden')==='true' && $icons[0]->getAttribute('focusable')==='false','Decorative icon never replaces button semantics');
  }
 
- verify(array_map(fn($n)=>trim($n->textContent),iterator_to_array($buttons))===['Search','Search Image','Search Pinterest','Search YouTube'],'Requested button order');
- foreach ([1=>['/images','images'],2=>['/images','binternet'],3=>['/videos','invidious']] as $index=>$route) {
+ verify(array_map(fn($n)=>trim($n->textContent),iterator_to_array($buttons))===['Search','Search Image','Search Pinterest','Search DeviantArt','Search YouTube'],'Requested button order');
+ foreach ([1=>['/images','images'],2=>['/images','binternet'],3=>['/images','skunkyart'],4=>['/videos','invidious']] as $index=>$route) {
   verify($buttons[$index]->getAttribute('formaction')===$route[0] && $buttons[$index]->getAttribute('name')==='destination' && $buttons[$index]->getAttribute('value')===$route[1],'Native action routing');
  }
  verify(!str_contains($html,'search-destinations'),'Below-bar duplicate actions removed');
 }
-foreach (['binternet'=>['images','binternet'],'invidious'=>['videos','invidious'],'images'=>['images','google']] as $destination=>[$page,$expected]) {
+foreach (['binternet'=>['images','binternet'],'skunkyart'=>['images','skunkyart'],'invidious'=>['videos','invidious'],'images'=>['images','google']] as $destination=>[$page,$expected]) {
  $_GET=['s'=>'GNU Guix','scraper'=>'brave','destination'=>$destination,'npt'=>'untrusted','view'=>'filmstrip','quality'=>'high'];$_COOKIE=[];
  [$provider,$filters]=$f->getscraperfilters($page);$get=$f->parsegetfilters($_GET,$filters);
  verify(get_class($provider)===$expected && $get['npt']===false,'Action overrides scraper select and removes old continuation');

@@ -1,112 +1,81 @@
-# SecuritySearch v0.9.41
+# SecuritySearch v0.9.42
 
-[English](README.md) · [Português do Brasil](README.pt-BR.md) · [Documentação](docs/INDEX.md)
+[English](README.md) · [Documentação](docs/INDEX.md)
 
-![Captura histórica do SecuritySearch](docs/screenshots/securitysearch-0.9.36-home.png)
+Buscador PHP voltado à privacidade, baseado no 4get. Busca, filtros, paginação e temas funcionam
+sem JavaScript; rolagem infinita e animações são opcionais. Sem histórico de consultas ou analytics.
 
-Captura histórica local da v0.9.36 no Chromium, com rede bloqueada. Não é uma captura atual da
-produção, resultado de pesquisa ao vivo nem medição de desempenho.
+## DeviantArt via SkunkyArt
 
-O SecuritySearch é um proxy de pesquisa em PHP, baseado no [4get](https://git.lolcat.ca/lolcat/4get)
-e mantido pela Security Ops. Web, imagens, vídeo, notícias RSS e música preservam suas integrações.
-Pesquisa, filtros, paginação e temas funcionam sem JavaScript. Animação, rolagem infinita e My Picture
-usam scripts opcionais da própria origem. Não há novos anúncios, analytics externos ou histórico de consultas.
+A busca de imagens inclui **DeviantArt via SkunkyArt**, com atalho nativo na barra, links da arte
+original, previews pela mídia assinada da instância, filtros de orientação e rótulo de IA, conteúdo
+maduro e paginação. O endereço configurado é `https://skunkyart.securityops.co`, não a grafia
+`securiyops.co`. A autenticação do DeviantArt permanece no SkunkyArt. A disponibilidade e os rótulos
+do provedor não são garantidos.
 
-## Alterações
+## Atualização em uma execução
 
-A aplicação usa **0.9.41** e os assets usam **41**. Títulos de imagens são limitados antes do escape,
-evitando expansão excessiva do HTML/JSON. O filmstrip usa observação assíncrona da viewport, sem
-leitura síncrona de geometria na rolagem. O Apache bloqueia aliases escapados da página inicial
-interna, corrige cabeçalhos de erro e usa bytes sem compressão nas solicitações Range. A página
-inicial anônima continua no caminho estático, sem PHP. Erros do Google incluem metadados limitados
-sem consultas, corpos, credenciais ou sondagens adicionais. Nenhum bloqueio é tratado como sucesso.
-
-O novo benchmark manual v4 ordena por **TTFB**, mantendo o tempo total do HTML separado. O v3 original
-permanece byte a byte inalterado e ordena por entrega completa. Não há alegação de vitória pública
-ou universal. Consulte [desempenho](docs/PERFORMANCE-0.9.41.md) e [pesquisa](docs/RESEARCH-0.9.41.md).
-
-Os comandos históricos da v0.9.40 totalizam 119. Todos continuam como prefixo exato, com cinco
-adições: a nova auditoria exige **124/0**. O resultado antigo de 119/0 na IONOS não aprova esta versão.
-
-## Atualizar, auditar e implantar
-
-Use o checkout completo e limpo na branch `main`, em `~/securitysearch`, e downloads em `~/Downloads`.
-A base v0.9.40-r2 observada no GitHub é `b0ab9966f02dd0c41ad8f936347b64cee5642c9f`.
-O atualizador cumulativo também aceita a árvore corrigida v0.9.30
-`488b01ae481e8e4e95dad3743c2a175c43065c97` e as bases intermediárias exatas preservadas.
-Ele verifica a árvore real, não apenas a versão. Trabalho desconhecido/sujo, clone raso ou outra
-branch é recusado, sem reset, stash, rebase, amend, force-push ou descarte de alterações.
-
-São necessários Fish, Python 3, Git, OpenSSH e coreutils localmente, não PHP/Docker. O destino é
-`root@securityops.co:5119`, contêiner `security-search`, com o pacote privado
-`~/.local/share/securitysearch/operator-themes-v1`. Preserve a verificação da chave SSH.
-
-Salve o script completo e seu checksum em `~/Downloads`:
+Checkout completo e limpo em `~/securitysearch`, arquivos em `~/Downloads`, Fish, Python 3, Git,
+OpenSSH e coreutils. VPS `root@securityops.co:5119`; pacote privado de temas em
+`~/.local/share/securitysearch/operator-themes-v1`. PHP e Docker locais não são necessários.
 
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.41-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish" --check-only
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish" --audit-only
+    and sha256sum --check securitysearch-v0.9.42-deploy-ionos.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.42-deploy-ionos.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.42-deploy-ionos.fish"
 end
 ```
 
-`--check-only` não altera arquivos nem usa SSH. `--prepare-only` cria somente o commit local normal.
-`--audit-only` pode criar commit, enviar código/temas e compilar/testar na IONOS; **não é somente leitura**.
-Não substitui a produção, limpa objetos antigos, consulta provedores, cria tags ou publica. Código,
-imagens e evidências ficam no disco. O sucesso exige **124/0** e `AUDIT ONLY COMPLETE — NOT DEPLOYED`.
+O comando prepara commit normal, envia fonte/temas, compila, roda **130 comandos obrigatórios**
+uma vez e prossegue automaticamente se auditoria e verificações reais dos provedores passarem.
+Não é preciso executar auditoria isolada antes. `--audit-only` continua disponível como diagnóstico,
+sem promoção ou limpeza; uma execução posterior de deploy repete a auditoria. `--check-only` não
+altera o checkout nem usa SSH. `--prepare-only` somente prepara o commit local.
 
-Após revisar a auditoria, execute o script verificado sem `--audit-only`. O deploy normal repete
-todos os testes e exige Google **Web e Images**, RSS, Binternet e validações de imagem reais.
-HTTP 429, CAPTCHA, fallback, resultado vazio, dependência ausente ou log parcial não aprovam o deploy.
-A limpeza limitada de objetos antigos/parados do SecuritySearch pode acontecer antes de uma falha
-posterior. Produção, rollback protegido, NPM, recursos compartilhados, redes, volumes, backups e
-cache de compilação são preservados. Não há prune global.
+Os 124 comandos de v0.9.41 são prefixo intacto. v0.9.40 tinha 119 comandos; resultados anteriores
+não aprovam esta versão. Google Web **e Images**, RSS, Binternet e SkunkyArt precisam passar.
+HTTP 200 com erro do provedor, 429, CAPTCHA, fallback, dependências ausentes e logs incompletos
+não autorizam promoção. Não há promessa de superar todos os sites no TTFB.
 
-## Commit e publicação nos quatro remotes
+## Limpeza depois do sucesso
 
-Somente após `DEPLOY COMPLETE`, use o publicador correspondente:
+Somente depois de promover a nova versão e verificar sua identidade/evidência, a retenção remove
+contêineres reconhecidos antigos e parados, inclusive o rollback antigo, imagens próprias sem uso
+e arquivos de upload `.tar.gz` antigos sob `/root/securitysearch-incoming`.
+**Após essa remoção, o rollback pelo contêiner antigo deixa de estar disponível.**
+Não são alvos: contêineres em execução, imagens usadas por contêineres preservados, Tor, NPM,
+volumes, redes, cache de compilação, backups privados ou diretórios de fonte extraída. Nada é
+apagado antes da compilação. Falha parcial de limpeza é relatada separadamente, sem desfazer o
+serviço aceito. Consulte [RETENTION](docs/RETENTION.md).
+
+## Publicação nos quatro remotos
+
+Apenas após `DEPLOY COMPLETE`:
 
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.41-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.42-publish-four-remotes.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.42-publish-four-remotes.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.42-publish-four-remotes.fish"
 end
 ```
 
-O publicador verifica independentemente código/imagem e evidências antes de enviar `main`, a tag
-anotada imutável `v0.9.41`, notas e pacote-fonte/checksum ao GitHub `cristiancmoises/securitysearch`,
-Codeberg `berkeley/securitysearch`, `git.securityops.co/cristiancmoises/securitysearch` e
-`git.securityops.com.br/cristiancmoises/securitysearch`. Tokens são solicitados privadamente, não
-salvos nem inseridos em URLs. Tags anteriores não são movidas. Conflitos são recusados. Os quatro
-hosts não formam uma operação atômica; `--host` permite retomar trabalho parcial correspondente,
-e `--verify-only` verifica sem publicar.
+GitHub `cristiancmoises/securitysearch`, Codeberg `berkeley/securitysearch`,
+`git.securityops.co/cristiancmoises/securitysearch` e `git.securityops.com.br/cristiancmoises/securitysearch`.
+Tokens são solicitados privadamente; nunca embutidos em URLs. Tags conflitantes não são movidas.
+Sem reset, stash, rebase, force-push ou descarte de alterações. A publicação entre hosts não é atômica.
 
-## Diagnósticos, benchmark e privacidade
+Instâncias Redlib são operadas por terceiros independentes, não pela Security Ops. My Picture não
+envia fotos, nomes ou EXIF. Arte privada fica fora do Git e dos pacotes públicos. O kit não inclui
+fontes tipográficas, credenciais ou histórico Git sintético. Capturas históricas são identificadas.
+Não sobreponha `source-review/` na instalação.
 
-`securitysearch-audit-diagnostics-0.9.41.fish` coleta evidências filtradas; `--explain-latest` e
-`--explain-report FILE` leem relatórios offline. A coleta não verifica a identidade do código nem
-autoriza publicação. Preserve leitores antigos para relatórios com outra árvore. Não compartilhe
-configuração efetiva, tokens ou dados privados.
+[Operações](docs/OPERATIONS-0.9.42.pt-BR.md) · [Publicação](docs/PUBLISHING.pt-BR.md) ·
+[Auditoria](docs/AUDIT-0.9.42.md) · [Changelog](CHANGELOG.md) · [Licença](license.txt).
 
-Execute `sh scripts/test.sh --keep-going` no runtime nativo. Ausência de Fish, extensões PHP ou
-Alpine/FPM gera falha, não aprovação. O limite do log é 8 MiB e o prazo da auditoria é 1.800 segundos;
-esses limites não cobrem uploads ou builds. O relatório externo de validação lista os testes executados.
+Baseline corrigido v0.9.30: `488b01ae481e8e4e95dad3743c2a175c43065c97`.
 
-`fish tools/secops-web-benchmark-v4.fish --self-test` testa offline. A execução normal faz GETs reais
-sequenciais para sete páginas iniciais e salva HTML/CSV/JSON em `~/Downloads/securityops-benchmarks`.
-Não roda automaticamente no deploy. O resultado vale para aquela máquina/rede/momento, não para
-todos os buscadores ou a qualidade/latência de resultados de pesquisa.
-
-Instâncias externas Redlib são operadas por terceiros, não pela Security Ops. My Picture não envia
-imagem, nome do arquivo ou EXIF. Originais/derivados privados ficam fora do Git e dos assets públicos.
-O kit não contém fontes tipográficas, credenciais, arte privada ou histórico Git sintético. É um
-kit de atualização/revisão, não uma instalação do zero; não sobreponha a pasta source-review/.
-
-[Operação](docs/OPERATIONS-0.9.41.pt-BR.md) · [Publicação](docs/PUBLISHING.pt-BR.md) ·
-[Auditoria](docs/AUDIT-0.9.41.md) · [Notas](docs/RELEASE-0.9.41.md) ·
-[Changelog](CHANGELOG.md) · [Licença](license.txt).
+Contexto histórico: os comandos de v0.9.40 totalizam 119. A auditoria atual exige 130/0.

@@ -17,6 +17,10 @@ class frontend extends page_renderer{
 	
 	public function image_suggestion(array $get): string {
         $query = is_string($get['s'] ?? null) ? $get['s'] : '';
+        if (($get['scraper'] ?? '')==='skunkyart') {
+            $direct='https://skunkyart.securityops.co/search?media=image&q='.rawurlencode($query);
+            return '<aside class="video-suggestion" aria-label="DeviantArt search"><strong>DeviantArt via SkunkyArt</strong> · <a href="'.htmlspecialchars($direct,ENT_QUOTES,'UTF-8').'" rel="noreferrer noopener">Open SkunkyArt</a><small>Uses the operator-owned frontend. Safe Search and AI labels depend on provider metadata; availability is not guaranteed.</small></aside>';
+        }
         $direct = 'https://images.securityops.co/search.php?q=' . rawurlencode($query);
         $local = '/images?s=' . rawurlencode($query) . '&scraper=binternet';
         $note = ($get['scraper'] ?? '') === 'binternet' ?
@@ -148,7 +152,7 @@ class frontend extends page_renderer{
         $title = $limited ? 'Google is temporarily unavailable' : 'Search paused';
         $message = $limited ? "Google is limiting requests from this instance. Try another provider, or wait at least 30 seconds before retrying." : 'This provider could not complete your search. Choose another provider or retry in a moment.';
         $alternatives = match ($target) {
-            'images' => ['brave'=>'Try Brave', 'binternet'=>'Search Pinterest'],
+            'images' => ['brave'=>'Try Brave', 'binternet'=>'Search Pinterest', 'skunkyart'=>'Search DeviantArt'],
             'news' => ['newswire'=>'Try News RSS', 'brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
             'web' => ['brave'=>'Try Brave', 'ddg'=>'Try DuckDuckGo'],
             'videos' => ['invidious'=>'Search YouTube', 'brave'=>'Try Brave'],
@@ -906,7 +910,7 @@ class frontend extends page_renderer{
         // Native submit buttons use a separate name from the Scraper select.
         // Destination changes always begin a new search with compatible filters.
         $destination = $_GET['destination'] ?? null;
-        if (($page === 'images' && in_array($destination, ['images','binternet'], true)) || ($page === 'videos' && $destination === 'invidious')) {
+        if (($page === 'images' && in_array($destination, ['images','binternet','skunkyart'], true)) || ($page === 'videos' && $destination === 'invidious')) {
             unset($_GET['npt']);
             $_GET = array_intersect_key($_GET, array_flip(['s','view','quality','nsfw','format']));
             if ($destination === 'images') {
@@ -1006,6 +1010,7 @@ class frontend extends page_renderer{
 						"baidu" => "Baidu",
 						"solofield" => "Solofield",
 						"binternet" => "Pinterest via Binternet",
+						"skunkyart" => "DeviantArt via SkunkyArt",
 						"pinterest" => "Pinterest (direct)",
 						"cara" => "Cara",
 						"flickr" => "Flickr",

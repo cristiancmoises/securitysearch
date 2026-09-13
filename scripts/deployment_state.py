@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 import stat
 
-NAMES = ('release.json', 'predeploy-cleanup.json', 'offline-audit-result.json', 'audit-only.json')
+NAMES = ('release.json', 'predeploy-cleanup.json', 'offline-audit-result.json', 'audit-only.json', 'skunkyart-live.json', 'postdeploy-cleanup.json')
 
 class StateError(RuntimeError):
     pass

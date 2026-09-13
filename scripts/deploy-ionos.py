@@ -23,8 +23,8 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.41'
-ASSET_VERSION = 41
+VERSION = '0.9.42'
+ASSET_VERSION = 42
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -302,6 +302,34 @@ def live_binternet_gate(cid, backup):
     if report.get('status') != 'ok' or report.get('first_count',0) < 1:
         raise RuntimeError('Live Binternet gate failed; production is unchanged. Inspect '+str(backup/'binternet-live.json'))
     print('Binternet returned real results from the VPS candidate; available pagination checked.',flush=True)
+
+
+def live_skunkyart_gate(cid, backup):
+    """Use the candidate adapter, at most two real service pages, no fallback."""
+    run('docker','cp',str(ROOT/'scripts/provider-probe.php'),cid+':/tmp/securitysearch-provider-probe.php')
+    raw = run('docker','exec','--workdir',APP,cid,'timeout','35','php','-d','apc.enable_cli=1',
+              '/tmp/securitysearch-provider-probe.php','skunkyart','images','landscape','2',capture=True)
+    if not isinstance(raw,str) or len(raw)>16384:
+        raise RuntimeError('SkunkyArt probe exceeded its evidence limit.')
+    report=json.loads(raw)
+    valid=(isinstance(report,dict) and report.get('provider')=='skunkyart' and report.get('page')=='images'
+           and report.get('status')=='ok' and type(report.get('first_count')) is int
+           and 1<=report['first_count']<=100 and isinstance(report.get('pages'),list)
+           and 1<=len(report['pages'])<=2)
+    clean={'schema':1,'version':VERSION,'provider':'skunkyart','status':'unavailable','pages':[]}
+    if valid:
+        for number,row in enumerate(report['pages'],1):
+            if (not isinstance(row,dict) or row.get('number')!=number or type(row.get('count')) is not int
+                    or not 0<=row['count']<=100 or type(row.get('has_next')) is not bool):
+                valid=False;break
+            clean['pages'].append({k:row[k] for k in ('number','count','has_next')})
+        if clean['pages'] and clean['pages'][0]['count']!=report['first_count']:valid=False
+        if clean['pages'] and clean['pages'][0]['has_next'] and len(clean['pages'])!=2:valid=False
+        if valid:
+            clean['status']='ok';clean['first_count']=report['first_count']
+    deployment_module('deployment_state').write_record(backup,'skunkyart-live.json',clean,google_backup_identity(backup))
+    if not valid:raise RuntimeError('SkunkyArt candidate search/pagination failed; production is unchanged.')
+    print('SkunkyArt returned real DeviantArt results from the VPS candidate; available pagination checked.',flush=True)
 
 
 # These match service_pool::allowed(). A failed live check never stops production.
@@ -700,6 +728,15 @@ def audit_only(name, old):
     return backup
 
 
+def check_build_capacity():
+    docker_root=run('docker','info','--format','{{.DockerRootDir}}',capture=True).strip()
+    if not docker_root.startswith('/') or '\n' in docker_root or len(docker_root)>4096:
+        raise RuntimeError('Cannot verify Docker build storage.')
+    for storage in (str(ROOT),docker_root):
+        if shutil.disk_usage(storage).free<2*1024**3 or os.statvfs(storage).f_favail<10000:
+            raise RuntimeError('Build requires 2 GiB and 10000 free inodes; no pre-build deletion attempted.')
+
+
 def main():
     if os.geteuid() != 0:
         raise RuntimeError('Run this updater as root on the IONOS Docker host.')
@@ -806,7 +843,9 @@ def main():
             run('docker','cp','-a',old['Id']+':'+destination,str(target))
             old['_private_binds'].append(str(target)+':'+destination+':ro')
     production_guard.verify(production_snapshot, inspect(name))
-    cleanup_before_build(backup, lock.fileno(), backup_identity, old['Id'])
+    # Older builds remain available until successful promotion and independent verification.
+    # The external operator performs scoped post-success retention, never pre-build cleanup.
+    check_build_capacity()
     print('Building the new image while the current service stays online.',flush=True)
     run('docker','build','--pull','-t',image,str(ROOT))
     offline_audit(image,backup)
@@ -822,6 +861,7 @@ def main():
         selected_news, selected_market = live_news_gate(candidate,backup)
         set_news_primary(old, selected_news, selected_market)
         live_binternet_gate(candidate,backup)
+        live_skunkyart_gate(candidate,backup)
         if os.environ.get('SECURITYSEARCH_VERIFY_GOOGLE') == '1':
             live_google_gate(candidate,backup)
         api('DELETE','/containers/'+candidate+'?force=1')

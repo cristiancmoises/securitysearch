@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.9.42
+
+- Add DeviantArt via the fixed SkunkyArt API, native toolbar shortcut, bounded metadata,
+  signed media handling, orientation/AI-label/Safe Search filters and continuation pages.
+- Normal deployment is one native audit followed automatically by all real provider gates,
+  guarded promotion, independent verification and scoped post-success retention.
+- Remove automatic pre-build cleanup. Retire old stopped rollback containers only after
+  success; never stop running services. Remove only owned unused images and recognized old
+  upload gzip/checksum pairs. Keep private backups, extracted sources, volumes, networks and NPM.
+- Preserve one-pass native acceptance and add a SkunkyArt live-result receipt verified independently.
+- Archive uploads mask group write permissions at creation instead of requiring later chmod repairs.
+- Keep Google Web/Images acceptance and rate-limit failures mandatory. No upstream restriction bypass.
+- Add six audit suites; historical 124-command prefix preserved, current inventory 130.
+
+
 ## 0.9.41 — delivery correctness and bounded rendering
 
 - Bound provider image titles before escaping; reuse escaped labels; retain original links and preview choices.

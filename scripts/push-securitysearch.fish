@@ -1,8 +1,8 @@
 #!/usr/bin/env fish
 # Invoke only the matching, checksum-verified self-contained operator.
-set -l launcher "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
+set -l launcher "$HOME/Downloads/securitysearch-v0.9.42-publish-four-remotes.fish"
 if not test -f "$launcher"; or not test -f "$launcher.sha256"
-    echo "Download the v0.9.41 publish-four-remotes launcher and checksum into ~/Downloads first." >&2
+    echo "Download the v0.9.42 publish-four-remotes launcher and checksum into ~/Downloads first." >&2
     exit 2
 end
 pushd "$HOME/Downloads" >/dev/null; or exit 1

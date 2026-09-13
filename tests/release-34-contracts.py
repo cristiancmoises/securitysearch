@@ -7,11 +7,11 @@ R=Path(__file__).resolve().parents[1]
 class Release(unittest.TestCase):
  def test_all_previous_commands_preserved(self):
   old=json.loads((R/'data/audit-baseline-0.9.33.json').read_text())['commands'];new=[x for x in (R/'scripts/test.sh').read_text().splitlines() if x.startswith('run_test ')]
-  self.assertEqual(len(old),93);self.assertEqual(new[:93],old);self.assertEqual(len(new),124);self.assertEqual(len(new),len(set(new)))
+  self.assertEqual(len(old),93);self.assertEqual(new[:93],old);self.assertEqual(len(new),130);self.assertEqual(len(new),len(set(new)))
  def test_current_version_and_asset(self):
-  self.assertEqual((R/'data/release-version.txt').read_text().strip(),'0.9.41');self.assertIn('const VERSION = 41;',(R/'data/config.php').read_text())
-  self.assertIn("VERSION = '0.9.41'",(R/'scripts/deploy-ionos.py').read_text());self.assertIn('ASSET_VERSION = 41',(R/'scripts/deploy-ionos.py').read_text())
-  self.assertIn('ASSET_VERSION = 41',(R/'scripts/package-v0.9.41.py').read_text())
+  self.assertEqual((R/'data/release-version.txt').read_text().strip(),'0.9.42');self.assertIn('const VERSION = 42;',(R/'data/config.php').read_text())
+  self.assertIn("VERSION = '0.9.42'",(R/'scripts/deploy-ionos.py').read_text());self.assertIn('ASSET_VERSION = 42',(R/'scripts/deploy-ionos.py').read_text())
+  self.assertIn('ASSET_VERSION = 42',(R/'scripts/package-v0.9.42.py').read_text())
   self.assertIn('to 119.',(R/'README.md').read_text());self.assertIn('totalizam 119.',(R/'README.pt-BR.md').read_text())
  def test_provider_privacy_and_ui_hashes_unchanged(self):
   for path,sha in json.loads((R/'data/preserved-runtime-0.9.32.json').read_text()).items():self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),sha,path)

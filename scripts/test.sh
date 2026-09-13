@@ -150,6 +150,12 @@ run_test python3 tests/home-representation-http-regression.py
 run_test python3 tools/ttfb_benchmark.py --self-test
 run_test python3 tests/release-41-contracts.py
 run_test python3 tests/publication-v0.9.41-regression.py
+run_test php tests/skunkyart-regression.php
+run_test python3 tests/skunkyart-http-regression.py
+run_test python3 tests/postdeploy-cleanup-regression.py
+run_test python3 tests/single-deploy-regression.py
+run_test python3 tests/release-42-contracts.py
+run_test python3 tests/publication-v0.9.42-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

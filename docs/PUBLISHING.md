@@ -1,7 +1,7 @@
-# Publication — v0.9.41
+# Publication — v0.9.42
 
 This is the current guide. Older numbered publishing documents are historical.
-Start from the [direct v0.9.30 upgrade](UPGRADE-0.9.30-to-0.9.41.md).
+Start from the [direct v0.9.30 upgrade](UPGRADE-0.9.30-to-0.9.42.md).
 
 ## Commit locally
 
@@ -11,9 +11,9 @@ To do only that step, run:
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.41-deploy-ionos.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish" --prepare-only
+    and sha256sum --check securitysearch-v0.9.42-deploy-ionos.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.42-deploy-ionos.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.42-deploy-ionos.fish" --prepare-only
 end
 ```
 
@@ -32,9 +32,9 @@ image, complete 124-command transcript/execution and retained Google Web/Images/
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.41-publish-four-remotes.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
+    and sha256sum --check securitysearch-v0.9.42-publish-four-remotes.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.42-publish-four-remotes.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.42-publish-four-remotes.fish"
 end
 ```
 
@@ -47,8 +47,8 @@ end
 | `git.securityops.co` | `cristiancmoises/securitysearch` |
 | `git.securityops.com.br` | `cristiancmoises/securitysearch` |
 
-The publisher pushes `main` and an immutable annotated `v0.9.41` tag, then verifies/reconciles
-a non-prerelease release, `securitysearch-v0.9.41.tar.gz` and its SHA-256 asset.
+The publisher pushes `main` and an immutable annotated `v0.9.42` tag, then verifies/reconciles
+a non-prerelease release, `securitysearch-v0.9.42.tar.gz` and its SHA-256 asset.
 Packaging happens on your real source history, not this assistant's synthetic reconstruction.
 The incremental recovery bundle retains the existing v0.9.30 base and is local recovery material;
 the normal public release assets are the source tarball and checksum.

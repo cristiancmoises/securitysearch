@@ -4,20 +4,20 @@ import ast,hashlib,importlib.util,json,re,unittest
 from pathlib import Path
 from unittest.mock import patch
 from audit_fixture import load
-from runtime_history import historical_bytes
+from runtime_history import historical_bytes, before42_bytes
 R=Path(__file__).resolve().parents[1]
 class Release41(unittest.TestCase):
  def test_all_119_prior_commands_are_an_exact_prefix(self):
   old=json.loads((R/'data/audit-commands-0.9.40.json').read_text())['commands'];new=load('audit_evidence').source_commands(R)
-  self.assertEqual(len(old),119);self.assertEqual(new[:119],old);self.assertEqual(len(new),124);self.assertEqual(len(set(new)),124)
+  self.assertEqual(len(old),119);self.assertEqual(new[:119],old);self.assertEqual(len(new),130);self.assertEqual(len(set(new)),130)
  def test_current_version_and_assets(self):
-  self.assertEqual((R/'data/release-version.txt').read_text(),'0.9.41\n');self.assertIn('const VERSION = 41;',(R/'data/config.php').read_text())
-  self.assertEqual(load('deploy-ionos').ASSET_VERSION,41);self.assertEqual(load('package-v0.9.41').ASSET_VERSION,41)
+  self.assertEqual((R/'data/release-version.txt').read_text(),'0.9.42\n');self.assertIn('const VERSION = 42;',(R/'data/config.php').read_text())
+  self.assertEqual(load('deploy-ionos').ASSET_VERSION,42);self.assertEqual(load('package-v0.9.41').ASSET_VERSION,41)
  def test_exact_six_reviewed_runtime_paths(self):
   manifest=json.loads((R/'data/runtime-changes-0.9.41.json').read_text());self.assertEqual(manifest['baseline_tree'],'b0ab9966f02dd0c41ad8f936347b64cee5642c9f')
   self.assertEqual(set(manifest['files']),set('data/config.php docker/apache/fast-home.conf docker/apache/http/httpd.conf docker/apache/https/httpd.conf lib/image_results.php static/images-infinite.js'.split()))
   for name,row in manifest['files'].items():
-   self.assertEqual(hashlib.sha256((R/name).read_bytes()).hexdigest(),row['new_sha256'])
+   self.assertEqual(hashlib.sha256(before42_bytes(name)).hexdigest(),row['new_sha256'])
    self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),row['old_sha256'])
  def test_all_232_historical_runtime_hashes_still_verified(self):
   hashes=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text());self.assertEqual(len(hashes),232)
@@ -62,9 +62,9 @@ class Release41(unittest.TestCase):
    text=(R/name).read_text();self.assertIn('5119',text);self.assertNotIn('5124',text)
  def test_source_launchers_verify_downloaded_bytes_before_execution(self):
   for name in ('scripts/deploy-ionos.fish','scripts/push-securitysearch.fish'):
-   text=(R/name).read_text();self.assertIn('sha256sum --check',text);self.assertIn('--no-execute',text);self.assertIn('0.9.41',text)
+   text=(R/name).read_text();self.assertIn('sha256sum --check',text);self.assertIn('--no-execute',text);self.assertIn('0.9.42',text)
  def test_only_ordinary_versioned_release_entrypoints(self):
   self.assertEqual(load('publish-v0.9.41').VERSION,'0.9.41')
   for name in ('docs/PUBLISHING.md','docs/PUBLISHING.pt-BR.md'):
-   text=(R/name).read_text();self.assertIn('0.9.41-publish-four-remotes.fish',text);self.assertIn('DEPLOY COMPLETE',text)
+   text=(R/name).read_text();self.assertIn('0.9.42-publish-four-remotes.fish',text);self.assertIn('DEPLOY COMPLETE',text)
 if __name__=='__main__':unittest.main(verbosity=2)

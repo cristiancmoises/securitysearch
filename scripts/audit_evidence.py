@@ -9,8 +9,8 @@ import json
 import re
 from pathlib import Path
 
-RELEASE = '0.9.41'
-COMMAND_COUNT = 124
+RELEASE = '0.9.42'
+COMMAND_COUNT = 130
 MAX_LOG = 8 * 1024 * 1024
 SUMMARY = '=== OFFLINE AUDIT SUMMARY ==='
 FINISH = 'Every required test command completed successfully.'
@@ -35,7 +35,7 @@ def inventory_digest(commands):
 def source_commands(root):
     """Refuse drift between the checked-in inventory and the actual shell runner."""
     root = Path(root)
-    raw = (root / 'data/audit-commands-0.9.41.json').read_bytes()
+    raw = (root / 'data/audit-commands-0.9.42.json').read_bytes()
     if len(raw) > 256 * 1024:
         raise EvidenceError('inventory_size_limit')
     try:

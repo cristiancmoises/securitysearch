@@ -2,8 +2,24 @@
 import hashlib,json
 from pathlib import Path
 R=Path(__file__).resolve().parents[1]
-def historical_bytes(name):
+def before42_bytes(name):
     raw=(R/name).read_bytes()
+    manifest=json.loads((R/'data/runtime-changes-0.9.42.json').read_text())
+    delta=manifest['files']
+    if set(delta)!={'data/config.php','lib/frontend.php','template/search-actions.html','scripts/deployment_state.py','static/style.css','static/home-base.css'}:
+        raise ValueError('Unexpected v42 production delta scope')
+    if name not in delta:return raw
+    record=delta[name]
+    if hashlib.sha256(raw).hexdigest()!=record['new_sha256']:raise ValueError('Unexpected v42 runtime bytes: '+name)
+    for edit in reversed(record['edits']):
+        before,after=edit['before'].encode(),edit['after'].encode()
+        if raw.count(after)!=1:raise ValueError('Ambiguous v42 edit: '+name)
+        raw=raw.replace(after,before,1)
+    if hashlib.sha256(raw).hexdigest()!=record['old_sha256']:raise ValueError('Historical v41 runtime mismatch: '+name)
+    return raw
+
+def historical_bytes(name):
+    raw=before42_bytes(name)
     delta=json.loads((R/'data/runtime-changes-0.9.41.json').read_text())['files']
     if set(delta)!=set('data/config.php docker/apache/fast-home.conf docker/apache/http/httpd.conf docker/apache/https/httpd.conf lib/image_results.php static/images-infinite.js'.split()):
         raise ValueError('Unexpected v41 production delta scope')
