@@ -21,7 +21,7 @@ class EvidenceTests(unittest.TestCase):
     def test_exact_ordered_transcript(self):
         raw = transcript()
         report = m.validate_log(raw, COMMANDS)
-        self.assertEqual(report['commands'], 119)
+        self.assertEqual(report['commands'], 124)
         self.assertEqual(report['log_sha256'], hashlib.sha256(raw).hexdigest())
         self.assertEqual(report['log_bytes'], len(raw))
 
@@ -38,14 +38,14 @@ class EvidenceTests(unittest.TestCase):
                 m.validate_log(transcript(commands), COMMANDS)
 
     def test_summary_alone_cannot_certify(self):
-        raw = b'\n=== OFFLINE AUDIT SUMMARY ===\nCommands passed: 119; failed: 0.\nEvery required test command completed successfully.\n'
+        raw = b'\n=== OFFLINE AUDIT SUMMARY ===\nCommands passed: 124; failed: 0.\nEvery required test command completed successfully.\n'
         with self.assertRaises(m.EvidenceError):
             m.validate_log(raw, COMMANDS)
 
     def test_duplicate_summary_and_trailing_success_spoof(self):
         good = transcript()
         for raw in (good + good, good + b'after final summary\n', good + good[good.index(b'\n=== OFFLINE AUDIT SUMMARY'):],
-                    good.replace(b'Commands passed: 119;', b'Commands passed: 118;'), good.replace(b'failed: 0.', b'failed: 1.')):
+                    good.replace(b'Commands passed: 124;', b'Commands passed: 123;'), good.replace(b'failed: 0.', b'failed: 1.')):
             with self.subTest(length=len(raw)), self.assertRaises(m.EvidenceError):
                 m.validate_log(raw, COMMANDS)
 
@@ -79,7 +79,7 @@ class EvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
             (root/'data').mkdir(); (root/'scripts').mkdir()
-            (root/'data/audit-commands-0.9.40.json').write_bytes((ROOT/'data/audit-commands-0.9.40.json').read_bytes())
+            (root/'data/audit-commands-0.9.41.json').write_bytes((ROOT/'data/audit-commands-0.9.41.json').read_bytes())
             script = (ROOT/'scripts/test.sh').read_text()
             (root/'scripts/test.sh').write_text(script)
             self.assertEqual(m.source_commands(root), COMMANDS)
@@ -122,10 +122,10 @@ class DeploymentEvidenceTests(unittest.TestCase):
     def test_complete_native_fixture_passes(self):
         error, report = self.run_audit()
         self.assertIsNone(error)
-        self.assertEqual(report['proof']['commands'], 119)
+        self.assertEqual(report['proof']['commands'], 124)
 
     def test_zero_exits_with_no_commands_are_refused(self):
-        for raw in (b'', b'early exit\n', b'=== OFFLINE AUDIT SUMMARY ===\nCommands passed: 119; failed: 0.\n'):
+        for raw in (b'', b'early exit\n', b'=== OFFLINE AUDIT SUMMARY ===\nCommands passed: 124; failed: 0.\n'):
             error, report = self.run_audit(raw)
             self.assertIsNotNone(error)
             self.assertEqual(report['status'], 'failed')

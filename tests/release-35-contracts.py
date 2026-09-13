@@ -2,16 +2,17 @@
 """Release identity, audit preservation and image-proxy scope guards."""
 import hashlib,json,unittest
 from pathlib import Path
+from runtime_history import historical_bytes
 R=Path(__file__).resolve().parents[1]
 class Release35(unittest.TestCase):
  def test_previous_commands_preserved(self):
   old=json.loads((R/'data/audit-baseline-0.9.34.json').read_text())['commands']
   new=[x for x in (R/'scripts/test.sh').read_text().splitlines() if x.startswith('run_test ')]
-  self.assertEqual(len(old),97);self.assertEqual(new[:97],old);self.assertEqual(len(new),119);self.assertEqual(len(new),len(set(new)))
+  self.assertEqual(len(old),97);self.assertEqual(new[:97],old);self.assertEqual(len(new),124);self.assertEqual(len(new),len(set(new)))
  def test_version_and_asset(self):
-  self.assertEqual((R/'data/release-version.txt').read_text().strip(),'0.9.40');self.assertIn('const VERSION = 40;',(R/'data/config.php').read_text());self.assertIn('ASSET_VERSION = 40',(R/'scripts/deploy-ionos.py').read_text());self.assertIn('ASSET_VERSION = 40',(R/'scripts/package-v0.9.40.py').read_text())
+  self.assertEqual((R/'data/release-version.txt').read_text().strip(),'0.9.41');self.assertIn('const VERSION = 41;',(R/'data/config.php').read_text());self.assertIn('ASSET_VERSION = 41',(R/'scripts/deploy-ionos.py').read_text());self.assertIn('ASSET_VERSION = 41',(R/'scripts/package-v0.9.41.py').read_text())
  def test_providers_and_privacy_files_preserved(self):
-  for p,h in json.loads((R/'data/preserved-runtime-0.9.32.json').read_text()).items():self.assertEqual(hashlib.sha256((R/p).read_bytes()).hexdigest(),h,p)
+  for p,h in json.loads((R/'data/preserved-runtime-0.9.32.json').read_text()).items():self.assertEqual(hashlib.sha256(historical_bytes(p)).hexdigest(),h,p)
  def test_no_network_cache_or_request_inputs_in_png_helper(self):
   s=(R/'lib/thumbnail_png.php').read_text()
   for v in ('$_GET','$_COOKIE','curl_','apcu_','shell_exec','file_put_contents'):self.assertNotIn(v,s)

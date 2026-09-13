@@ -1,159 +1,112 @@
-# SecuritySearch v0.9.40
+# SecuritySearch v0.9.41
 
 [English](README.md) · [Português do Brasil](README.pt-BR.md) · [Documentação](docs/INDEX.md)
 
-![Página inicial do SecuritySearch](docs/screenshots/securitysearch-0.9.36-home.png)
+![Captura histórica do SecuritySearch](docs/screenshots/securitysearch-0.9.36-home.png)
 
-Captura histórica local da v0.9.36 no Chromium, com rede bloqueada. Não é uma captura
-atual da produção, uma amostra de resultados reais ou uma medição de desempenho.
+Captura histórica local da v0.9.36 no Chromium, com rede bloqueada. Não é uma captura atual da
+produção, resultado de pesquisa ao vivo nem medição de desempenho.
 
-SecuritySearch é um proxy de pesquisa em PHP, orientado à privacidade, baseado no
-[4get](https://git.lolcat.ca/lolcat/4get) e mantido pela Security Ops.
-Pesquisa web, imagens, vídeos, notícias e música usam as integrações existentes.
-Pesquisa, filtros, paginação e temas incluídos funcionam sem JavaScript.
-My Picture, controles de animação e rolagem infinita usam JavaScript opcional da própria origem.
-Bloqueios e indisponibilidade de provedores são tratados como falhas, não como sucesso.
+O SecuritySearch é um proxy de pesquisa em PHP, baseado no [4get](https://git.lolcat.ca/lolcat/4get)
+e mantido pela Security Ops. Web, imagens, vídeo, notícias RSS e música preservam suas integrações.
+Pesquisa, filtros, paginação e temas funcionam sem JavaScript. Animação, rolagem infinita e My Picture
+usam scripts opcionais da própria origem. Não há novos anúncios, analytics externos ou histórico de consultas.
 
-**A atualização vai diretamente da v0.9.30 verificada para a v0.9.40.**
-Não é necessário instalar versões intermediárias. A aplicação usa o identificador `0.9.40`;
-os assets estáticos usam o identificador independente `40`.
-O pacote permite executar o deploy com verificações; não comprova aceitação em produção.
+## Alterações
 
-## Alterações desde a v0.9.30
+A aplicação usa **0.9.41** e os assets usam **41**. Títulos de imagens são limitados antes do escape,
+evitando expansão excessiva do HTML/JSON. O filmstrip usa observação assíncrona da viewport, sem
+leitura síncrona de geometria na rolagem. O Apache bloqueia aliases escapados da página inicial
+interna, corrige cabeçalhos de erro e usa bytes sem compressão nas solicitações Range. A página
+inicial anônima continua no caminho estático, sem PHP. Erros do Google incluem metadados limitados
+sem consultas, corpos, credenciais ou sondagens adicionais. Nenhum bloqueio é tratado como sucesso.
 
-O pacote cumulativo inclui os ajustes mantidos das v0.9.31–v0.9.38: entrega de recursos
-estáticos, favicons, validação do proxy de imagens/PNG, seleção de prévias úteis em vez
-de placeholders de um pixel, scripts menores com integridade verificada e auditoria completa.
-As correções atuais preservam consultas literais `0`, `all` e `any`, filtros com valor zero
-e a continuação como um único parâmetro. Os oráculos web usam a consulta normalizada.
-Falhas de música preservam HTTP 503, no-store e Retry-After.
+O novo benchmark manual v4 ordena por **TTFB**, mantendo o tempo total do HTML separado. O v3 original
+permanece byte a byte inalterado e ordena por entrega completa. Não há alegação de vitória pública
+ou universal. Consulte [desempenho](docs/PERFORMANCE-0.9.41.md) e [pesquisa](docs/RESEARCH-0.9.41.md).
 
-A seleção de imagens considera no máximo 32 fontes fornecidas por cartão, sem sondagens
-adicionais. Não foram adicionados cache de consultas, anúncios, chamadas especulativas,
-dependências JavaScript ou alegações de vitória em benchmarks.
-Bufferizar a saída de música preserva os cabeçalhos; não é uma otimização de latência.
+Os comandos históricos da v0.9.40 totalizam 119. Todos continuam como prefixo exato, com cinco
+adições: a nova auditoria exige **124/0**. O resultado antigo de 119/0 na IONOS não aprova esta versão.
 
-Os comandos obrigatórios totalizam 119. Todos precisam ser aprovados. Os 115 comandos anteriores
-mantêm a ordem; quatro suítes cobrem consulta, HTTP, contrato da versão e publicação.
-Comandos ausentes/duplicados, registros incompletos, saídas não zero e dependências ausentes
-impedem a aprovação. Consulte o relatório de validação específico entregue com o pacote.
+## Atualizar, auditar e implantar
 
-## Atualização direta na IONOS
+Use o checkout completo e limpo na branch `main`, em `~/securitysearch`, e downloads em `~/Downloads`.
+A base v0.9.40-r2 observada no GitHub é `b0ab9966f02dd0c41ad8f936347b64cee5642c9f`.
+O atualizador cumulativo também aceita a árvore corrigida v0.9.30
+`488b01ae481e8e4e95dad3743c2a175c43065c97` e as bases intermediárias exatas preservadas.
+Ele verifica a árvore real, não apenas a versão. Trabalho desconhecido/sujo, clone raso ou outra
+branch é recusado, sem reset, stash, rebase, amend, force-push ou descarte de alterações.
 
-Downloads em `~/Downloads`; checkout Git completo e limpo em `~/securitysearch`, branch `main`.
-São necessários Fish, Python 3, Git, OpenSSH, coreutils e tar/gzip localmente.
-Os scripts não exigem PHP, Docker ou `guix shell` local.
+São necessários Fish, Python 3, Git, OpenSSH e coreutils localmente, não PHP/Docker. O destino é
+`root@securityops.co:5119`, contêiner `security-search`, com o pacote privado
+`~/.local/share/securitysearch/operator-themes-v1`. Preserve a verificação da chave SSH.
 
-A v0.9.30 observada no GitHub corresponde ao commit
-`331cf550d8b279736126e7362fb699f99fc2bc66` e à árvore
-`488b01ae481e8e4e95dad3743c2a175c43065c97`.
-A VPS e os outros forges não foram consultados para inferir seu estado.
-O script verifica a árvore local completa, não apenas o texto da versão.
-Aceita nove bases exatas entre v0.9.30 e v0.9.38 e a v0.9.40 exata já aplicada.
-Alterações locais e bases desconhecidas não são descartadas nem sobrescritas.
-
-Salve o script de deploy e seu `.sha256` diretamente em `~/Downloads`:
+Salve o script completo e seu checksum em `~/Downloads`:
 
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-deploy-ionos-r2.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --check-only
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish" --audit-only
+    and sha256sum --check securitysearch-v0.9.41-deploy-ionos.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish" --check-only
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-deploy-ionos.fish" --audit-only
 end
 ```
 
-`--check-only` apenas verifica localmente, sem SSH. `--audit-only` pode criar o commit normal,
-enviar fontes/temas privados, construir imagens e executar a auditoria na VPS.
-Não substitui a produção, limpa objetos antigos, consulta provedores reais ou publica.
-Imagens, uploads e evidências permanecem em disco. O espaço mínimo exigido não garante
-que toda a construção caberá. Sucesso termina em `AUDIT ONLY COMPLETE — NOT DEPLOYED`.
+`--check-only` não altera arquivos nem usa SSH. `--prepare-only` cria somente o commit local normal.
+`--audit-only` pode criar commit, enviar código/temas e compilar/testar na IONOS; **não é somente leitura**.
+Não substitui a produção, limpa objetos antigos, consulta provedores, cria tags ou publica. Código,
+imagens e evidências ficam no disco. O sucesso exige **124/0** e `AUDIT ONLY COMPLETE — NOT DEPLOYED`.
 
-Para apenas aplicar e criar o commit local, use `--prepare-only` no mesmo script verificado.
-Esse modo não precisa de temas, SSH, PHP ou Docker; não cria tag nem faz push.
-É opcional: o modo de auditoria/deploy já cria o commit necessário.
-Reexecutar na árvore-alvo exata não cria outro commit; uma falha não apaga trabalho staged.
+Após revisar a auditoria, execute o script verificado sem `--audit-only`. O deploy normal repete
+todos os testes e exige Google **Web e Images**, RSS, Binternet e validações de imagem reais.
+HTTP 429, CAPTCHA, fallback, resultado vazio, dependência ausente ou log parcial não aprovam o deploy.
+A limpeza limitada de objetos antigos/parados do SecuritySearch pode acontecer antes de uma falha
+posterior. Produção, rollback protegido, NPM, recursos compartilhados, redes, volumes, backups e
+cache de compilação são preservados. Não há prune global.
 
-Depois de revisar uma auditoria nativa aprovada, execute o script verificado sem opções:
+## Commit e publicação nos quatro remotes
 
-```fish
-fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-deploy-ionos-r2.fish"
-```
-
-Destino: `root@securityops.co`, porta SSH `5119`, contêiner `security-search`.
-Temas privados: `~/.local/share/securitysearch/operator-themes-v1`.
-Bindings, Nginx Proxy Manager, redes, volumes e configuração privada existentes são mantidos.
-A chave SSH precisa ser conhecida e corresponder. Encaminhamentos ficam desabilitados.
-Não há bypass da chave, prune global, reescrita forçada do histórico ou exclusão de backups.
-
-O deploy repete a auditoria **119/0**, exige resultados reais de Google Web **e Images**,
-RSS, Binternet e as verificações de imagem existentes antes da troca.
-Mantém lock, detecção de alterações na produção, validação fonte/imagem, proteção do rollback
-e recibos. Somente `DEPLOY COMPLETE` indica conclusão do fluxo verificado.
-
-O deploy normal mantém a limpeza seletiva pré-build de objetos antigos elegíveis do
-SecuritySearch. Essa limpeza pode ocorrer antes de uma falha posterior do candidato.
-Produção ativa, rollback protegido, recursos compartilhados, NPM, redes, volumes, backups
-e cache de build permanecem protegidos. `--cleanup-plan` mostra a elegibilidade sem excluir.
-
-## Commit, push e release nos quatro remotes
-
-O script de preparação/deploy cria o commit normal sobre **seu histórico existente**.
-Depois de `DEPLOY COMPLETE`, o publicador separado verifica a produção e suas evidências
-antes de criar/reutilizar a tag anotada imutável `v0.9.40` e efetuar os envios.
-A tag existente `v0.9.30` não é movida.
+Somente após `DEPLOY COMPLETE`, use o publicador correspondente:
 
 ```fish
 begin
     cd "$HOME/Downloads"
-    and sha256sum --check securitysearch-v0.9.40-publish-four-remotes-r2.fish.sha256
-    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
-    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.40-publish-four-remotes-r2.fish"
+    and sha256sum --check securitysearch-v0.9.41-publish-four-remotes.fish.sha256
+    and fish --no-config --no-execute "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
+    and fish --no-config "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
 end
 ```
 
-Destinos: `github.com/cristiancmoises/securitysearch`, `codeberg.org/berkeley/securitysearch`,
-`git.securityops.co/cristiancmoises/securitysearch` e
-`git.securityops.com.br/cristiancmoises/securitysearch`.
-O publicador envia `main` e a tag, reconcilia a release, o arquivo de fontes e o checksum.
-Tokens são informados localmente e não são salvos. Históricos divergentes e tags/arquivos
-conflitantes são recusados. Os quatro forges não formam uma transação atômica: uma falha
-pode deixar publicação parcial. Reexecute o mesmo script ou selecione um `--host`.
-`--verify-only` verifica sem publicar. O marcador estável da release não é certificação de produção.
+O publicador verifica independentemente código/imagem e evidências antes de enviar `main`, a tag
+anotada imutável `v0.9.41`, notas e pacote-fonte/checksum ao GitHub `cristiancmoises/securitysearch`,
+Codeberg `berkeley/securitysearch`, `git.securityops.co/cristiancmoises/securitysearch` e
+`git.securityops.com.br/cristiancmoises/securitysearch`. Tokens são solicitados privadamente, não
+salvos nem inseridos em URLs. Tags anteriores não são movidas. Conflitos são recusados. Os quatro
+hosts não formam uma operação atômica; `--host` permite retomar trabalho parcial correspondente,
+e `--verify-only` verifica sem publicar.
 
-## Diagnósticos e testes
+## Diagnósticos, benchmark e privacidade
 
-`securitysearch-audit-diagnostics-0.9.40-r2.fish` coleta um relatório filtrado sem reconstruir.
-`--explain-latest` e `--explain-report ARQUIVO` leem evidências locais sem SSH.
-JSON e checksum usam modo 0600; consultas, corpos de provedores, logs arbitrários e credenciais
-não são incluídos. Coleta com saída 0 significa **coletado**, não **auditoria aprovada**.
-Na leitura offline: 0 indica registro consistente sem falhas, 1 falha registrada e 2
-evidência ausente/inválida/incompleta. Relatórios nunca autorizam deploy ou publicação.
+`securitysearch-audit-diagnostics-0.9.41.fish` coleta evidências filtradas; `--explain-latest` e
+`--explain-report FILE` leem relatórios offline. A coleta não verifica a identidade do código nem
+autoriza publicação. Preserve leitores antigos para relatórios com outra árvore. Não compartilhe
+configuração efetiva, tokens ou dados privados.
 
-Execute `sh scripts/test.sh --keep-going` no runtime de testes adequado. Fish, extensões PHP,
-httpd Alpine ou PHP-FPM ausentes são falhas, não testes ignorados.
-A captura tem limite de 8 MiB e 1.800 segundos; upload e build ficam fora desse prazo.
-Logs históricos e fixtures sintéticas não comprovam aceitação atual da VPS.
+Execute `sh scripts/test.sh --keep-going` no runtime nativo. Ausência de Fish, extensões PHP ou
+Alpine/FPM gera falha, não aprovação. O limite do log é 8 MiB e o prazo da auditoria é 1.800 segundos;
+esses limites não cobrem uploads ou builds. O relatório externo de validação lista os testes executados.
 
-O benchmark manual `tools/secops-web-benchmark-v3.fish` continua opcional e não é executado
-pelo deploy, CI ou publicação. `--profile-only` observa a entrega da própria instância,
-não a qualidade da pesquisa. Não há alegação de ganho medido sobre outros buscadores.
-Instâncias Redlib externas são operadas por terceiros, não pela Security Ops.
-Originais/derivados restritos Lain/SecOps
-continuam no pacote privado, fora do Git e das releases públicas.
-O kit entregue é uma atualização, não uma distribuição para instalação do zero: fontes
-tipográficas inalteradas, arte privada e histórico sintético de reconstrução não são enviados.
+`fish tools/secops-web-benchmark-v4.fish --self-test` testa offline. A execução normal faz GETs reais
+sequenciais para sete páginas iniciais e salva HTML/CSV/JSON em `~/Downloads/securityops-benchmarks`.
+Não roda automaticamente no deploy. O resultado vale para aquela máquina/rede/momento, não para
+todos os buscadores ou a qualidade/latência de resultados de pesquisa.
 
-[Guia de atualização](docs/UPGRADE-0.9.30-to-0.9.40.md) ·
-[Operação](docs/OPERATIONS-0.9.40.pt-BR.md) · [Publicação](docs/PUBLISHING.pt-BR.md) ·
-[Problemas comuns](docs/TROUBLESHOOTING-0.9.40.md) · [Changelog](CHANGELOG.md) ·
-[Notas](docs/RELEASE-0.9.40.md) · [Auditoria](docs/AUDIT-0.9.40.md) ·
-[Desempenho](docs/PERFORMANCE-0.9.40.md) · [Licença](license.txt).
+Instâncias externas Redlib são operadas por terceiros, não pela Security Ops. My Picture não envia
+imagem, nome do arquivo ou EXIF. Originais/derivados privados ficam fora do Git e dos assets públicos.
+O kit não contém fontes tipográficas, credenciais, arte privada ou histórico Git sintético. É um
+kit de atualização/revisão, não uma instalação do zero; não sobreponha a pasta source-review/.
 
-
-## Correção r2 da auditoria nativa (inclui r1)
-
-Para a falha nativa 115/4, substitua os launchers anteriores por **securitysearch-v0.9.40-deploy-ionos-r2.fish** e **securitysearch-v0.9.40-publish-four-remotes-r2.fish**. Execute `--check-only` e depois `--audit-only`; 119/0 e todas as verificações reais continuam obrigatórias. A versão do aplicativo permanece 0.9.40. Consulte os [detalhes da correção r1](docs/AUDITFIX-0.9.40-r1.md).
-
-A revisão r2 também restaura a configuração após uma geração maior que o limite de captura, sem ocultar a falha original do teste. O comparador lê no máximo o tamanho do original mais um byte por comparação. Consulte a [correção r2](docs/AUDITFIX-0.9.40-r2.md). A auditoria nativa 119/0 continua obrigatória.
+[Operação](docs/OPERATIONS-0.9.41.pt-BR.md) · [Publicação](docs/PUBLISHING.pt-BR.md) ·
+[Auditoria](docs/AUDIT-0.9.41.md) · [Notas](docs/RELEASE-0.9.41.md) ·
+[Changelog](CHANGELOG.md) · [Licença](license.txt).

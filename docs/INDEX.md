@@ -1,24 +1,16 @@
-# SecuritySearch documentation — v0.9.40
+# Documentation
 
-The current deployment path is the direct upgrade from the user's v0.9.30. Versioned
-older documents are historical records, not commands to run before v0.9.40.
+## Current v0.9.41
 
-| Current document | Purpose |
-|---|---|
-| [README](../README.md) / [PT-BR](../README.pt-BR.md) | Product overview, current scope and commands |
-| [Direct upgrade](UPGRADE-0.9.30-to-0.9.40.md) | Exact baseline, preparation, audit, deploy and retry boundaries |
-| [Operations](OPERATIONS-0.9.40.md) / [PT-BR](OPERATIONS-0.9.40.pt-BR.md) | Modes, prerequisites and protected resources |
-| [Publishing](PUBLISHING.md) / [PT-BR](PUBLISHING.pt-BR.md) | Commit, immutable tag and four-host publication |
-| [Troubleshooting](TROUBLESHOOTING-0.9.40.md) | Failure handling and safe next actions |
-| [Release notes](RELEASE-0.9.40.md) / [Changelog](../CHANGELOG.md) | Current and cumulative changes |
-| [Audit](AUDIT-0.9.40.md) / [Performance](PERFORMANCE-0.9.40.md) | Acceptance and evidence limits |
-| [Providers](PROVIDERS.md) / [UI](UI.md) / [Configuration](configure.md) | Existing feature and configuration reference |
-| [Docker](docker.md) / [Roadmap](ROADMAP-1.0.0.md) | Runtime guidance and remaining 1.0 acceptance |
+[Release notes](RELEASE-0.9.41.md) · [Operations](OPERATIONS-0.9.41.md) ·
+[Operação em PT-BR](OPERATIONS-0.9.41.pt-BR.md) · [Direct upgrade](UPGRADE-0.9.30-to-0.9.41.md) ·
+[Publishing](PUBLISHING.md) · [Publicação](PUBLISHING.pt-BR.md) ·
+[Audit](AUDIT-0.9.41.md) · [Performance](PERFORMANCE-0.9.41.md) ·
+[Research](RESEARCH-0.9.41.md) · [Troubleshooting](TROUBLESHOOTING-0.9.41.md)
 
-Do not replace an existing deployment with generic fresh-install examples. No document
-in this tree certifies IONOS acceptance. Follow the delivered candidate-specific validation
-report and retain the native deployment evidence. Prompts remain outside the source repository.
+## Retained history
 
-[Native audit repair r1 / Correção da auditoria](AUDITFIX-0.9.40-r1.md).
-
-[Native fixture cleanup r2 / Restauração da configuração](AUDITFIX-0.9.40-r2.md).
+[Original v0.9.40](RELEASE-0.9.40.md) · [Native fixture r1](AUDITFIX-0.9.40-r1.md) ·
+[Bounded restoration r2](AUDITFIX-0.9.40-r2.md) · [v0.9.30](RELEASE-0.9.30.md).
+Historical audit counts, screenshots, source identities and measurements refer to those
+versions only; they do not approve a later candidate.

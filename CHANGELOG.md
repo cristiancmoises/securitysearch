@@ -1,3 +1,16 @@
+# Changelog
+
+## 0.9.41 — delivery correctness and bounded rendering
+
+- Bound provider image titles before escaping; reuse escaped labels; retain original links and preview choices.
+- Replace filmstrip scroll-time geometry reads with asynchronous viewport observation.
+- Deny encoded internal homepage aliases; correct error cache/encoding headers and range representations.
+- Retain privacy-filtered Google failure traces without new requests or relaxed acceptance.
+- Add a manual matched-round TTFB benchmark; retain complete HTML timing and the unchanged v3 tool.
+- Preserve all 119 old audit commands and append five suites (124 required); add release41 publication tests.
+- Update current EN/PT-BR documentation and keep historical records explicitly historical.
+- No deployed/public benchmark win, production acceptance, or upstream rate-limit resolution is claimed.
+
 # SecuritySearch v0.9.40 — direct v0.9.30 upgrade
 
 ## 0.9.40 — native-audit repair r2

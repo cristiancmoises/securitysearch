@@ -1,13 +1,12 @@
 #!/usr/bin/env fish
-# Enter four host-specific tokens privately; never put tokens in command arguments.
-if test (count $argv) -gt 1
-    echo 'Usage: fish push-securitysearch.fish [checkout]' >&2
+# Invoke only the matching, checksum-verified self-contained operator.
+set -l launcher "$HOME/Downloads/securitysearch-v0.9.41-publish-four-remotes.fish"
+if not test -f "$launcher"; or not test -f "$launcher.sha256"
+    echo "Download the v0.9.41 publish-four-remotes launcher and checksum into ~/Downloads first." >&2
     exit 2
 end
-set -l repo "$HOME/securitysearch"
-if test (count $argv) -eq 1
-    set repo "$argv[1]"
-end
-set -l here (dirname (status filename))
-python3 "$here/push-remotes.py" "$repo"
-exit $status
+pushd "$HOME/Downloads" >/dev/null; or exit 1
+sha256sum --check (basename "$launcher.sha256"); or exit 1
+popd >/dev/null; or exit 1
+fish --no-config --no-execute "$launcher"; or exit 1
+exec fish --no-config "$launcher" $argv

@@ -11,7 +11,7 @@ class Release38(unittest.TestCase):
  def test_previous_110_commands_stay_in_order(self):
   old=json.loads((R/'data/audit-baseline-0.9.37.json').read_text())['commands']
   new=[x for x in (R/'scripts/test.sh').read_text().splitlines() if x.startswith('run_test ')]
-  self.assertEqual(len(old),110);self.assertEqual(new[:110],old);self.assertEqual(len(new),119)
+  self.assertEqual(len(old),110);self.assertEqual(new[:110],old);self.assertEqual(len(new),124)
   self.assertEqual(load('audit_evidence').source_commands(R),[x[9:] for x in new])
  def test_visitor_runtime_unchanged(self):
   entries=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text());self.assertEqual(len(entries),232)
@@ -23,8 +23,8 @@ class Release38(unittest.TestCase):
   paths=[p for p in R.rglob('*') if p.is_file() and '.git' not in p.parts and 'benchmark' in p.name and p.suffix=='.fish']
   self.assertTrue(any(hashlib.sha256(p.read_bytes()).hexdigest()=='bd6f2207de8d8d36b41f47f391b4cba54c7d264fb6dbd5605de244f6a57f2e1d' for p in paths))
  def test_version_asset_and_archive_required_files(self):
-  self.assertEqual((R/'data/release-version.txt').read_text(),'0.9.40\n');self.assertIn('const VERSION = 40;',(R/'data/config.php').read_text())
-  s=(R/'scripts/package-v0.9.40.py').read_text()
+  self.assertEqual((R/'data/release-version.txt').read_text(),'0.9.41\n');self.assertIn('const VERSION = 41;',(R/'data/config.php').read_text())
+  s=(R/'scripts/package-v0.9.41.py').read_text()
   for name in ('scripts/audit_evidence.py','scripts/audit_stream.py','tests/audit-only-regression.py','tests/audit-stream-regression.py','tests/audit-evidence-regression.py','tests/release-38-contracts.py','data/audit-commands-0.9.40.json'):self.assertIn(repr(name),s)
  def test_audit_limits_remain_explicit_and_not_optional(self):
   s=(R/'scripts/audit_stream.py').read_text()

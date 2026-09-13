@@ -145,6 +145,11 @@ run_test php tests/search-state-regression.php
 run_test python3 tests/search-state-http-regression.py
 run_test python3 tests/release-40-contracts.py
 run_test python3 tests/publication-v0.9.40-regression.py
+run_test php tests/image-label-regression.php
+run_test python3 tests/home-representation-http-regression.py
+run_test python3 tools/ttfb_benchmark.py --self-test
+run_test python3 tests/release-41-contracts.py
+run_test python3 tests/publication-v0.9.41-regression.py
 # END SUITES
 printf '\n=== OFFLINE AUDIT SUMMARY ===\n'
 printf 'Commands passed: %s; failed: %s.\n' "$passed" "$failed"

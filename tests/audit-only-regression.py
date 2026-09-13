@@ -58,7 +58,7 @@ class AuditOnly(unittest.TestCase):
         self.assertEqual(set(names),{'audit-only.json','source-directory.txt'})
         self.assertNotIn('fixture-never-display',out+json.dumps(report))
         self.assertEqual([x[1] for x in calls if x[0]=='docker'],['inspect','info','build'])
-        self.assertTrue(report['image'].startswith('security-search-audit-only:v0.9.40-'))
+        self.assertTrue(report['image'].startswith('security-search-audit-only:v0.9.41-'))
     def test_failed_audit_retains_non_publishable_failure(self):
         calls, report, out, error, _=self.execute(audit_error=RuntimeError('audit failed'))
         self.assertIsNotNone(error);self.assertEqual(report['status'],'failed');self.assertNotIn('COMPLETE',out)

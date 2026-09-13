@@ -110,6 +110,21 @@ class Gate(unittest.TestCase):
  def test_nonzero_cannot_claim_success(self):
   error=subprocess.CalledProcessError(1,['fixture'],output=json.dumps(good('web')))
   report,calls,sleeps=self.invoke([error]);self.assertEqual(report['status'],'unavailable')
+ def test_failure_trace_is_filtered_without_more_requests(self):
+  r=limited('web',999);r['trace']=[dict(provider='google',stage='transport',http_status=200,curl_errno=0,body_bytes=999,milliseconds=15.2,url='SECRET',body='SECRET'),dict(provider='google',stage='transport',http_status=429,curl_errno=0,body_bytes=0,milliseconds=2.0)]
+  report,calls,sleeps=self.invoke([json.dumps(r)])
+  trace=report['attempts'][0]['trace'];self.assertEqual(len(calls),1);self.assertFalse(sleeps)
+  self.assertEqual([x['http_status'] for x in trace],[200,429]);self.assertNotIn('SECRET',json.dumps(report))
+  self.assertEqual(set(trace[0]),{'stage','http_status','curl_errno','body_bytes','milliseconds'})
+ def test_invalid_oversized_trace_is_never_reflected(self):
+  valid=dict(provider='google',stage='transport',http_status=200,curl_errno=0,body_bytes=10,milliseconds=1)
+  for value in ('SECRET',[],[valid]*13,[dict(valid,stage='SECRET')],[dict(valid,http_status=True)],[dict(valid,milliseconds=float('nan'))],[dict(valid,body_bytes=8388609)]):
+   self.assertIsNone(m.safe_google_trace(value))
+ def test_trace_cannot_turn_failure_into_success(self):
+  r=limited('web',999);r['trace']=[dict(provider='google',stage='transport',http_status=200,curl_errno=0,body_bytes=30000,milliseconds=1)]
+  report,calls,sleeps=self.invoke([json.dumps(r)]);self.assertEqual(report['status'],'unavailable')
+ def test_trace_rejects_non_google_provider(self):
+  self.assertIsNone(m.safe_google_trace([dict(provider='brave',stage='transport',http_status=200,curl_errno=0,body_bytes=1,milliseconds=1)]))
  def test_gate_is_opt_in_before_production_stop(self):
   src=(ROOT/'scripts/deploy-ionos.py').read_text();body=src[src.index('def main():'):]
   self.assertIn("os.environ.get('SECURITYSEARCH_VERIFY_GOOGLE') == '1'",body)

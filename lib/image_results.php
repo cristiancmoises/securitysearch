@@ -3,6 +3,23 @@
 final class image_results {
     public const PAGE_SIZE = 24;
     public const MAX_SOURCES = 32;
+    public const LABEL_BYTES = 1024;
+
+    /** Inspect only the displayed prefix; never scan an unbounded provider title.
+     * UTF-8 is cut on a character boundary. Malformed prefixes use a fixed label.
+     */
+    private static function label($value, string $fallback, int $limit = self::LABEL_BYTES): string {
+        if (!is_string($value)) return $fallback;
+        $text = substr($value, 0, $limit);
+        if (preg_match('//u', $text) !== 1 && strlen($value) > $limit) {
+            for ($drop = 1; $drop <= 3 && preg_match('//u', $text) !== 1; $drop++) {
+                $text = substr($value, 0, $limit - $drop);
+            }
+        }
+        if (preg_match('//u', $text) !== 1) return $fallback;
+        $text = trim(preg_replace('/[\x00-\x20\x7f]+/', ' ', $text));
+        return $text === '' ? $fallback : $text;
+    }
 
     public static function remote($url): bool {
         if (!is_string($url) || $url === '' || strlen($url)>8192) { return false; }
@@ -34,9 +51,9 @@ final class image_results {
             if (!$sources) { continue; }
             $original=$sources[0];$thumb=self::thumbnail($sources);
             $display=$quality==='preview' ? $thumb : $original;
-            $title=is_string($image['title'] ?? null) ? $image['title'] : 'Image result';
+            $title=self::label($image['title'] ?? null, 'Image result');
             $result=self::remote($image['url'] ?? null) ? $image['url'] : $original['url'];
-            $host=parse_url($result,PHP_URL_HOST) ?: 'Source';
+            $host=self::label(parse_url($result,PHP_URL_HOST), 'Source', 253);
             $src=$frontend->htmlimage($display['url'],$quality==='preview' ? 'thumb' : $quality);
             $motion=self::remote($image['motion_url'] ?? null) ? $image['motion_url'] : $original['url'];
             $format=$frontend->animatedimageformat($motion);
@@ -86,10 +103,10 @@ final class image_results {
         $escape=static fn($v)=>htmlspecialchars((string)$v,ENT_QUOTES | ENT_SUBSTITUTE,'UTF-8');
         $html='';$count=0;
         foreach (self::items($frontend,$get,$results) as $item) {
-            $title=$item['title'];
-            $html.='<article class="image-wrapper"><div class="image"><a class="thumb" href="'.$escape($item['original']).'" aria-label="'.$escape('Open original: '.$title).'">'.
-                '<img src="'.$escape($item['preview']).'"'.($item['motion']===null ? '' : ' data-motion="'.$escape($item['motion']).'"').' alt="'.$escape($title).'" width="'.$item['width'].'" height="'.$item['height'].'" loading="'.($count<4 ? 'eager' : 'lazy').'" decoding="async" fetchpriority="'.($count===0 ? 'high' : ($count<4 ? 'auto' : 'low')).'">'.
-                '</a><a href="'.$escape($item['source']).'" rel="noreferrer nofollow"><div class="title">'.$escape($item['host']).'</div><div class="description">'.$escape($title).'</div></a>'.
+            $title=$item['title'];$escaped_title=$escape($title);
+            $html.='<article class="image-wrapper"><div class="image"><a class="thumb" href="'.$escape($item['original']).'" aria-label="'.('Open original: '.$escaped_title).'">'.
+                '<img src="'.$escape($item['preview']).'"'.($item['motion']===null ? '' : ' data-motion="'.$escape($item['motion']).'"').' alt="'.$escaped_title.'" width="'.$item['width'].'" height="'.$item['height'].'" loading="'.($count<4 ? 'eager' : 'lazy').'" decoding="async" fetchpriority="'.($count===0 ? 'high' : ($count<4 ? 'auto' : 'low')).'">'.
+                '</a><a href="'.$escape($item['source']).'" rel="noreferrer nofollow"><div class="title">'.$escape($item['host']).'</div><div class="description">'.$escaped_title.'</div></a>'.
                 '<div class="image-links">';
             foreach ($item['links'] as $link) { $html.='<a href="'.$escape($link['href']).'">'.$escape($link['label']).'</a>'; }
             $html.='</div></div></article>';$count++;

@@ -89,10 +89,20 @@ function page(number = 3, items = [item()]) { return {version: 1, provider: 'goo
     }
     f = fixture({filmstrip: true}); assert.equal(f.observers[0].config.root, f.grid);
     f.doc.hidden = true; f.start(); assert.equal(f.calls.length, 0);
-    f.doc.hidden = false; f.grid.rect = {top: 900, bottom: 1200}; f.grid.dispatch('scroll'); assert.equal(f.calls.length, 0);
-    f.grid.rect = {top: 100, bottom: 500}; f.grid.dispatch('scroll'); assert.equal(f.calls.length, 1);
+    f.doc.hidden = false; f.observers[1].intersect(false); f.grid.rect = {top: 900, bottom: 1200}; f.grid.dispatch('scroll'); assert.equal(f.calls.length, 0);
+    f.grid.rect = {top: 100, bottom: 500}; f.observers[1].intersect(true); f.grid.dispatch('scroll'); assert.equal(f.calls.length, 1);
     f.reply(page(3, [])); await flush(); assert.match(f.next.status.textContent, /No images/); assert(f.next.href.includes('page3'));
     f.window.dispatch('scroll'); assert.equal(f.calls.length, 1);
+    f = fixture({filmstrip: true});
+    let geometryReads = 0;
+    f.grid.getBoundingClientRect = () => { geometryReads++; throw new Error('Synchronous layout'); };
+    f.observers[1].intersect(false); f.observers[0].intersect(true);
+    for (let i = 0; i < 1000; i++) f.grid.dispatch('scroll');
+    assert.equal(f.calls.length, 0, 'Offscreen scrolls do not fetch');
+    assert.equal(geometryReads, 0, 'No synchronous geometry reads across 1000 scrolls');
+    f.observers[1].intersect(true); assert.equal(f.calls.length, 1);
+    f.reply({...page(), next: null}); await flush();
+    assert.equal(f.observers[1].target, null, 'Viewport observer disconnected at completion');
     f = fixture({count: 456}); f.start(); f.reply(page(3, Array.from({length: 24}, () => item()))); await flush();
     assert.equal(f.grid.children.length, 480); assert.match(f.next.status.textContent, /480 images/);
     assert(!f.next.dispatch('click').prevented, 'Native continuation at DOM budget');

@@ -8,6 +8,7 @@ import fcntl
 import http.client
 import importlib.util
 import json
+import math
 import os
 from pathlib import Path
 import signal
@@ -22,8 +23,8 @@ import tempfile
 import urllib.parse
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.9.40'
-ASSET_VERSION = 40
+VERSION = '0.9.41'
+ASSET_VERSION = 41
 APP = '/var/www/html/4get'
 BACKUP_ROOT = Path('/root/securitysearch-backups')
 LOCK_PATH = '/run/lock/securitysearch-update.lock'
@@ -490,6 +491,28 @@ def safe_deployment_error(error):
     return text
 
 
+def safe_google_trace(value):
+    """Allowlisted transport metadata only; never URLs, queries, bodies or headers."""
+    if not isinstance(value, list) or not 1 <= len(value) <= 12:
+        return None
+    result = []
+    for row in value:
+        if not isinstance(row, dict) or row.get('provider') != 'google' or row.get('stage') not in ('transport', 'cooldown'):
+            return None
+        safe = {'stage': row['stage']}
+        for key, bound in (('http_status', 599), ('curl_errno', 999), ('body_bytes', 8 * 1024 * 1024)):
+            number = row.get(key)
+            if type(number) is not int or not 0 <= number <= bound:
+                return None
+            safe[key] = number
+        number = row.get('milliseconds')
+        if type(number) not in (int, float) or not math.isfinite(number) or not 0 <= number <= 3600000:
+            return None
+        safe['milliseconds'] = round(number, 3)
+        result.append(safe)
+    return result
+
+
 def live_google_gate(cid, backup):
     """Explicit operator opt-in: require actual Google web AND image records.
 
@@ -529,6 +552,9 @@ def live_google_gate(cid, backup):
             count = data.get('result_count')
             if code == 0 and data.get('status') == 'ok' and type(count) is int and 1 <= count <= 100:
                 return {'page': page, 'attempt': attempt, 'status': 'ok', 'count': count}
+            trace = safe_google_trace(data.get('trace'))
+            if trace is not None:
+                row['trace'] = trace
             row['reason'] = 'no_verified_results'
             failure = data.get('failure', {})
             if isinstance(failure, dict):

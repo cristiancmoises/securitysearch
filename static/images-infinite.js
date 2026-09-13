@@ -13,6 +13,7 @@
     const origin = window.location.origin;
     const provider = grid.getAttribute('data-provider');
     let loading = false, stopped = false, near = false, scrolled = false;
+    let inViewport = !filmstrip;
     let controller = null;
     let count = grid.querySelectorAll(':scope > .image-wrapper').length;
     const status = document.createElement('p');
@@ -103,6 +104,11 @@
         near = entries[entries.length - 1].isIntersecting;
         maybeLoad();
     }, {root: filmstrip ? grid : null, rootMargin: filmstrip ? '0px 240px' : '400px 0px'});
+    const viewportObserver = filmstrip ? new IntersectionObserver(entries => {
+        inViewport = entries[entries.length - 1].isIntersecting;
+        maybeLoad();
+    }, {root: null, threshold: 0}) : null;
+    if (viewportObserver) viewportObserver.observe(grid);
     function watch() {
         observer.disconnect(); near = false;
         const last = grid.lastElementChild;
@@ -110,6 +116,7 @@
     }
     function stop(message) {
         stopped = true; observer.disconnect();
+        if (viewportObserver) viewportObserver.disconnect();
         window.removeEventListener('scroll', onScroll);
         grid.removeEventListener('scroll', onScroll);
         status.textContent = message;
@@ -163,11 +170,9 @@
     }
     function maybeLoad() {
         if (!near || !scrolled || loading || stopped || document.hidden) return;
-        // A horizontal root can intersect while the whole strip is off screen.
-        if (filmstrip) {
-            const rect = grid.getBoundingClientRect();
-            if (rect.bottom <= 0 || rect.top >= window.innerHeight) return;
-        }
+        // A horizontal root may intersect even when its whole strip is offscreen.
+        // Do not force layout here; the separate viewport observer supplies it.
+        if (!inViewport) return;
         load();
     }
     function onScroll() {
