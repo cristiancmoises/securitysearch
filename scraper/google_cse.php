@@ -719,31 +719,10 @@ class google_cse{
 		}
 	}
 
-	private function format_google_error($json){
-
-		$message = "Google returned an error object";
-		if(
-			isset($json["error"]["errors"][0]["message"]) &&
-			is_string($json["error"]["errors"][0]["message"]) &&
-			$json["error"]["errors"][0]["message"] !== ""
-		){
-
-			$message = $json["error"]["errors"][0]["message"];
-		}elseif(
-			isset($json["error"]["message"]) &&
-			is_string($json["error"]["message"]) &&
-			$json["error"]["message"] !== ""
-		){
-
-			$message = $json["error"]["message"];
-		}
-
-		if($this->is_google_anti_abuse_error($message)){
-
-			return "Google temporarily rate-limited this instance. Please wait a moment and retry, or choose another provider in the Scraper filter.";
-		}
-
-		return strpos($message, "Google returned") === 0 ? $message : "Google returned an error: " . $message;
+	private function format_google_error($json): upstream_search_failure {
+		$error_text = json_encode($json["error"] ?? null);
+		$reason = $this->is_google_anti_abuse_error($error_text) ? "challenge" : "gateway";
+		return new upstream_search_failure("google", $reason, 200);
 	}
 	
 	public function web($get){
@@ -820,7 +799,7 @@ class google_cse{
 		
 		if(isset($json["error"])){
 
-			throw new Exception($this->format_google_error($json));
+			throw $this->format_google_error($json);
 		}
 		
 		$out = [
@@ -972,7 +951,7 @@ class google_cse{
 		
 		if(isset($json["error"])){
 
-			throw new Exception($this->format_google_error($json));
+			throw $this->format_google_error($json);
 		}
 		
 		$out = [

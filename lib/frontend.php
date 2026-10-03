@@ -1032,7 +1032,6 @@ class frontend extends page_renderer{
 					"option" => [
 						"invidious" => "YouTube via Invidious",
 						"yt" => "YouTube (direct)",
-						"archiveorg" => "Archive.org",
 						"vimeo" => "Vimeo",
 						//"odysee" => "Odysee",
 						"sepiasearch" => "Sepia Search",
@@ -1061,7 +1060,6 @@ class frontend extends page_renderer{
 						"yahoo_japan" => "Yahoo! JAPAN",
 						"startpage" => "Startpage",
 						"qwant" => "Qwant",
-						"yep" => "Yep",
 						"mojeek" => "Mojeek",
 						"baidu" => "Baidu"
 					]

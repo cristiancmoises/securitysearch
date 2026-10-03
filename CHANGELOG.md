@@ -14,6 +14,33 @@
 - Keep Google Web/Images acceptance and rate-limit failures mandatory. No upstream restriction bypass.
 - Add six audit suites; historical 124-command prefix preserved, current inventory 130.
 
+### Provider reliability maintenance — 2026-10-03
+
+- Classify Google CSE upstream failures without reflecting provider error text. Preserve one-time
+  renewal for explicit token expiration; do not renew repeatedly on refusal or anti-abuse errors.
+- Return controlled HTTP 503 search API responses for initialization, filter and provider failures, retaining
+  the JSON `status` field, no-store policy and retry header without exposing internal details.
+- Decode Brave's literal Svelte data and closed IIFE bindings without JavaScript execution, with
+  byte, depth, node and expansion limits. Reject malformed results and nonempty unusable image lists;
+  preserve genuine empty results and legitimate format filtering.
+- Add explicit Pexels, Unsplash and Pixabay proxy defaults; preserve operator routing choices and
+  avoid an implicit direct fallback. Remove unimplemented Archive.org video and Yep news choices,
+  retaining Yep web. Validate Cara response/image structures before consuming them.
+- Add focused offline regressions and exact reviewed maintenance fingerprints. Preserve frozen
+  historical manifests; verify privacy-cleaned Google and Cara sources explicitly rather than restoring
+  removed comments or claiming its current bytes match historical bytes.
+- Keep version 0.9.42 and all 130 mandatory audit commands. Each deployment requires complete native
+  audit evidence, genuine mandatory live results, guarded cutover and independent verification;
+  publication and old-build cleanup follow verified acceptance.
+
+#### Verification scope
+
+- Network-disabled captured-response replays decoded/rendered 20 Brave web records and decoded/parsed
+  167 usable images. They verify parsing, not native upstream transport or complete deployment.
+- Browser API checks after service-network repairs returned 25 Binternet images and 23 SkunkyArt
+  images, both with continuation tokens, HTTPS 200 and valid TLS. This is not a guarantee for every
+  provider, query or future request.
+
 
 ## 0.9.41 — delivery correctness and bounded rendering
 

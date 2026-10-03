@@ -15,31 +15,76 @@ No query history, advertising, external analytics or provider-unavailability-as-
 
 ## What is new
 
-The release identifier is **0.9.42**; static assets use **42**. Images now offers
-**DeviantArt via SkunkyArt**, including a native search-bar shortcut, original artwork links,
-signed media previews, orientation and AI-label filters, Safe Search, and bounded pagination.
-The service origin is `https://skunkyart.securityops.co` (the earlier `securiyops.co` spelling
-was not used). SkunkyArt owns its DeviantArt authentication; no API secret is requested by SecuritySearch.
-Provider availability and metadata are not guaranteed.
+| Area | Current behavior |
+|---|---|
+| Version | Release **0.9.42**, static assets **42**. |
+| Images | **DeviantArt via SkunkyArt**: native shortcut, original artwork links, signed previews, orientation/AI-label/Safe Search filters and bounded pagination. |
+| Required acceptance | **130 native commands**, with all 124 v0.9.41 commands as an exact prefix, plus genuine Google **Web and Images**, RSS, Binternet and SkunkyArt live results. HTTP 200 with a provider error does not pass. |
+| Original versioned release workflow | One native audit → live gates → cutover → independent verification → old-build cleanup. No mandatory separate audit-only run or pre-build deletion. |
+| Performance | The v4 benchmark ranks **TTFB**, separately from total HTML time; v3 remains byte-identical. Bounded labels, observer-based scrolling and safe static-home delivery are retained. No universal speed win is claimed. |
 
-A normal deployment now explicitly performs **one native audit → live gates → cutover →
-independent verification → old-build cleanup** in one invocation. There is no mandatory
-separate audit-only invocation, and no pre-build deletion. Automatic retention removes recognized
-older stopped containers, including the old rollback, unreferenced owned images and old upload
-`.tar.gz` files. **The old container rollback option is lost after successful cleanup.**
-Running services, images used by retained containers, volumes, networks, extracted source,
-private backups, source history and NPM stay outside cleanup scope.
+SkunkyArt uses `https://skunkyart.securityops.co`, not the earlier `securiyops.co` spelling,
+and owns its DeviantArt authentication. Provider availability and metadata are not guaranteed.
+After verified success, scoped retention removes recognized old stopped containers, including
+the old rollback, owned unused images and old upload archives. **The old container rollback
+option is lost after cleanup.** Running services, retained images, volumes, networks, extracted
+source, private backups, source history and NPM are not cleanup targets.
 
-The existing v4 benchmark ranks **TTFB**; total HTML time is separate. The original v3 remains
-byte-identical. Bounded labels, observer-based image scrolling, safe static-home delivery and
-Google's sanitized traces are retained. No public-site or universal speed win is claimed.
+The historical v0.9.40 audit expanded to 119. Earlier results, including 124/0, do not approve a new
+candidate: it requires its own complete **130/0** evidence and live acceptance.
 
-All **124** v0.9.41 audit commands remain an exact prefix; six additions bring this audit to **130**.
-Historical v0.9.40 extended its inventory to 119. The previous 124/0 native result is not v0.9.42 acceptance.
-Every new candidate requires **130/0** and genuine Google **Web and Images**, RSS, Binternet,
-and SkunkyArt acceptance. HTTP 200 containing a provider error is not successful search.
+## Provider reliability
+
+The reliability corrections retain version **0.9.42**.
+Google CSE failures use controlled classifications instead of reflecting upstream error text.
+The five search API routes catch initialization, filter and provider exceptions and PHP errors, returning HTTP 503,
+`Cache-Control: no-store`, `Retry-After: 30` and a JSON `status` message without internal details.
+
+Brave's Svelte data decoder accepts literal data and closed IIFE parameter bindings without
+executing JavaScript. It rejects unknown expressions and bounds input/expanded strings to
+4 MiB, nesting to 64 levels and parsed values to 100,000 nodes. Missing result structures and
+nonempty image lists with no usable records are failures, not fabricated empty success.
+Genuine empty lists and legitimate image-format filtering remain valid.
+
+Pexels, Unsplash and Pixabay have explicit proxy configuration defaults. `false` means a direct
+connection; operators can select their own existing pool instead. Older private configurations
+must add missing settings without replacing their other values. No implicit direct fallback is added.
+Unsupported Archive.org video and Yep news choices are removed; Yep web remains available.
+Cara validates response and image records before using them, preserving genuine empty lists and
+returning a controlled format failure for malformed data.
+
+### Evidence — 2026-10-03
+
+| Verification | Result and limit |
+|---|---|
+| Focused offline regressions | Google/API error contracts and Brave parsing are verified; this is not live provider acceptance. |
+| Complete native audit | All 130 required commands passed with zero failures. Native audit evidence is separate from live provider availability. |
+| Google and Brave in a real browser | Google Web and Images each returned 20 results. Brave returned 20 web results, 20 on the second page and 200 images. HTTPS and browser sandbox checks passed; these are specific searches, not a permanent availability guarantee. |
+| Service searches after the final cutover | Newswire returned 40 news entries and SkunkyArt 23 images. A Binternet request timed out; a later, separate check returned 24 images and 24 on the second page without a restart. The failed check remains recorded and is not counted as success. |
+| Additional image providers | Pexels returned 24 images and Pixabay 100. Unsplash returned an upstream HTTP 307 redirect that was not followed; Cara returned upstream HTTP 401. Neither unavailable integration is reported as working; their public API responses are controlled HTTP 503. |
+| Captured Brave response replay | 20 web records decoded and rendered; 167 image records decoded and parsed as usable images. Network-disabled replay makes no new provider requests and does not verify native upstream transport. |
+| Browser API checks after service-network repairs | Binternet returned 25 images and SkunkyArt 23, both with continuation tokens, HTTPS 200 and valid TLS. These checks cover those searches, not every provider or query. |
+| 57-check provider snapshot before code replacement | 27 returned results, 4 returned empty responses and 26 were unavailable. This is not an all-providers-working claim. |
+| Google JSON API | Requires an operator-supplied API key; it is inactive without one. Google CSE is a separate integration. |
+| Acceptance requirements | Complete 130/0 native audit, genuine mandatory live results, guarded cutover and independent source/image verification before publication. The checks above do not substitute for these requirements. |
+
+Proxy DNS, container networking, stopped services and upstream restrictions require separate
+operational checks; parser fixes do not establish that those problems are resolved. See
+[provider troubleshooting](docs/TROUBLESHOOTING-0.9.42.md).
 
 ## Upgrade, audit and deploy
+
+The self-contained v0.9.42 deployment and publication kits describe the original, tree-pinned
+release; they do not contain later maintenance commits on `main`. Do not reapply a frozen kit to
+an updated checkout or claim that it deployed current `main`. Keep kits, tree allowlists and
+immutable release tags unchanged.
+
+For maintenance, stage the reviewed current source and required private operator resources on
+the Docker host. The existing `scripts/deploy-ionos.py` builds the source tree containing it and
+requires the native Docker/PHP audit runtime on the VPS; explicitly set
+`SECURITYSEARCH_VERIFY_GOOGLE=1`. This is not the full one-shot release installer. Independent
+post-deployment source/image/evidence checks and scoped post-success cleanup are separate steps.
+The versioned launcher commands below apply to the original release workflow.
 
 Use a full, clean `main` checkout in `~/securitysearch`; downloads remain in `~/Downloads`.
 The observed GitHub baseline is v0.9.40-r2, tree `b0ab9966f02dd0c41ad8f936347b64cee5642c9f`.

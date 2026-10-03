@@ -2,17 +2,19 @@
 """Release 37 narrows scope to operator packaging and audit diagnostics."""
 import hashlib,json,unittest
 from pathlib import Path
-from runtime_history import historical_bytes
+from runtime_history import historical_bytes,assert_reviewed_current
 R=Path(__file__).resolve().parents[1]
 class Release37(unittest.TestCase):
  def test_all_106_previous_commands_remain_in_order(self):
   old=json.loads((R/'data/audit-baseline-0.9.36.json').read_text())['commands']
   new=[x for x in (R/'scripts/test.sh').read_text().splitlines() if x.startswith('run_test ')]
   self.assertEqual(len(old),106);self.assertEqual(new[:106],old);self.assertEqual(len(new),130);self.assertEqual(len(set(new)),130)
- def test_visitor_runtime_is_byte_identical_to_v36(self):
+ def test_visitor_history_preserved_and_privacy_cleanups_current_reviewed(self):
   data=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text())
   self.assertGreater(len(data),150)
-  for name,digest in data.items():self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),digest,name)
+  for name,digest in data.items():
+   if name in ('scraper/google_cse.php','scraper/cara.php'):assert_reviewed_current(self,name,digest)
+   else:self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),digest,name)
  def test_release_advances_without_asset_or_provider_change(self):
   self.assertEqual((R/'data/release-version.txt').read_text(),'0.9.42\n')
   self.assertIn('const VERSION = 42;',(R/'data/config.php').read_text())

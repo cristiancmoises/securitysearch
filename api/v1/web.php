@@ -11,7 +11,7 @@ if(config::API_ENABLED === false){
 }
 
 include "lib/frontend.php";
-$frontend = new frontend();
+require_once "lib/search_health.php";
 
 /*
 	Captcha
@@ -20,25 +20,21 @@ include "lib/bot_protection.php";
 $null = null;
 new bot_protection($null, $null, $null, "web", false);
 
-[$scraper, $filters] = $frontend->getscraperfilters(
-	"web",
-	isset($_GET["scraper"]) ? $_GET["scraper"] : null
-);
-
-$get = $frontend->parsegetfilters($_GET, $filters);
-
-if(
-	isset($_GET["extendedsearch"]) &&
-	$_GET["extendedsearch"] == "yes"
-){
-	
-	$get["extendedsearch"] = "yes";
-}else{
-	
-	$get["extendedsearch"] = "no";
-}
-
 try{
+	$frontend = new frontend();
+	[$scraper, $filters] = $frontend->getscraperfilters(
+		"web",
+		isset($_GET["scraper"]) ? $_GET["scraper"] : null
+	);
+	$get = $frontend->parsegetfilters($_GET, $filters);
+	if(
+		isset($_GET["extendedsearch"]) &&
+		$_GET["extendedsearch"] == "yes"
+	){
+		$get["extendedsearch"] = "yes";
+	}else{
+		$get["extendedsearch"] = "no";
+	}
 	
 	echo
 		json_encode(
@@ -46,10 +42,10 @@ try{
 			JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE
 		);
 	
-}catch(Exception $e){
+}catch(Throwable $e){
 	http_response_code(503);
 	header("Cache-Control: no-store");
 	header("Retry-After: 30");
 	
-	echo json_encode(["status" => $e->getMessage()]);
+	echo json_encode(["status" => search_health::public_message($e)]);
 }

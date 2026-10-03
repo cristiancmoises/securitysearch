@@ -5,15 +5,73 @@
 Buscador PHP voltado à privacidade, baseado no 4get. Busca, filtros, paginação e temas funcionam
 sem JavaScript; rolagem infinita e animações são opcionais. Sem histórico de consultas ou analytics.
 
-## DeviantArt via SkunkyArt
+## Novidades
 
-A busca de imagens inclui **DeviantArt via SkunkyArt**, com atalho nativo na barra, links da arte
-original, previews pela mídia assinada da instância, filtros de orientação e rótulo de IA, conteúdo
-maduro e paginação. O endereço configurado é `https://skunkyart.securityops.co`, não a grafia
-`securiyops.co`. A autenticação do DeviantArt permanece no SkunkyArt. A disponibilidade e os rótulos
-do provedor não são garantidos.
+| Área | Comportamento atual |
+|---|---|
+| Versão | Release **0.9.42**, assets estáticos **42**. |
+| Imagens | **DeviantArt via SkunkyArt**: atalho nativo, links da arte original, previews assinados, filtros de orientação/rótulo de IA/Safe Search e paginação limitada. |
+| Aceite obrigatório | **130 comandos nativos**, preservando os 124 de v0.9.41 como prefixo exato, mais resultados reais de Google **Web e Images**, RSS, Binternet e SkunkyArt. HTTP 200 com erro do provedor não aprova. |
+| Fluxo do release versionado original | Uma auditoria nativa → gates ao vivo → promoção → verificação independente → limpeza de versões antigas. Sem auditoria isolada obrigatória ou remoção antes da compilação. |
+| Desempenho | O benchmark v4 classifica **TTFB**, separado do tempo total do HTML; v3 permanece byte a byte intacto. Rótulos limitados, rolagem com observadores e entrega segura da homepage estática são mantidos. Sem promessa de ganho universal. |
+
+O SkunkyArt usa `https://skunkyart.securityops.co`, não a grafia `securiyops.co`, e mantém sua
+própria autenticação do DeviantArt. Disponibilidade e rótulos do provedor não são garantidos.
+A remoção de versões antigas ocorre somente depois de verificar o novo serviço; veja os limites
+e a perda do rollback antigo em [Limpeza depois do sucesso](#limpeza-depois-do-sucesso).
+
+## Confiabilidade dos provedores
+
+As correções de confiabilidade mantêm a versão **0.9.42**.
+Falhas do Google CSE recebem classificações controladas, sem refletir o texto de erro externo.
+As cinco rotas da API de busca tratam falhas de inicialização, filtros, provedor e PHP com HTTP 503,
+`Cache-Control: no-store`, `Retry-After: 30` e uma mensagem JSON em `status`, sem detalhes internos.
+
+O decodificador Svelte do Brave aceita dados literais e referências a parâmetros de funções
+imediatamente invocadas (IIFEs), sem executar JavaScript. Rejeita expressões desconhecidas e
+limita entrada/strings expandidas a 4 MiB, profundidade a 64 níveis e valores a 100.000 nós.
+Estruturas ausentes e listas de imagens não vazias sem registros utilizáveis são falhas, não
+sucessos vazios fabricados. Listas genuinamente vazias e filtros de formato legítimos continuam válidos.
+
+Pexels, Unsplash e Pixabay têm configurações de proxy padrão explícitas. `false` significa conexão
+direta; o operador pode selecionar um pool existente. Configurações privadas antigas precisam
+adicionar os campos ausentes sem substituir seus outros valores. Não há fallback direto implícito.
+As opções sem implementação de Archive.org em vídeos e Yep em notícias foram removidas; Yep Web
+permanece disponível. O Cara valida a resposta e os registros de imagens antes de usá-los, preserva
+listas vazias legítimas e retorna falha de formato controlada para dados malformados.
+
+### Evidência — 2026-10-03
+
+| Verificação | Resultado e limite |
+|---|---|
+| Regressões offline específicas | Contratos de erro do Google/API e parsing do Brave verificados; não são aprovação dos provedores ao vivo. |
+| Auditoria nativa completa | Os 130 comandos obrigatórios passaram, sem falhas. Essa evidência é separada da disponibilidade dos provedores ao vivo. |
+| Google e Brave em navegador real | Google Web e Images retornaram 20 resultados cada. Brave retornou 20 resultados Web, 20 na segunda página e 200 imagens. HTTPS e sandbox do navegador verificados; são buscas específicas, não garantia de disponibilidade permanente. |
+| Buscas dos serviços após a troca final | Newswire retornou 40 notícias e SkunkyArt 23 imagens. Uma consulta ao Binternet expirou; uma verificação posterior e separada retornou 24 imagens e 24 na segunda página, sem reinício. A falha permanece registrada e não é contada como sucesso. |
+| Outros provedores de imagens | Pexels retornou 24 imagens e Pixabay 100. Unsplash respondeu com redirecionamento HTTP 307 externo, que não foi seguido; Cara respondeu com HTTP 401 externo. As duas integrações indisponíveis não são declaradas funcionando; suas respostas na API pública são HTTP 503 controladas. |
+| Repetição de respostas capturadas do Brave | 20 registros Web decodificados e renderizados; 167 registros de imagens decodificados e tratados como imagens utilizáveis. Sem rede ou novas consultas, isso não valida o transporte nativo até o provedor. |
+| Verificações da API no navegador após ajustes de rede dos serviços | Binternet retornou 25 imagens e SkunkyArt 23, ambos com tokens de continuação, HTTPS 200 e TLS válido. A evidência vale para essas buscas, não para todos os provedores ou consultas. |
+| Consulta a 57 combinações antes de substituir o código | 27 retornaram resultados, 4 respostas vazias e 26 estavam indisponíveis. Isso não significa que todos os provedores funcionam. |
+| API JSON do Google | Inativa sem chave fornecida pelo operador; Google CSE é uma integração distinta. |
+| Requisitos de aceite | Auditoria nativa completa 130/0, resultados reais nos gates obrigatórios, promoção protegida e verificação independente de fonte/imagem antes de publicar. As verificações acima não substituem esses requisitos. |
+
+DNS de proxies, redes dos contêineres, serviços parados e restrições externas exigem verificações
+operacionais separadas. Correções de parsing não comprovam a resolução desses problemas. Veja
+[solução de problemas dos provedores](docs/TROUBLESHOOTING-0.9.42.md).
 
 ## Atualização em uma execução
+
+Os kits autossuficientes de implantação e publicação v0.9.42 correspondem ao release original,
+com árvores de origem fixadas; não contêm commits posteriores de manutenção em `main`.
+Não reaplique um kit congelado ao checkout atualizado nem declare que ele implantou o `main`
+atual. Preserve kits, listas de árvores permitidas e tags imutáveis.
+
+Para manutenção, prepare a fonte atual revisada e os recursos privados necessários do operador
+no host Docker. O `scripts/deploy-ionos.py` existente compila a árvore que contém o script e exige
+o runtime nativo Docker/PHP de auditoria na VPS; defina explicitamente
+`SECURITYSEARCH_VERIFY_GOOGLE=1`. Não é o instalador completo em uma execução. Verificações
+independentes de fonte/imagem/evidência após a implantação e limpeza limitada após sucesso são
+etapas separadas. Os comandos dos launchers abaixo se aplicam ao fluxo do release original.
 
 Checkout completo e limpo em `~/securitysearch`, arquivos em `~/Downloads`, Fish, Python 3, Git,
 OpenSSH e coreutils. VPS `root@securityops.co:5119`; pacote privado de temas em
@@ -43,7 +101,7 @@ não autorizam promoção. Não há promessa de superar todos os sites no TTFB.
 
 Somente depois de promover a nova versão e verificar sua identidade/evidência, a retenção remove
 contêineres reconhecidos antigos e parados, inclusive o rollback antigo, imagens próprias sem uso
-e arquivos de upload `.tar.gz` antigos sob `/root/securitysearch-incoming`.
+e arquivos de upload `.tar.gz` antigos reconhecidos.
 **Após essa remoção, o rollback pelo contêiner antigo deixa de estar disponível.**
 Não são alvos: contêineres em execução, imagens usadas por contêineres preservados, Tor, NPM,
 volumes, redes, cache de compilação, backups privados ou diretórios de fonte extraída. Nada é
@@ -78,4 +136,5 @@ Não sobreponha `source-review/` na instalação.
 
 Baseline corrigido v0.9.30: `488b01ae481e8e4e95dad3743c2a175c43065c97`.
 
-Contexto histórico: os comandos de v0.9.40 totalizam 119. A auditoria atual exige 130/0.
+Os comandos de auditoria da versão histórica v0.9.40 totalizam 119.
+A auditoria atual exige 130/0.

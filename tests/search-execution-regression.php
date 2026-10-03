@@ -41,4 +41,22 @@ foreach([['google','invalid',false],['google','0',false],['google',false,true],[
 $f=new execution_frontend();$f->alternative->fail=true;$provider=new provider_fixture();$provider->fail=true;$get=['s'=>'GNU Guix','scraper'=>'google','npt'=>false];$filters=[];$_GET=$get;$saved=$_GET;
 try{search_execution::run($f,$provider,$get,$filters,'web');throw new LogicException('Both failures hidden');}catch(RuntimeException $e){verify(str_contains($e->getMessage(),'Google and its Brave fallback'),'Both provider failures reported');}
 verify($_GET===$saved && $get['scraper']==='google','Failure restores original routing state');
+class parser_failure_fixture {
+ public function __construct(public Throwable $failure){}
+ public function web($get):array {throw $this->failure;}
+}
+$parser_failures=[];
+foreach([new Error('private-parser-fixture-marker'),new TypeError('private-parser-fixture-marker')]as $failure){
+ $writes=[];$read=fn($key)=>false;$write=function($key,$value,$ttl)use(&$writes){$writes[]=[$key,$value,$ttl];};
+ try{search_guard::run(new parser_failure_fixture($failure),'web',['npt'=>false],$read,$write);$parser_failures[]='Parser failure was accepted as success';}
+ catch(RuntimeException $e){
+  if($e->getMessage()!=='The provider returned an unsupported response. Retry later or choose another provider.')$parser_failures[]='Parser failure did not produce a safe controlled message';
+ }
+ catch(Error $e){$parser_failures[]='Parser '.get_class($failure).' escaped the HTML search guard';}
+ verify($writes===[],'Parser errors do not create a transport cooldown');
+}
+$query_error=new InvalidArgumentException('Choose an available format.');
+try{search_guard::run(new parser_failure_fixture($query_error),'web',['npt'=>false],fn($key)=>false,fn()=>null);throw new LogicException('Invalid query accepted');}
+catch(InvalidArgumentException $e){verify($e===$query_error,'Ordinary query exceptions remain unchanged');}
+verify($parser_failures===[],implode("\n",$parser_failures));
 echo "PASS: real shared imports, shrinking deadlines, one Google fallback, empty success, filter/date retention, continuation isolation and honest dual failure.\n";

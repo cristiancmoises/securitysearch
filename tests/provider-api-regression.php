@@ -38,13 +38,84 @@ if(($argv[1] ?? '') === '--selection'){
 	echo "PASS selection ".$page." ".$selection."\n";
 	exit;
 }
-foreach(['web','images','news','videos','music'] as $endpoint){
-	$source=file_get_contents('api/v1/'.$endpoint.'.php');
-	api_check(preg_match('/catch\(Exception \$e\)\{([\s\S]*)$/',$source,$match)===1,'API catch exists');
-	foreach(['http_response_code(503);','header("Cache-Control: no-store");','header("Retry-After: 30");'] as $statement){
-		api_check(str_contains($match[1],$statement),'Consistent API failure contract '.$endpoint);
+require_once 'lib/search_health.php';
+class api_failure_fixture {
+	public array $calls=[];
+	public function __construct(public Throwable $failure){}
+	public function __call($method,$arguments){$this->calls[]=$method;throw $this->failure;}
+}
+class api_frontend_fixture {
+	public static ?string $fail_at=null;
+	public static ?Throwable $failure=null;
+	private function checkpoint(string $stage):void{
+		if(self::$fail_at===$stage){throw self::$failure;}
+	}
+	public function __construct(){$this->checkpoint('constructor');}
+	public function getscraperfilters($page,$selection=null){
+		$this->checkpoint('getscraperfilters');
+		return [$GLOBALS['api_fixture_scraper'],[]];
+	}
+	public function parsegetfilters($parameters,$filters){
+		$this->checkpoint('parsegetfilters');
+		return ['s'=>'fixture search','npt'=>false];
 	}
 }
+class api_bot_fixture {
+	public static array $calls=[];
+	public function __construct($frontend,$get,$filters,$page,$html){self::$calls[]=[$page,$html];}
+}
+$issues=[];
+$private_marker='private-api-fixture-marker';
+$generic_message='This provider could not complete the search. Retry later or choose another provider.';
+$failures=[
+	[new Exception($private_marker),$generic_message],
+	[new Error($private_marker),$generic_message],
+	[new TypeError($private_marker),$generic_message],
+	[new upstream_search_failure('google','rate_limited',429),'Google is temporarily unavailable because it is rate-limiting this instance.'],
+	[new upstream_search_failure('brave','challenge',200),'Brave requires human verification; no automated challenge retry was performed.']
+];
+if(!method_exists(search_health::class,'public_message'))$issues[]='Public failure-message boundary is missing';
+else foreach($failures as [$failure,$message]){
+	if(search_health::public_message($failure)!==$message)$issues[]='Public failure-message boundary lost redaction or safe classification';
+}
+foreach(['web'=>'web','images'=>'image','news'=>'news','videos'=>'video','music'=>'music'] as $endpoint=>$method){
+	$source=file_get_contents('api/v1/'.$endpoint.'.php');
+	if(preg_match('/catch\(Throwable \$e\)\{([\s\S]*)$/',$source,$match)!==1)$issues[]='API does not contain all provider failures '.$endpoint;
+	foreach(['http_response_code(503);','header("Cache-Control: no-store");','header("Retry-After: 30");'] as $statement){
+		api_check(str_contains($source,$statement),'Consistent API failure contract '.$endpoint);
+	}
+	$boundary='require_once "lib/search_health.php";';
+	$offset=strpos($source,$boundary);
+	api_check($offset!==false,'API health boundary exists');
+	$program=substr($source,$offset+strlen($boundary));
+	$program=str_replace(['include "lib/bot_protection.php";','new frontend()','new bot_protection('],['','new api_frontend_fixture()','new api_bot_fixture('],$program);
+	foreach($failures as [$failure,$message]){
+		api_frontend_fixture::$fail_at=null;api_frontend_fixture::$failure=null;api_bot_fixture::$calls=[];
+		$scraper=new api_failure_fixture($failure);$GLOBALS['api_fixture_scraper']=$scraper;$_GET=[];http_response_code(200);ob_start();
+		try{eval($program);}catch(Throwable $escaped){$issues[]='Provider failure escaped API '.$endpoint.' '.get_class($failure);}
+		$output=ob_get_clean();
+		if(http_response_code()!==503)$issues[]='API failure lost HTTP503 '.$endpoint;
+		if(json_decode($output,true)!==['status'=>$message])$issues[]='API failure lost its safe one-field JSON shape '.$endpoint.' '.get_class($failure);
+		if(str_contains($output,$private_marker))$issues[]='API exposed the private marker '.$endpoint;
+		if($scraper->calls!==[$method])$issues[]='API changed explicit provider routing '.$endpoint;
+		if(api_bot_fixture::$calls!==[[$endpoint,false]])$issues[]='API changed captcha invocation '.$endpoint;
+	}
+	foreach(['constructor','getscraperfilters','parsegetfilters'] as $stage){
+		foreach([new Exception($private_marker),new Error($private_marker),new TypeError($private_marker)] as $failure){
+			api_frontend_fixture::$fail_at=$stage;api_frontend_fixture::$failure=$failure;api_bot_fixture::$calls=[];
+			$scraper=new api_failure_fixture(new LogicException('Provider must not execute after initialization failure'));
+			$GLOBALS['api_fixture_scraper']=$scraper;$_GET=[];http_response_code(200);ob_start();
+			try{eval($program);}catch(Throwable $escaped){$issues[]='Initialization failure escaped API '.$endpoint.' '.$stage.' '.get_class($failure);}
+			$output=ob_get_clean();
+			if(http_response_code()!==503)$issues[]='Initialization failure lost HTTP503 '.$endpoint.' '.$stage;
+			if(json_decode($output,true)!==['status'=>$generic_message])$issues[]='Initialization failure lost safe JSON shape '.$endpoint.' '.$stage;
+			if(str_contains($output,$private_marker))$issues[]='Initialization exposed private marker '.$endpoint.' '.$stage;
+			if($scraper->calls!==[])$issues[]='API executed provider after initialization failure '.$endpoint.' '.$stage;
+			if(api_bot_fixture::$calls!==[[$endpoint,false]])$issues[]='Initialization changed captcha invocation '.$endpoint.' '.$stage;
+		}
+	}
+}
+api_check($issues===[],implode("\n",$issues));
 foreach(['web','images'] as $page){
 	foreach(['fresh','explicit','saved','invalid'] as $selection){
 		$command=[PHP_BINARY,'-d','disable_functions=is_file,file_get_contents,curl_exec',__FILE__,'--selection',$page,$selection];
@@ -56,4 +127,4 @@ foreach(['web','images'] as $page){
 		echo $output;
 	}
 }
-echo "PASS: all five API error contracts and missing-key Google API selection/early guards.\n";
+echo "PASS: all five API initialization/provider error contracts and missing-key Google API selection/early guards.\n";

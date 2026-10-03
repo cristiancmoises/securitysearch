@@ -3,7 +3,7 @@
 import hashlib
 import json
 from pathlib import Path
-from runtime_history import historical_bytes
+from runtime_history import historical_bytes,assert_reviewed_current
 import unittest
 from audit_fixture import load
 R=Path(__file__).resolve().parents[1]
@@ -13,12 +13,14 @@ class Release38(unittest.TestCase):
   new=[x for x in (R/'scripts/test.sh').read_text().splitlines() if x.startswith('run_test ')]
   self.assertEqual(len(old),110);self.assertEqual(new[:110],old);self.assertEqual(len(new),130)
   self.assertEqual(load('audit_evidence').source_commands(R),[x[9:] for x in new])
- def test_visitor_runtime_unchanged(self):
+ def test_visitor_history_preserved_and_privacy_cleanups_current_reviewed(self):
   entries=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text());self.assertEqual(len(entries),232)
   old=json.loads((R/'data/preserved-runtime-0.9.37.json').read_text())
   self.assertEqual(set(old)-set(entries),{'scripts/deployment_state.py'})
   self.assertEqual({p:v for p,v in old.items() if p in entries},entries)
-  for path,digest in entries.items():self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),digest,path)
+  for path,digest in entries.items():
+   if path in ('scraper/google_cse.php','scraper/cara.php'):assert_reviewed_current(self,path,digest)
+   else:self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),digest,path)
  def test_manual_benchmark_unchanged(self):
   paths=[p for p in R.rglob('*') if p.is_file() and '.git' not in p.parts and 'benchmark' in p.name and p.suffix=='.fish']
   self.assertTrue(any(hashlib.sha256(p.read_bytes()).hexdigest()=='bd6f2207de8d8d36b41f47f391b4cba54c7d264fb6dbd5605de244f6a57f2e1d' for p in paths))

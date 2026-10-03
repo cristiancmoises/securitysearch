@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . "/../lib/provider_http.php";
+require_once __DIR__ . "/../lib/search_health.php";
 
 class cara{
 	
@@ -655,14 +656,11 @@ class cara{
 			"Accept: application/json, text/plain, */*",
 			"Accept-Language: en-US,en;q=0.5",
 			"Accept-Encoding: gzip, deflate, br, zstd",
-			//"sentry-trace: 72b0318a7141fe18cbacbd905572eddf-a60de161b66b1e6f-1
-			//"baggage: sentry-environment=vercel-production,sentry-release=251ff5179b4de94974f36d9b8659a487bbb8a819,sentry-public_key=2b87af2b44c84643a011838ad097735f,sentry-trace_id=72b0318a7141fe18cbacbd905572eddf,sentry-transaction=GET%20%2Fsearch,sentry-sampled=true,sentry-sample_rand=0.09967130764937493,sentry-sample_rate=0.5",
 			"DNT: 1",
 			"Sec-GPC: 1",
 			"Connection: keep-alive",
 			//"Referer: https://cara.app/search?q=jak+and+daxter&type=&sortBy=Top&filters=%7B%7D",
 			"Referer: https://cara.app/search?q=" . urlencode($search),
-			//"Cookie: __Host-next-auth.csrf-token=b752c4296375bccb7b480ff010e1e916c65c35c311a4a57ac6cd871468730578%7C4d3783cfb72a98f390e534abd149806432b6cf8d50555a52d00e99216a516911; __Secure-next-auth.callback-url=https%3A%2F%2Fcara.app; crumb=BV0HDt87G5+fOWE0ZDQ5MWM0ZTQ3YTZmMzM4MGU5MGNjNDNmMzY2",
 			"Sec-Fetch-Dest: empty",
 			"Sec-Fetch-Mode: cors",
 			"Sec-Fetch-Site: same-origin",
@@ -768,21 +766,31 @@ class cara{
 			throw new Exception("Failed to fetch JSON");
 		}
 		
-		$json = json_decode($json, true);
+		// Keep JSON objects distinct from arrays: {} is not a genuine empty list.
+		$json = is_string($json) ? json_decode($json) : null;
 		
-		if($json === null){
+		if(!is_array($json)){
 			
-			throw new Exception("Failed to decode JSON");
+			throw new upstream_search_failure('cara', 'format', 200);
 		}
 		
 		$imagecount = 0;
 		foreach($json as $image){
 			
+			if(!($image instanceof stdClass) || !is_array($image->images ?? null)){
+				throw new upstream_search_failure('cara', 'format', 200);
+			}
+			$image = (array)$image;
+
 			if(count($image["images"]) === 0){
 				
 				// sometimes the api returns no images for an object
 				$imagecount++;
 				continue;
+			}
+			if(!is_string($image["content"] ?? null) ||
+				!(is_string($image["id"] ?? null) || is_int($image["id"] ?? null)) || $image["id"] === ""){
+				throw new upstream_search_failure('cara', 'format', 200);
 			}
 			
 			$cover = null;
@@ -790,6 +798,12 @@ class cara{
 			
 			foreach($image["images"] as $source){
 				
+				if(!($source instanceof stdClass) || !is_bool($source->isCoverImg ?? null) ||
+					!is_string($source->src ?? null) || $source->src === ""){
+					throw new upstream_search_failure('cara', 'format', 200);
+				}
+				$source = (array)$source;
+
 				if($source["isCoverImg"]){
 					
 					$cover = [

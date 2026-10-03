@@ -1,0 +1,172 @@
+{
+  "release": "0.9.42",
+  "baseline_commit": "62bc700c4d8615d0e20ee0eb9d375674ccaabbc4",
+  "baseline_tree": "7b0097e353a4663a09127c233301ebacc18c42bc",
+  "files": {
+    "api/v1/web.php": {
+      "old_sha256": "5dd359d392cf5a36ad97f1e09dbaac1e2a6feb409b07b2892ea04b8634fa0bd4",
+      "new_sha256": "169d9d9448fa23577fca98842a1dbaac2ea00c76c943e6159d351c97631eacd1",
+      "edits": [
+        {
+          "before": "}\n\ninclude \"lib/frontend.php\";\n$frontend = new frontend();\n\n/*\n\tCaptcha\n",
+          "after": "}\n\ninclude \"lib/frontend.php\";\nrequire_once \"lib/search_health.php\";\n\n/*\n\tCaptcha\n"
+        },
+        {
+          "before": "$null = null;\nnew bot_protection($null, $null, $null, \"web\", false);\n\n[$scraper, $filters] = $frontend->getscraperfilters(\n\t\"web\",\n\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n);\n\n$get = $frontend->parsegetfilters($_GET, $filters);\n\nif(\n\tisset($_GET[\"extendedsearch\"]) &&\n\t$_GET[\"extendedsearch\"] == \"yes\"\n){\n\t\n\t$get[\"extendedsearch\"] = \"yes\";\n}else{\n\t\n\t$get[\"extendedsearch\"] = \"no\";\n}\n\ntry{\n\t\n\techo\n\t\tjson_encode(\n",
+          "after": "$null = null;\nnew bot_protection($null, $null, $null, \"web\", false);\n\ntry{\n\t$frontend = new frontend();\n\t[$scraper, $filters] = $frontend->getscraperfilters(\n\t\t\"web\",\n\t\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n\t);\n\t$get = $frontend->parsegetfilters($_GET, $filters);\n\tif(\n\t\tisset($_GET[\"extendedsearch\"]) &&\n\t\t$_GET[\"extendedsearch\"] == \"yes\"\n\t){\n\t\t$get[\"extendedsearch\"] = \"yes\";\n\t}else{\n\t\t$get[\"extendedsearch\"] = \"no\";\n\t}\n\t\n\techo\n\t\tjson_encode(\n"
+        },
+        {
+          "before": "\t\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t\t);\n\t\n}catch(Exception $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => $e->getMessage()]);\n}\n",
+          "after": "\t\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t\t);\n\t\n}catch(Throwable $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => search_health::public_message($e)]);\n}\n"
+        }
+      ]
+    },
+    "api/v1/images.php": {
+      "old_sha256": "dc312bbe5a3e3b7b8f48a85838e910c4d92fed112e84d4de363037b6d997af10",
+      "new_sha256": "ea6b3568ac8c01a100119060e815fefebc18de2e333fc94b680bcdae9e7bb79c",
+      "edits": [
+        {
+          "before": "}\n\ninclude \"lib/frontend.php\";\n$frontend = new frontend();\n\n/*\n\tCaptcha\n",
+          "after": "}\n\ninclude \"lib/frontend.php\";\nrequire_once \"lib/search_health.php\";\n\n/*\n\tCaptcha\n"
+        },
+        {
+          "before": "$null = null;\nnew bot_protection($null, $null, $null, \"images\", false);\n\n[$scraper, $filters] = $frontend->getscraperfilters(\n\t\"images\",\n\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n);\n\n$get = $frontend->parsegetfilters($_GET, $filters);\n\ntry{\n\techo json_encode(\n\t\t$scraper->image($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Exception $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => $e->getMessage()]);\n}\n",
+          "after": "$null = null;\nnew bot_protection($null, $null, $null, \"images\", false);\n\ntry{\n\t$frontend = new frontend();\n\t[$scraper, $filters] = $frontend->getscraperfilters(\n\t\t\"images\",\n\t\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n\t);\n\t$get = $frontend->parsegetfilters($_GET, $filters);\n\techo json_encode(\n\t\t$scraper->image($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Throwable $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => search_health::public_message($e)]);\n}\n"
+        }
+      ]
+    },
+    "api/v1/videos.php": {
+      "old_sha256": "e0855a8336b380ab29dcf43e9f3708ec91032fcf1c6a12d1f366b65288471703",
+      "new_sha256": "297ac8ae90d3ecdd81dbf51ddcbfb17feb33a2d3c0b1012cd10bac86e6e1895c",
+      "edits": [
+        {
+          "before": "}\n\ninclude \"lib/frontend.php\";\n$frontend = new frontend();\n\n/*\n\tCaptcha\n",
+          "after": "}\n\ninclude \"lib/frontend.php\";\nrequire_once \"lib/search_health.php\";\n\n/*\n\tCaptcha\n"
+        },
+        {
+          "before": "$null = null;\nnew bot_protection($null, $null, $null, \"videos\", false);\n\n[$scraper, $filters] = $frontend->getscraperfilters(\n\t\"videos\",\n\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n);\n\n$get = $frontend->parsegetfilters($_GET, $filters);\n\ntry{\n\techo json_encode(\n\t\t$scraper->video($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Exception $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => $e->getMessage()]);\n}\n",
+          "after": "$null = null;\nnew bot_protection($null, $null, $null, \"videos\", false);\n\ntry{\n\t$frontend = new frontend();\n\t[$scraper, $filters] = $frontend->getscraperfilters(\n\t\t\"videos\",\n\t\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n\t);\n\t$get = $frontend->parsegetfilters($_GET, $filters);\n\techo json_encode(\n\t\t$scraper->video($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Throwable $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => search_health::public_message($e)]);\n}\n"
+        }
+      ]
+    },
+    "api/v1/news.php": {
+      "old_sha256": "c115c4daa86ad3193fd172a67c113a81637ffb4f2567f24ac592abc1cc841f89",
+      "new_sha256": "261c41ce4a05681a6fe5efc4c9f0a2b00e42ff1572b5ec644fbdbdfabe92d731",
+      "edits": [
+        {
+          "before": "}\n\ninclude \"lib/frontend.php\";\n$frontend = new frontend();\n\n/*\n\tCaptcha\n",
+          "after": "}\n\ninclude \"lib/frontend.php\";\nrequire_once \"lib/search_health.php\";\n\n/*\n\tCaptcha\n"
+        },
+        {
+          "before": "$null = null;\nnew bot_protection($null, $null, $null, \"news\", false);\n\n[$scraper, $filters] = $frontend->getscraperfilters(\n\t\"news\",\n\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n);\n\n$get = $frontend->parsegetfilters($_GET, $filters);\n\ntry{\n\techo json_encode(\n\t\t$scraper->news($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Exception $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => $e->getMessage()]);\n}\n",
+          "after": "$null = null;\nnew bot_protection($null, $null, $null, \"news\", false);\n\ntry{\n\t$frontend = new frontend();\n\t[$scraper, $filters] = $frontend->getscraperfilters(\n\t\t\"news\",\n\t\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n\t);\n\t$get = $frontend->parsegetfilters($_GET, $filters);\n\techo json_encode(\n\t\t$scraper->news($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Throwable $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => search_health::public_message($e)]);\n}\n"
+        }
+      ]
+    },
+    "api/v1/music.php": {
+      "old_sha256": "c2def111f33c9124542a7fb0b047c0a39e3e155f3df7d7b4681ad7bbe25ed04a",
+      "new_sha256": "3171934c81d5b84d49ef763e25ced962b74b6ae1be00941c27cea1384b81fa40",
+      "edits": [
+        {
+          "before": "}\n\ninclude \"lib/frontend.php\";\n$frontend = new frontend();\n\n/*\n\tCaptcha\n",
+          "after": "}\n\ninclude \"lib/frontend.php\";\nrequire_once \"lib/search_health.php\";\n\n/*\n\tCaptcha\n"
+        },
+        {
+          "before": "$null = null;\nnew bot_protection($null, $null, $null, \"music\", false);\n\n[$scraper, $filters] = $frontend->getscraperfilters(\n\t\"music\",\n\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n);\n\n$get = $frontend->parsegetfilters($_GET, $filters);\n\ntry{\n\techo json_encode(\n\t\t$scraper->music($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Exception $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => $e->getMessage()]);\n}\n",
+          "after": "$null = null;\nnew bot_protection($null, $null, $null, \"music\", false);\n\ntry{\n\t$frontend = new frontend();\n\t[$scraper, $filters] = $frontend->getscraperfilters(\n\t\t\"music\",\n\t\tisset($_GET[\"scraper\"]) ? $_GET[\"scraper\"] : null\n\t);\n\t$get = $frontend->parsegetfilters($_GET, $filters);\n\techo json_encode(\n\t\t$scraper->music($get),\n\t\tJSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_IGNORE\n\t);\n\t\n}catch(Throwable $e){\n\thttp_response_code(503);\n\theader(\"Cache-Control: no-store\");\n\theader(\"Retry-After: 30\");\n\t\n\techo json_encode([\"status\" => search_health::public_message($e)]);\n}\n"
+        }
+      ]
+    },
+    "lib/search_guard.php": {
+      "old_sha256": "36e4c90ede740e9ad44bbbc6b8bb0b08584193c0539132183fb0308fcca7980b",
+      "new_sha256": "3c4da36ed8c6bb22f7202a3869ac528fe9a74c2f129e8a84db6d4586d0ebbb23",
+      "edits": [
+        {
+          "before": "            throw $error;\n        }\n    }\n}\n",
+          "after": "            throw $error;\n        }\n        catch (Error $error) {\n            throw new RuntimeException('The provider returned an unsupported response. Retry later or choose another provider.');\n        }\n    }\n}\n"
+        }
+      ]
+    },
+    "lib/search_health.php": {
+      "old_sha256": "7f85d9fe0bbf72faeca2e4f8f6a5e704e8d2c612d225818d04c1dab0b7854806",
+      "new_sha256": "f93dfcaf5cc35011e42077aa7f37e257f52a8ccb8897d10082286e3a3f470d5c",
+      "edits": [
+        {
+          "before": "final class search_health {\n    private static array $trace=[];\n    public static function retry_after(string $value,?int $now=null): int {\n        if (strlen($value)>80) return 0;\n",
+          "after": "final class search_health {\n    private static array $trace=[];\n    public static function public_message(Throwable $error): string {\n        return $error instanceof upstream_search_failure ? $error->getMessage() :\n            'This provider could not complete the search. Retry later or choose another provider.';\n    }\n    public static function retry_after(string $value,?int $now=null): int {\n        if (strlen($value)>80) return 0;\n"
+        }
+      ]
+    },
+    "scraper/brave.php": {
+      "old_sha256": "d2ab2faea830dc5f71776f7b56ec9349cb13946576ecfc316b92de933d9c1e15",
+      "new_sha256": "cef95e1e541ffa3d36c6b05b033ba275f49a479b72e4a7f7a7a92c89714772a3",
+      "edits": [
+        {
+          "before": "<?php\nrequire_once __DIR__.\"/../lib/search_health.php\";\n\nclass brave{\n",
+          "after": "<?php\nrequire_once __DIR__.\"/../lib/search_health.php\";\nrequire_once __DIR__.\"/../lib/brave_data.php\";\n\nclass brave{\n"
+        },
+        {
+          "before": "\t\t}\n\t\t\n\t\t$data =\n\t\t\t$this->fuckhtml\n\t\t\t->parseJsObject(\n\t\t\t\t$this->fuckhtml\n\t\t\t\t->extract_json(\n\t\t\t\t\t$data\n\t\t\t\t)\n\t\t\t);\n\t\t\n\t\tif($data === null){\n\t\t\t\n\t\t\tthrow new upstream_search_failure('brave','format',200);\n\t\t}\n\t\t\n\t\treturn $data;\n\t}\n\t\n",
+          "after": "\t\t}\n\t\t\n\t\treturn brave_data::decode($this->fuckhtml->extract_json($data));\n\t}\n\t\n"
+        },
+        {
+          "before": "\t\t$this->detect_challenge($data);\n\t\t\n\t\tif(!isset($data[1][\"data\"][\"body\"][\"response\"])){\n\t\t\t\n\t\t\tthrow new Exception(\"Brave did not return a result object\");\n\t\t}\n\t\t\n",
+          "after": "\t\t$this->detect_challenge($data);\n\t\t\n\t\tif(!isset($data[1][\"data\"][\"body\"][\"response\"]) || !is_array($data[1][\"data\"][\"body\"][\"response\"])){\n\t\t\t\n\t\t\tthrow new upstream_search_failure('brave','format',200);\n\t\t}\n\t\t\n"
+        },
+        {
+          "before": "\t\t\tGet web results\n\t\t*/\n\t\tif(!isset($data[\"web\"][\"results\"])){\n\t\t\t\n\t\t\treturn $out;\n\t\t}\n\t\t\n",
+          "after": "\t\t\tGet web results\n\t\t*/\n\t\tif(!isset($data[\"web\"][\"results\"]) || !is_array($data[\"web\"][\"results\"])){\n\t\t\t\n\t\t\tthrow new upstream_search_failure('brave','format',200);\n\t\t}\n\t\t\n"
+        },
+        {
+          "before": "\t\t$this->detect_challenge($json);\n\n\t\tif(!isset($json[1][\"data\"][\"body\"][\"response\"][\"results\"]) || !is_array($json[1][\"data\"][\"body\"][\"response\"][\"results\"])){\n\t\t\tthrow new Exception(\"Brave did not return an image result object\");\n\t\t}\n\t\t\n\t\tforeach(\n\t\t\t$json[1]\n\t\t\t[\"data\"]\n\t\t\t[\"body\"]\n\t\t\t[\"response\"]\n\t\t\t[\"results\"]\n\t\t\tas $result\n\t\t){\n\t\t\t\n\t\t\t$image = $this->parse_image_result($result);\n",
+          "after": "\t\t$this->detect_challenge($json);\n\n\t\t$response = $json[1][\"data\"][\"body\"][\"response\"] ?? null;\n\t\tif(!is_array($response) || !isset($response[\"results\"]) || !is_array($response[\"results\"])){\n\t\t\tthrow new upstream_search_failure('brave','format',200);\n\t\t}\n\t\t\n\t\tforeach($response[\"results\"] as $result){\n\t\t\t\n\t\t\t$image = $this->parse_image_result($result);\n"
+        },
+        {
+          "before": "\t\t\t\t$out[\"image\"][] = $image;\n\t\t\t}\n\t\t}\n\t\t\n",
+          "after": "\t\t\t\t$out[\"image\"][] = $image;\n\t\t\t}\n\t\t}\n\t\tif($response[\"results\"] !== [] && $out[\"image\"] === []){\n\t\t\tthrow new upstream_search_failure('brave','format',200);\n\t\t}\n\t\t\n"
+        }
+      ]
+    },
+    "data/config.php": {
+      "old_sha256": "b43a80837bc2bae0f5bdf8a846e265fcfa02b8f61acfc060daec70b5dabd7015",
+      "new_sha256": "45f2a63de263d4574c33c65f9837bcc8251ba09ef5216fdde71eb1698aaf28c9",
+      "edits": [
+        {
+          "before": "\tconst PROXY_FTM = false;\n\tconst PROXY_IMGUR = false;\n\tconst PROXY_CARA = false;\n\tconst PROXY_YANDEX_W = false;\n\tconst PROXY_YANDEX_I = false;\n\tconst PROXY_YANDEX_V = false;\n",
+          "after": "\tconst PROXY_FTM = false;\n\tconst PROXY_IMGUR = false;\n\tconst PROXY_CARA = false;\n\tconst PROXY_PEXELS = false;\n\tconst PROXY_UNSPLASH = false;\n\tconst PROXY_PIXABAY = false;\n\tconst PROXY_YANDEX_W = false;\n\tconst PROXY_YANDEX_I = false;\n\tconst PROXY_YANDEX_V = false;\n"
+        }
+      ]
+    },
+    "lib/frontend.php": {
+      "old_sha256": "1681f3a0d1b3803898274a4634fa683c5f586f539363247b90bcd9efd7fa3c2b",
+      "new_sha256": "b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c",
+      "edits": [
+        {
+          "before": "\t\t\t\t\t\"option\" => [\n\t\t\t\t\t\t\"invidious\" => \"YouTube via Invidious\",\n\t\t\t\t\t\t\"yt\" => \"YouTube (direct)\",\n\t\t\t\t\t\t\"archiveorg\" => \"Archive.org\",\n\t\t\t\t\t\t\"vimeo\" => \"Vimeo\",\n\t\t\t\t\t\t//\"odysee\" => \"Odysee\",\n\t\t\t\t\t\t\"sepiasearch\" => \"Sepia Search\",\n",
+          "after": "\t\t\t\t\t\"option\" => [\n\t\t\t\t\t\t\"invidious\" => \"YouTube via Invidious\",\n\t\t\t\t\t\t\"yt\" => \"YouTube (direct)\",\n\t\t\t\t\t\t\"vimeo\" => \"Vimeo\",\n\t\t\t\t\t\t//\"odysee\" => \"Odysee\",\n\t\t\t\t\t\t\"sepiasearch\" => \"Sepia Search\",\n"
+        },
+        {
+          "before": "\t\t\t\t\t\t\"yahoo_japan\" => \"Yahoo! JAPAN\",\n\t\t\t\t\t\t\"startpage\" => \"Startpage\",\n\t\t\t\t\t\t\"qwant\" => \"Qwant\",\n\t\t\t\t\t\t\"yep\" => \"Yep\",\n\t\t\t\t\t\t\"mojeek\" => \"Mojeek\",\n\t\t\t\t\t\t\"baidu\" => \"Baidu\"\n\t\t\t\t\t]\n",
+          "after": "\t\t\t\t\t\t\"yahoo_japan\" => \"Yahoo! JAPAN\",\n\t\t\t\t\t\t\"startpage\" => \"Startpage\",\n\t\t\t\t\t\t\"qwant\" => \"Qwant\",\n\t\t\t\t\t\t\"mojeek\" => \"Mojeek\",\n\t\t\t\t\t\t\"baidu\" => \"Baidu\"\n\t\t\t\t\t]\n"
+        }
+      ]
+    }
+  },
+  "current_only_files": {
+    "scraper/google_cse.php": {
+      "old_sha256": "6f2a7f87c727c319387413d46b5de88ecdaeabc6774d99b9f4ee1da5a8922198",
+      "new_sha256": "b375bb3f60d3cc0a820a7494751c30150dc2aaa3919cc49299a009023f9365c7",
+      "policy": "reviewed-current-privacy-cleanup; historical bytes unavailable"
+    },
+    "scraper/cara.php": {
+      "old_sha256": "922075bc5898f6bf2b17a21924abf1e7713053d53dc05b3cdf093c072248ccb6",
+      "new_sha256": "90560e9a0b0e90ce452ededeaf91ccaecbe21d2ac14d3a90d762ec6ef6fbde11",
+      "policy": "reviewed-current-privacy-cleanup; historical bytes unavailable"
+    }
+  },
+  "added_files": {
+    "lib/brave_data.php": {
+      "new_sha256": "2d7eaf6b17a1bf9ba53343fb786bb87ebda1c79951f8062d225c4c24edf7dc8f"
+    }
+  }
+}

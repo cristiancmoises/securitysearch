@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__."/../lib/search_health.php";
+require_once __DIR__."/../lib/brave_data.php";
 
 class brave{
 
@@ -334,21 +335,7 @@ class brave{
 			throw new upstream_search_failure('brave','format',200);
 		}
 		
-		$data =
-			$this->fuckhtml
-			->parseJsObject(
-				$this->fuckhtml
-				->extract_json(
-					$data
-				)
-			);
-		
-		if($data === null){
-			
-			throw new upstream_search_failure('brave','format',200);
-		}
-		
-		return $data;
+		return brave_data::decode($this->fuckhtml->extract_json($data));
 	}
 	
 	public function web($get){
@@ -518,9 +505,9 @@ class brave{
 		$data = $this->get_js();
 		$this->detect_challenge($data);
 		
-		if(!isset($data[1]["data"]["body"]["response"])){
+		if(!isset($data[1]["data"]["body"]["response"]) || !is_array($data[1]["data"]["body"]["response"])){
 			
-			throw new Exception("Brave did not return a result object");
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
 		$data = $data[1]["data"]["body"]["response"];
@@ -528,9 +515,9 @@ class brave{
 		/*
 			Get web results
 		*/
-		if(!isset($data["web"]["results"])){
+		if(!isset($data["web"]["results"]) || !is_array($data["web"]["results"])){
 			
-			return $out;
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
 		foreach($data["web"]["results"] as $result){
@@ -1352,24 +1339,21 @@ class brave{
 		$json = $this->get_js();
 		$this->detect_challenge($json);
 
-		if(!isset($json[1]["data"]["body"]["response"]["results"]) || !is_array($json[1]["data"]["body"]["response"]["results"])){
-			throw new Exception("Brave did not return an image result object");
+		$response = $json[1]["data"]["body"]["response"] ?? null;
+		if(!is_array($response) || !isset($response["results"]) || !is_array($response["results"])){
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
-		foreach(
-			$json[1]
-			["data"]
-			["body"]
-			["response"]
-			["results"]
-			as $result
-		){
+		foreach($response["results"] as $result){
 			
 			$image = $this->parse_image_result($result);
 			if($image !== null){
 
 				$out["image"][] = $image;
 			}
+		}
+		if($response["results"] !== [] && $out["image"] === []){
+			throw new upstream_search_failure('brave','format',200);
 		}
 		
         $format=$get['format'] ?? 'any';

@@ -31,6 +31,10 @@ final class upstream_search_failure extends RuntimeException {
 }
 final class search_health {
     private static array $trace=[];
+    public static function public_message(Throwable $error): string {
+        return $error instanceof upstream_search_failure ? $error->getMessage() :
+            'This provider could not complete the search. Retry later or choose another provider.';
+    }
     public static function retry_after(string $value,?int $now=null): int {
         if (strlen($value)>80) return 0;
         if (preg_match('/\A[0-9]+\z/',$value)) return min(3600,(int)$value);

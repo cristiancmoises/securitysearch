@@ -76,6 +76,9 @@ class config {
 	const PROXY_FTM = false;
 	const PROXY_IMGUR = false;
 	const PROXY_CARA = false;
+	const PROXY_PEXELS = false;
+	const PROXY_UNSPLASH = false;
+	const PROXY_PIXABAY = false;
 	const PROXY_YANDEX_W = false;
 	const PROXY_YANDEX_I = false;
 	const PROXY_YANDEX_V = false;

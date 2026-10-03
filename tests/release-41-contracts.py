@@ -4,7 +4,7 @@ import ast,hashlib,importlib.util,json,re,unittest
 from pathlib import Path
 from unittest.mock import patch
 from audit_fixture import load
-from runtime_history import historical_bytes, before42_bytes
+from runtime_history import historical_bytes, before42_bytes,assert_reviewed_current
 R=Path(__file__).resolve().parents[1]
 class Release41(unittest.TestCase):
  def test_all_119_prior_commands_are_an_exact_prefix(self):
@@ -19,9 +19,11 @@ class Release41(unittest.TestCase):
   for name,row in manifest['files'].items():
    self.assertEqual(hashlib.sha256(before42_bytes(name)).hexdigest(),row['new_sha256'])
    self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),row['old_sha256'])
- def test_all_232_historical_runtime_hashes_still_verified(self):
+ def test_230_historical_hashes_and_two_reviewed_current_files_verified(self):
   hashes=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text());self.assertEqual(len(hashes),232)
-  for name,digest in hashes.items():self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),digest,name)
+  for name,digest in hashes.items():
+   if name in ('scraper/google_cse.php','scraper/cara.php'):assert_reviewed_current(self,name,digest)
+   else:self.assertEqual(hashlib.sha256(historical_bytes(name)).hexdigest(),digest,name)
  def test_modified_runtime_cannot_claim_approved_history(self):
   original=Path.read_bytes
   def tampered(path):return original(path)+b'\nUNREVIEWED' if path==R/'lib/image_results.php' else original(path)

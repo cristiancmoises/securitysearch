@@ -5,7 +5,7 @@ import json
 import re
 from pathlib import Path
 import unittest
-from runtime_history import historical_bytes
+from runtime_history import historical_bytes,assert_reviewed_current
 from audit_fixture import load
 R=Path(__file__).resolve().parents[1]
 class Release40(unittest.TestCase):
@@ -19,12 +19,13 @@ class Release40(unittest.TestCase):
   for path,record in delta.items():
    self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),record['old_sha256'])
    self.assertNotEqual(record['new_sha256'],record['old_sha256'])
- def test_all_other_visitor_runtime_hashes_preserved(self):
+ def test_visitor_history_preserved_and_privacy_cleanups_current_reviewed(self):
   hashes=json.loads((R/'data/preserved-runtime-0.9.38.json').read_text())
   changed={'lib/frontend.php','web.php','music.php'}
   self.assertTrue(changed <= set(hashes));self.assertEqual(len(hashes),232)
   for path,digest in hashes.items():
-   self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),digest,path)
+   if path in ('scraper/google_cse.php','scraper/cara.php'):assert_reviewed_current(self,path,digest)
+   else:self.assertEqual(hashlib.sha256(historical_bytes(path)).hexdigest(),digest,path)
   self.assertEqual(len(set(hashes)-changed),229)
  def test_normalized_query_is_the_only_oracle_input(self):
   s=(R/'web.php').read_text()

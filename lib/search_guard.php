@@ -21,5 +21,8 @@ final class search_guard {
             if ($fresh) $write($key,true,8);
             throw $error;
         }
+        catch (Error $error) {
+            throw new RuntimeException('The provider returned an unsupported response. Retry later or choose another provider.');
+        }
     }
 }
