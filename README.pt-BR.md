@@ -11,6 +11,7 @@ sem JavaScript; rolagem infinita e animações são opcionais. Sem histórico de
 |---|---|
 | Versão | Release **0.9.42**, assets estáticos **42**. |
 | Imagens | **DeviantArt via SkunkyArt**: atalho nativo, links da arte original, previews assinados, filtros de orientação/rótulo de IA/Safe Search e paginação limitada. |
+| LUMA | **Pesquise no LUMA**: atalho explícito na barra de busca por `/luma`, levando somente a consulta digitada ao serviço externo. |
 | Aceite obrigatório | **130 comandos nativos**, preservando os 124 de v0.9.41 como prefixo exato, mais resultados reais de Google **Web e Images**, RSS, Binternet e SkunkyArt. HTTP 200 com erro do provedor não aprova. |
 | Fluxo do release versionado original | Uma auditoria nativa → gates ao vivo → promoção → verificação independente → limpeza de versões antigas. Sem auditoria isolada obrigatória ou remoção antes da compilação. |
 | Desempenho | O benchmark v4 classifica **TTFB**, separado do tempo total do HTML; v3 permanece byte a byte intacto. Rótulos limitados, rolagem com observadores e entrega segura da homepage estática são mantidos. Sem promessa de ganho universal. |
@@ -19,6 +20,33 @@ O SkunkyArt usa `https://skunkyart.securityops.co`, não a grafia `securiyops.co
 própria autenticação do DeviantArt. Disponibilidade e rótulos do provedor não são garantidos.
 A remoção de versões antigas ocorre somente depois de verificar o novo serviço; veja os limites
 e a perda do rollback antigo em [Limpeza depois do sucesso](#limpeza-depois-do-sucesso).
+
+## Atalho LUMA e identidade independente
+
+Escolha **Pesquise no LUMA**, imediatamente à esquerda do Pinterest na barra de busca, para
+abrir o serviço externo LUMA pelo atalho local `/luma`. A consulta atual é codificada para a
+URL; uma consulta vazia abre a homepage.
+Somente a consulta segue na URL de destino. Filtros do SecuritySearch, tokens de continuação
+(`npt`), credenciais e informações de referência não são encaminhados. O atalho funciona
+sem JavaScript e usa o texto atual da barra de busca.
+O SecuritySearch não faz requisições automáticas ao LUMA, buscas em segundo plano ou novas
+tentativas. Após a navegação, o LUMA recebe a consulta e a conexão do visitante; aplicam-se
+suas práticas de privacidade e os limites das fontes utilizadas.
+
+A barra de busca usa símbolos genéricos de navegação, incluindo o símbolo independente de
+livro do LUMA, em vez de logos de empresas. Os nomes identificam os destinos dos atalhos.
+SecuritySearch e LUMA são projetos educacionais, independentes e de código aberto; não são
+afiliados, patrocinados, endossados ou operados pela Meta ou pelo Instagram.
+O LUMA pode acessar conteúdo público de fontes externas. Disponibilidade, restrições e termos
+dessas fontes determinam o que pode ser obtido; uma homepage acessível não garante resultados.
+Conteúdo privado, contorno de exigências de login e desvio de autenticação não são suportados,
+e o atalho não solicita nem encaminha cookies de plataforma ou tokens de acesso dos visitantes.
+
+O propósito educacional e um aviso de independência não conferem imunidade jurídica nem
+permissão para usar conteúdo ou marcas de terceiros. Direitos autorais, marcas, privacidade
+e termos aplicáveis continuam relevantes; uma garantia jurídica exige análise de profissional
+qualificado. Consulte as
+[orientações oficiais da Meta para a marca Instagram](https://www.meta.com/brand/resources/instagram/instagram-brand/).
 
 ## Confiabilidade dos provedores
 

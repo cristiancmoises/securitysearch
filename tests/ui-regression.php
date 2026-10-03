@@ -10,18 +10,29 @@ verify(!file_exists('lib/image_flow.php'),'Timer snapshots removed');
 foreach (['home.html','header.html'] as $template) {
  $html=$f->load($template);$dom=new DOMDocument();$dom->loadHTML($html);$xp=new DOMXPath($dom);
  $buttons=$xp->query('//div[contains(@class,"search-actions")]/button');
- verify($buttons->length===5,'Five native search actions');
+ verify($buttons->length===6,'Six native search actions including LUMA');
  foreach ($buttons as $button) {
   verify($button->getAttribute('aria-label')===trim($button->textContent),'Icon button retains full accessible name');
   $icons=$button->getElementsByTagName('svg');
   verify($icons->length===1 && $icons[0]->getAttribute('aria-hidden')==='true' && $icons[0]->getAttribute('focusable')==='false','Decorative icon never replaces button semantics');
  }
 
- verify(array_map(fn($n)=>trim($n->textContent),iterator_to_array($buttons))===['Search','Search Image','Search Pinterest','Search DeviantArt','Search YouTube'],'Requested button order');
- foreach ([1=>['/images','images'],2=>['/images','binternet'],3=>['/images','skunkyart'],4=>['/videos','invidious']] as $index=>$route) {
+ verify(array_map(fn($n)=>trim($n->textContent),iterator_to_array($buttons))===['Search','Search Image','Pesquise no LUMA','Search Pinterest','Search DeviantArt','Search YouTube'],'Requested button order');
+ foreach ([1=>['/images','images'],2=>['/luma','luma'],3=>['/images','binternet'],4=>['/images','skunkyart'],5=>['/videos','invidious']] as $index=>$route) {
   verify($buttons[$index]->getAttribute('formaction')===$route[0] && $buttons[$index]->getAttribute('name')==='destination' && $buttons[$index]->getAttribute('value')===$route[1],'Native action routing');
  }
  verify(!str_contains($html,'search-destinations'),'Below-bar duplicate actions removed');
+}
+require_once 'lib/luma_search.php';
+foreach ([''=> '/', '  '=> '/', '0'=> '/?q=0', 'GNU Guix & privacy'=> '/?q=GNU%20Guix%20%26%20privacy', '@public_profile'=> '/?q=%40public_profile', '#educação'=> '/?q=%23educa%C3%A7%C3%A3o', '<script>"'=> '/?q=%3Cscript%3E%22'] as $query=>$path) {
+ verify(luma_search::destination(['s'=>(string)$query,'npt'=>'private','scraper'=>'brave','destination'=>'https://evil.invalid'])===luma_search::ORIGIN.$path,'LUMA forwards only a correctly encoded explicit query');
+}
+verify(luma_search::destination([])===luma_search::ORIGIN.'/','Missing query opens LUMA homepage');
+verify(str_ends_with(luma_search::destination(['s'=>str_repeat('é',160)]),'?q='.str_repeat('%C3%A9',160)),'LUMA character limit counts UTF-8 characters');
+foreach ([[],str_repeat('a',161),str_repeat('é',161),"query\r\nheader", "query\0", "\u{0085}", "\u{009f}", "\xff", 12] as $query) {
+ $rejected=false;
+ try { luma_search::destination(['s'=>$query]); } catch (InvalidArgumentException $error) { $rejected=true; }
+ verify($rejected,'LUMA rejects malformed, oversized or non-string queries');
 }
 foreach (['binternet'=>['images','binternet'],'skunkyart'=>['images','skunkyart'],'invidious'=>['videos','invidious'],'images'=>['images','google']] as $destination=>[$page,$expected]) {
  $_GET=['s'=>'GNU Guix','scraper'=>'brave','destination'=>$destination,'npt'=>'untrusted','view'=>'filmstrip','quality'=>'high'];$_COOKIE=[];

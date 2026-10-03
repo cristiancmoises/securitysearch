@@ -35,11 +35,13 @@ class page_renderer {
 
 	public function load($template, $replacements = []){
 
-        $html = self::template_source($template);
+        $html = str_replace('/static/style.css?v{%version%}',
+            '/static/style.css?v{%search_style_version%}', self::template_source($template));
         $needs=static fn(string $key):bool=>str_contains($html,'{%'.$key.'%}');
 
 		$replacements["server_name"] = htmlspecialchars(config::SERVER_NAME);
 		$replacements["version"] = config::VERSION;
+        $replacements['search_style_version'] = config::VERSION . '-luma1';
         if (in_array($template, ["home.html", "header.html"], true)) {
             $replacements["search_actions"] = self::template_source("search-actions.html");
         }
@@ -55,7 +57,7 @@ class page_renderer {
         $replacements["style"] = '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '">' .
             '<link rel="stylesheet" href="/static/experience.css?v' . config::VERSION . '">';
         if ($template === 'home.html') {
-            $replacements['home_base_style']=home_styles::inline('base') ?: '<link rel="stylesheet" href="/static/style.css?v'.config::VERSION.'">';
+            $replacements['home_base_style']=home_styles::inline('base') ?: '<link rel="stylesheet" href="/static/style.css?v'.config::VERSION.'-luma1">';
             $theme_style=$theme==='Black' ? home_styles::inline('black') : '';
             $replacements['style']=($theme_style ?: '<link rel="stylesheet" href="/static/themes/'.rawurlencode($theme).'.css?v'.config::VERSION.'">').
                 (home_styles::inline('controls') ?: '<link rel="stylesheet" href="/static/experience.css?v'.config::VERSION.'">');

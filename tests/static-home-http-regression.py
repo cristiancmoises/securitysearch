@@ -48,11 +48,20 @@ def run_native():
         status,h,static=response();assert status==200 and h.get('x-securitysearch-render')==['static-home']
         assert any('public, max-age=60' in x for x in h.get('cache-control',[]));assert not h.get('set-cookie')
         assert any("script-src 'none'" in x and "connect-src 'none'" in x for x in h.get('content-security-policy',[]))
+        dynamic_status,dynamic_headers,_=response(path='/?luma-policy=1')
+        assert dynamic_status==200
+        dynamic_policy=dynamic_headers['content-security-policy'][0]
+        expected_form=next(p.strip() for p in dynamic_policy.split(';') if p.strip().startswith('form-action '))
+        assert len(expected_form.split())==3 and expected_form.split()[1]=="'self'" and expected_form.split()[2].startswith('https://')
+        for policy in h.get('content-security-policy',[]):
+            assert expected_form in [p.strip() for p in policy.split(';')], 'Static homepage must permit the same explicit LUMA destination'
         vary=','.join(h.get('vary',[])).lower();assert 'cookie' in vary and 'authorization' in vary and 'accept-encoding' in vary
 
         status,h,compressed=response(extra=['-H','Accept-Encoding: gzip'])
         assert status==200 and h.get('x-securitysearch-render')==['static-home']
         assert h.get('content-encoding')==['gzip'] and gzip.decompress(compressed)==static
+        for policy in h.get('content-security-policy',[]):
+            assert expected_form in [p.strip() for p in policy.split(';')], 'Gzip homepage must retain explicit LUMA destination policy'
 
         status,h,identity=response(extra=['-H','Accept-Encoding: gzip;q=0'])
         assert status==200 and h.get('x-securitysearch-render')==['static-home']

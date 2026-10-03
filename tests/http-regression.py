@@ -70,8 +70,13 @@ class HomeActions(HTMLParser):
             self.depth -= 1
 
 
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, fp, code, message, headers, newurl):
+        return None
+
+
 def require_homepage_toolbar(html):
-    """Keep exact v0.9.42 actions, routes and Black-theme expectations mandatory."""
+    """Keep all six actions, routes and Black-theme expectations mandatory."""
     if 'data-home-style="black"' not in html:
         raise AssertionError('HTTP_HOME_THEME: Black homepage marker missing')
     if '/static/themes/Black.css' in html:
@@ -79,6 +84,7 @@ def require_homepage_toolbar(html):
     expected = [
         ('Search', None, None, None),
         ('Search Image', '/images', 'destination', 'images'),
+        ('Pesquise no LUMA', '/luma', 'destination', 'luma'),
         ('Search Pinterest', '/images', 'destination', 'binternet'),
         ('Search DeviantArt', '/images', 'destination', 'skunkyart'),
         ('Search YouTube', '/videos', 'destination', 'invidious'),
@@ -86,8 +92,8 @@ def require_homepage_toolbar(html):
     toolbar = HomeActions(html)
     if toolbar.toolbars != 1 or toolbar.depth != 0 or toolbar.current is not None:
         raise AssertionError('HTTP_HOME_ACTIONS: expected one complete toolbar')
-    if len(toolbar.buttons) != 5 or toolbar.icons != 5:
-        raise AssertionError('HTTP_HOME_ACTIONS: expected five buttons and five icons')
+    if len(toolbar.buttons) != 6 or toolbar.icons != 6:
+        raise AssertionError('HTTP_HOME_ACTIONS: expected six buttons and six icons')
     actual = []
     for button in toolbar.buttons:
         attrs = button['attrs']
@@ -108,7 +114,7 @@ def main():
         for folder in ['static','banner']:
             (root/folder).symlink_to(ROOT/folder,target_is_directory=True)
         (root/'data').mkdir();shutil.copy2(ROOT/'data/config.php',root/'data/config.php')
-        for file in ['images.php','index.php','settings.php','news.php','web.php','music.php']:
+        for file in ['images.php','index.php','settings.php','news.php','web.php','music.php','luma.php']:
             shutil.copy2(ROOT/file,root/file)
         (root/'scraper').mkdir()
         (root/'scraper/google.php').write_text('''<?php
@@ -175,6 +181,7 @@ if ($path==='/images') {require 'images.php';return true;}
 if ($path==='/news') {require 'news.php';return true;}
 if ($path==='/web') {require 'web.php';return true;}
 if ($path==='/music') {require 'music.php';return true;}
+if ($path==='/luma') {require 'luma.php';return true;}
 if ($path==='/proxy-fixture') {chdir('media');require 'proxy.php';return true;}
 if ($path==='/settings') {require 'settings.php';return true;}
 http_response_code(404);return true;
@@ -194,6 +201,14 @@ http_response_code(404);return true;
                 code,_,_=request('/fixture-reset')
                 require_status(code,200,'reset')
             def calls():return json.loads(request('/fixture-stats')[2])['calls']
+            def luma_request(query='', method='GET'):
+                req=urllib.request.Request(base+'/luma'+query, method=method)
+                try:
+                    response=urllib.request.build_opener(NoRedirect()).open(req,timeout=8)
+                except urllib.error.HTTPError as error:
+                    response=error
+                with response:
+                    return response.status,response.headers,response.read().decode()
             def search(query='GNU Guix', view='filmstrip', cookie=None):
                 code,headers,html=request('/images?s='+urllib.parse.quote(query)+'&view='+view+'&quality=high&format=gif&newer=2025-01-01',cookie)
                 require_status(code,200,'images')
@@ -221,6 +236,24 @@ http_response_code(404);return true;
                 assert "script-src 'none'" in headers['Content-Security-Policy'] and '<script' not in html.lower()
                 assert all(label in html for label in ['Search Image','Search Pinterest','Search DeviantArt','Search YouTube','In Code We Trust.'])
                 require_homepage_toolbar(html)
+                toolbar=HomeActions(html)
+                assert 'formnovalidate' in toolbar.buttons[2]['attrs'], 'Empty LUMA navigation must remain available'
+                form_policy=next(p.strip() for p in headers['Content-Security-Policy'].split(';') if p.strip().startswith('form-action '))
+                allowed=form_policy.split()[1:]
+                assert len(allowed)==2 and allowed[0]=="'self'" and allowed[1].startswith('https://')
+                origin=allowed[1]
+                for query, wanted in [('', '/'), ('?s=++', '/'), ('?s=0','/?q=0'), ('?s=GNU+Guix+%26+privacy&npt=private&scraper=brave&destination=https%3A%2F%2Fevil.invalid','/?q=GNU%20Guix%20%26%20privacy'), ('?s=%23educa%C3%A7%C3%A3o','/?q=%23educa%C3%A7%C3%A3o'), ('?s=%3Cscript%3E%22','/?q=%3Cscript%3E%22')]:
+                    code,redir,body=luma_request(query)
+                    assert code==303 and redir['Location']==origin+wanted and body==''
+                    assert redir['Cache-Control']=='private, no-store' and redir['Referrer-Policy']=='no-referrer'
+                    assert 'Set-Cookie' not in redir and 'X-Powered-By' not in redir
+                for query in ['?s%5B%5D=bad', '?s='+('a'*161), '?s='+('%C3%A9'*161), '?s=x%0D%0AInjected', '?s=%C2%85', '?s=%C2%9F', '?s=%FF', '?s=x%00']:
+                    code,redir,body=luma_request(query)
+                    assert code==400 and 'Location' not in redir
+                    assert redir['Cache-Control']=='private, no-store' and redir['Referrer-Policy']=='no-referrer'
+                    assert '<script' not in body and 'Injected' not in body
+                code,redir,body=luma_request(method='POST')
+                assert code==405 and redir['Allow']=='GET' and 'Location' not in redir
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']

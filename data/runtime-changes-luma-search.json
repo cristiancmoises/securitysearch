@@ -1,0 +1,105 @@
+{
+  "release": "0.9.42",
+  "baseline_commit": "1d45134d760defabe0de534383a16f81e0a6b938",
+  "baseline_tree": "93c505330fa485aed7617184ec171959b777f50b",
+  "files": {
+    "template/search-actions.html": {
+      "old_sha256": "71ae0efa6e5c0ed91cd415f2a2853c259637e35f3f7c3ee680a53a3d9ce66781",
+      "new_sha256": "cbbd1c8fe244e4b9e8c6138c558bf53f8549ff4a658e992cc8d0df3361a9ffe5",
+      "edits": [
+        {
+          "before": "        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m3 17 5-5 4 4 4-5 5 6\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Image</span>\n    </button>\n    <button type=\"submit\" formaction=\"/images\" name=\"destination\" value=\"binternet\" aria-label=\"Search Pinterest\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"m9 18 2-11h2a3 3 0 0 1 0 6h-3\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Pinterest</span>\n    </button>\n    <button type=\"submit\" formaction=\"/images\" name=\"destination\" value=\"skunkyart\" aria-label=\"Search DeviantArt\" title=\"DeviantArt via SkunkyArt\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"currentColor\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M17 0h-4L9.6 6H4v4h3.3L2 20v4h4l3.4-6H15v-4h-3.3L17 4z\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search DeviantArt</span>\n    </button>\n    <button type=\"submit\" formaction=\"/videos\" name=\"destination\" value=\"invidious\" aria-label=\"Search YouTube\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"2\" y=\"5\" width=\"20\" height=\"14\" rx=\"4\"/><path d=\"m10 9 5 3-5 3z\" fill=\"currentColor\" stroke=\"none\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search YouTube</span>\n    </button>\n</div>\n",
+          "after": "        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m3 17 5-5 4 4 4-5 5 6\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Image</span>\n    </button>\n    <button type=\"submit\" formaction=\"/luma\" formnovalidate name=\"destination\" value=\"luma\" aria-label=\"Pesquise no LUMA\" title=\"LUMA — projeto educacional independente; abre um serviço externo\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 6c-2.5-2-6-2-9-1v14c3-1 6.5-1 9 1 2.5-2 6-2 9-1V5c-3-1-6.5-1-9 1Zm0 0v14M6 9h3M6 12h3M15 9h3M15 12h3\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Pesquise no LUMA</span>\n    </button>\n    <button type=\"submit\" formaction=\"/images\" name=\"destination\" value=\"binternet\" aria-label=\"Search Pinterest\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M6 3h12v18l-6-4-6 4V3Z\"/><path d=\"M9 7h6M9 10h6\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Pinterest</span>\n    </button>\n    <button type=\"submit\" formaction=\"/images\" name=\"destination\" value=\"skunkyart\" aria-label=\"Search DeviantArt\" title=\"DeviantArt via SkunkyArt\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"m14 7 5-4 2 2-4 5M14 7l3 3-6 7-4-4 7-6Z\"/><path d=\"M7 13c-4 0-2 5-5 7 4 1 8-1 9-3\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search DeviantArt</span>\n    </button>\n    <button type=\"submit\" formaction=\"/videos\" name=\"destination\" value=\"invidious\" aria-label=\"Search YouTube\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"1\"/><path d=\"M7 3v18M17 3v18M3 8h4M3 16h4M17 8h4M17 16h4M7 12h10\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search YouTube</span>\n    </button>\n</div>\n"
+        }
+      ]
+    },
+    "static/style.css": {
+      "old_sha256": "fb9633e3668c8a2e1337593d2d5a2e2bbfa404e930cb6d7b4397d0912de4b5d0",
+      "new_sha256": "305d4f82e0c9c03adcc9c9497ac49a7c10d9df8c45c9af38ad4709c564b09456",
+      "edits": [
+        {
+          "before": "\n/* Compact native search actions, shared by homepage and result headers. */\n.search-surface{position:relative;display:block;width:100%;max-width:850px;margin:1rem 0 .5rem;}\n.search-surface input[type=\"search\"]{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:.6rem 10.25rem .6rem .85rem;font:inherit;font-size:.94rem;color:var(--ebdbb2);background:var(--282828);border:1px solid var(--504945,#335359);border-radius:10px;}\n.search-actions{position:absolute;right:.35rem;top:.5rem;display:flex;flex-direction:row;gap:.15rem;}\n.search-actions button{position:relative;display:grid;place-items:center;box-sizing:border-box;width:1.75rem;height:1.75rem;min-height:1.75rem;padding:0;cursor:pointer;color:var(--bdae93);background:transparent;border:1px solid transparent;border-radius:6px;text-shadow:none;}\n.search-action-icon{display:block;width:.875rem;height:.875rem;pointer-events:none;}\n",
+          "after": "\n/* Compact native search actions, shared by homepage and result headers. */\n.search-surface{position:relative;display:block;width:100%;max-width:850px;margin:1rem 0 .5rem;}\n.search-surface input[type=\"search\"]{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:.6rem 12.25rem .6rem .85rem;font:inherit;font-size:.94rem;color:var(--ebdbb2);background:var(--282828);border:1px solid var(--504945,#335359);border-radius:10px;}\n.search-actions{position:absolute;right:.35rem;top:.5rem;display:flex;flex-direction:row;gap:.15rem;}\n.search-actions button{position:relative;display:grid;place-items:center;box-sizing:border-box;width:1.75rem;height:1.75rem;min-height:1.75rem;padding:0;cursor:pointer;color:var(--bdae93);background:transparent;border:1px solid transparent;border-radius:6px;text-shadow:none;}\n.search-action-icon{display:block;width:.875rem;height:.875rem;pointer-events:none;}\n"
+        },
+        {
+          "before": "@media(pointer:coarse){\n  .search-actions button{width:2.75rem;height:2.75rem;min-height:2.75rem;}\n  .search-actions{top:.375rem;right:.25rem;gap:0;}\n  .search-surface input[type=\"search\"]{min-height:56px;padding-right:14.5rem;font-size:1rem;}\n}\n@media(forced-colors:active){.search-actions button{border-color:ButtonText;}.search-action-label{background:Canvas;color:CanvasText;border-color:CanvasText;}}\n.provider-details{margin-top:1.5rem;max-width:70ch;overflow-wrap:anywhere;}\n",
+          "after": "@media(pointer:coarse){\n  .search-actions button{width:2.75rem;height:2.75rem;min-height:2.75rem;}\n  .search-actions{top:.375rem;right:.25rem;gap:0;}\n  .search-surface input[type=\"search\"]{min-height:56px;padding-right:17.5rem;font-size:1rem;}\n}\n@media(forced-colors:active){.search-actions button{border-color:ButtonText;}.search-action-label{background:Canvas;color:CanvasText;border-color:CanvasText;}}\n.provider-details{margin-top:1.5rem;max-width:70ch;overflow-wrap:anywhere;}\n"
+        },
+        {
+          "before": "\n.provider-notice,.news-context{font-size:.875rem;line-height:1.6;color:var(--bdae93);margin:.5rem 0 1rem;}\n\n/* Keep five native actions off the query line on narrow screens. */\n@media(max-width:600px){.search-surface .search-actions{position:static;justify-content:flex-end;margin-top:.3rem;}.search-surface input[type=\"search\"]{padding-right:.85rem;}}\n",
+          "after": "\n.provider-notice,.news-context{font-size:.875rem;line-height:1.6;color:var(--bdae93);margin:.5rem 0 1rem;}\n\n/* Keep native actions off the query line on narrow screens. */\n@media(max-width:600px){.search-surface .search-actions{position:static;justify-content:flex-end;margin-top:.3rem;}.search-surface input[type=\"search\"]{padding-right:.85rem;}}\n"
+        }
+      ]
+    },
+    "static/home-base.css": {
+      "old_sha256": "e57b2f4b84a3332f5388304460151ed00642dcf66b7ff0ef0a375303bfb78f39",
+      "new_sha256": "0e6c959310fce3a7a10c2ab586ece6103d73aea91bf820f6997f932b154162cd",
+      "edits": [
+        {
+          "before": "@media (max-width:600px){.service-navigation,.navigation{justify-content:center;}\n.trust-footer p{letter-spacing:.04em;}}\n.search-surface{position:relative;display:block;width:100%;max-width:850px;margin:1rem 0 .5rem;}\n.search-surface input[type=\"search\"]{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:.6rem 10.25rem .6rem .85rem;font:inherit;font-size:.94rem;color:var(--ebdbb2);background:var(--282828);border:1px solid var(--504945,#335359);border-radius:10px;}\n.search-actions{position:absolute;right:.35rem;top:.5rem;display:flex;flex-direction:row;gap:.15rem;}\n.search-actions button{position:relative;display:grid;place-items:center;box-sizing:border-box;width:1.75rem;height:1.75rem;min-height:1.75rem;padding:0;cursor:pointer;color:var(--bdae93);background:transparent;border:1px solid transparent;border-radius:6px;text-shadow:none;}\n.search-action-icon{display:block;width:.875rem;height:.875rem;pointer-events:none;}\n",
+          "after": "@media (max-width:600px){.service-navigation,.navigation{justify-content:center;}\n.trust-footer p{letter-spacing:.04em;}}\n.search-surface{position:relative;display:block;width:100%;max-width:850px;margin:1rem 0 .5rem;}\n.search-surface input[type=\"search\"]{box-sizing:border-box;width:100%;min-width:0;min-height:44px;padding:.6rem 12.25rem .6rem .85rem;font:inherit;font-size:.94rem;color:var(--ebdbb2);background:var(--282828);border:1px solid var(--504945,#335359);border-radius:10px;}\n.search-actions{position:absolute;right:.35rem;top:.5rem;display:flex;flex-direction:row;gap:.15rem;}\n.search-actions button{position:relative;display:grid;place-items:center;box-sizing:border-box;width:1.75rem;height:1.75rem;min-height:1.75rem;padding:0;cursor:pointer;color:var(--bdae93);background:transparent;border:1px solid transparent;border-radius:6px;text-shadow:none;}\n.search-action-icon{display:block;width:.875rem;height:.875rem;pointer-events:none;}\n"
+        },
+        {
+          "before": ".search-actions button:hover .search-action-label{visibility:visible;opacity:1;}}\n@media (pointer:coarse){.search-actions button{width:2.75rem;height:2.75rem;min-height:2.75rem;}\n.search-actions{top:.375rem;right:.25rem;gap:0;}\n.search-surface input[type=\"search\"]{min-height:56px;padding-right:14.5rem;font-size:1rem;}}\n@media (forced-colors:active){.search-actions button{border-color:ButtonText;}\n.search-action-label{background:Canvas;color:CanvasText;border-color:CanvasText;}}\n.provider-notice,.news-context{font-size:.875rem;line-height:1.6;color:var(--bdae93);margin:.5rem 0 1rem;}\n",
+          "after": ".search-actions button:hover .search-action-label{visibility:visible;opacity:1;}}\n@media (pointer:coarse){.search-actions button{width:2.75rem;height:2.75rem;min-height:2.75rem;}\n.search-actions{top:.375rem;right:.25rem;gap:0;}\n.search-surface input[type=\"search\"]{min-height:56px;padding-right:17.5rem;font-size:1rem;}}\n@media (forced-colors:active){.search-actions button{border-color:ButtonText;}\n.search-action-label{background:Canvas;color:CanvasText;border-color:CanvasText;}}\n.provider-notice,.news-context{font-size:.875rem;line-height:1.6;color:var(--bdae93);margin:.5rem 0 1rem;}\n"
+        }
+      ]
+    },
+    "lib/page_renderer.php": {
+      "old_sha256": "238b8733cad1431d1428bd06a570b52d3b0e77df504b8b6156bab3f89e65db72",
+      "new_sha256": "2de59755060b8a0037e1b5451c5d7db3fa4a1245732912cc0a2dff680b020d1b",
+      "edits": [
+        {
+          "before": "\n\tpublic function load($template, $replacements = []){\n\n        $html = self::template_source($template);\n        $needs=static fn(string $key):bool=>str_contains($html,'{%'.$key.'%}');\n\n\t\t$replacements[\"server_name\"] = htmlspecialchars(config::SERVER_NAME);\n\t\t$replacements[\"version\"] = config::VERSION;\n        if (in_array($template, [\"home.html\", \"header.html\"], true)) {\n            $replacements[\"search_actions\"] = self::template_source(\"search-actions.html\");\n        }\n",
+          "after": "\n\tpublic function load($template, $replacements = []){\n\n        $html = str_replace('/static/style.css?v{%version%}',\n            '/static/style.css?v{%search_style_version%}', self::template_source($template));\n        $needs=static fn(string $key):bool=>str_contains($html,'{%'.$key.'%}');\n\n\t\t$replacements[\"server_name\"] = htmlspecialchars(config::SERVER_NAME);\n\t\t$replacements[\"version\"] = config::VERSION;\n        $replacements['search_style_version'] = config::VERSION . '-luma1';\n        if (in_array($template, [\"home.html\", \"header.html\"], true)) {\n            $replacements[\"search_actions\"] = self::template_source(\"search-actions.html\");\n        }\n"
+        },
+        {
+          "before": "        $replacements[\"style\"] = '<link rel=\"stylesheet\" href=\"/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '\">' .\n            '<link rel=\"stylesheet\" href=\"/static/experience.css?v' . config::VERSION . '\">';\n        if ($template === 'home.html') {\n            $replacements['home_base_style']=home_styles::inline('base') ?: '<link rel=\"stylesheet\" href=\"/static/style.css?v'.config::VERSION.'\">';\n            $theme_style=$theme==='Black' ? home_styles::inline('black') : '';\n            $replacements['style']=($theme_style ?: '<link rel=\"stylesheet\" href=\"/static/themes/'.rawurlencode($theme).'.css?v'.config::VERSION.'\">').\n                (home_styles::inline('controls') ?: '<link rel=\"stylesheet\" href=\"/static/experience.css?v'.config::VERSION.'\">');\n",
+          "after": "        $replacements[\"style\"] = '<link rel=\"stylesheet\" href=\"/static/themes/' . rawurlencode($theme) . '.css?v' . config::VERSION . '\">' .\n            '<link rel=\"stylesheet\" href=\"/static/experience.css?v' . config::VERSION . '\">';\n        if ($template === 'home.html') {\n            $replacements['home_base_style']=home_styles::inline('base') ?: '<link rel=\"stylesheet\" href=\"/static/style.css?v'.config::VERSION.'-luma1\">';\n            $theme_style=$theme==='Black' ? home_styles::inline('black') : '';\n            $replacements['style']=($theme_style ?: '<link rel=\"stylesheet\" href=\"/static/themes/'.rawurlencode($theme).'.css?v'.config::VERSION.'\">').\n                (home_styles::inline('controls') ?: '<link rel=\"stylesheet\" href=\"/static/experience.css?v'.config::VERSION.'\">');\n"
+        }
+      ]
+    },
+    "lib/security_headers.php": {
+      "old_sha256": "4eae74ed37e6c741d9b831b59547224a282f2288cc8268e9fd86c1173f3d8869",
+      "new_sha256": "74cc28e05a786b9293f19481bc759f4cd4dc1ed7c7faef2e35c20702aec2d624",
+      "edits": [
+        {
+          "before": "<?php\n/*\n * lib/security_headers.php\n *\n",
+          "after": "<?php\nrequire_once __DIR__ . '/luma_search.php';\n/*\n * lib/security_headers.php\n *\n"
+        },
+        {
+          "before": "    \"media-src 'self'; \" .\n    \"font-src 'self' data:; \" .\n    ($image_enhancement ? \"connect-src 'self'; \" : \"connect-src 'none'; \") .\n    \"form-action 'self'; \" .\n    \"frame-ancestors 'none'; \" .\n    \"base-uri 'self'; \" .\n    \"manifest-src 'self'; \" .\n",
+          "after": "    \"media-src 'self'; \" .\n    \"font-src 'self' data:; \" .\n    ($image_enhancement ? \"connect-src 'self'; \" : \"connect-src 'none'; \") .\n    \"form-action 'self' \" . luma_search::ORIGIN . \"; \" .\n    \"frame-ancestors 'none'; \" .\n    \"base-uri 'self'; \" .\n    \"manifest-src 'self'; \" .\n"
+        }
+      ]
+    },
+    "docker/apache/fast-home.conf": {
+      "old_sha256": "88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941",
+      "new_sha256": "67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08",
+      "edits": [
+        {
+          "before": "    Header always set Cross-Origin-Resource-Policy \"same-origin\"\n    Header always set Cross-Origin-Embedder-Policy \"unsafe-none\"\n    Header always set X-Permitted-Cross-Domain-Policies \"none\"\n    Header always set Content-Security-Policy \"default-src 'none'; script-src 'none'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self' data:; connect-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; manifest-src 'self'; object-src 'none'; worker-src 'none'; upgrade-insecure-requests\"\n</FilesMatch>\n\n# Pre-compressed representation generated from the exact same validated HTML.\n",
+          "after": "    Header always set Cross-Origin-Resource-Policy \"same-origin\"\n    Header always set Cross-Origin-Embedder-Policy \"unsafe-none\"\n    Header always set X-Permitted-Cross-Domain-Policies \"none\"\n    Header always set Content-Security-Policy \"default-src 'none'; script-src 'none'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self' data:; connect-src 'none'; form-action 'self' https://instalibre.securityops.co; frame-ancestors 'none'; base-uri 'self'; manifest-src 'self'; object-src 'none'; worker-src 'none'; upgrade-insecure-requests\"\n</FilesMatch>\n\n# Pre-compressed representation generated from the exact same validated HTML.\n"
+        }
+      ]
+    },
+    "data/home-css-manifest.json": {
+      "old_sha256": "ace58c0b4f0a884a14ea072ce9e50c91e77950088bd022005829f86e529d667f",
+      "new_sha256": "fdf29a224e5d525d57e954b8563c9d591be845c39b5e81ba118c8a53e7b3d1af",
+      "edits": [
+        {
+          "before": "  \"schema\": 1,\n  \"generator\": \"scripts/build-home-css.py\",\n  \"inputs\": {\n    \"static/style.css\": \"fb9633e3668c8a2e1337593d2d5a2e2bbfa404e930cb6d7b4397d0912de4b5d0\",\n    \"static/experience.css\": \"eac322b9d311b5d645ff8ee184c2f0e4aeada770e098c30dd499c051939ced77\",\n    \"static/themes/Black.css\": \"9b268e0aa5c71154b9c150c00b69ea0ee31592cbb56198db98ce9ad78ff421ec\"\n  },\n  \"outputs\": {\n    \"static/home-base.css\": \"e57b2f4b84a3332f5388304460151ed00642dcf66b7ff0ef0a375303bfb78f39\",\n    \"static/home-controls.css\": \"5421b71b7fcc1084fb9baaf7797be1ba2b9afdd3b28f2328a278676f8acba7bd\",\n    \"static/home-black.css\": \"6c3e3cd753f9411185d5c35112f5f8aff45dcd452dd7fe2a01658a92c2ddb56d\"\n  },\n",
+          "after": "  \"schema\": 1,\n  \"generator\": \"scripts/build-home-css.py\",\n  \"inputs\": {\n    \"static/style.css\": \"305d4f82e0c9c03adcc9c9497ac49a7c10d9df8c45c9af38ad4709c564b09456\",\n    \"static/experience.css\": \"eac322b9d311b5d645ff8ee184c2f0e4aeada770e098c30dd499c051939ced77\",\n    \"static/themes/Black.css\": \"9b268e0aa5c71154b9c150c00b69ea0ee31592cbb56198db98ce9ad78ff421ec\"\n  },\n  \"outputs\": {\n    \"static/home-base.css\": \"0e6c959310fce3a7a10c2ab586ece6103d73aea91bf820f6997f932b154162cd\",\n    \"static/home-controls.css\": \"5421b71b7fcc1084fb9baaf7797be1ba2b9afdd3b28f2328a278676f8acba7bd\",\n    \"static/home-black.css\": \"6c3e3cd753f9411185d5c35112f5f8aff45dcd452dd7fe2a01658a92c2ddb56d\"\n  },\n"
+        }
+      ]
+    }
+  },
+  "added_files": {
+    "luma.php": {
+      "new_sha256": "4233fc2125a79fc02e69188834d4e444eafbdd84a9c107769bec019d2ce7d376"
+    },
+    "lib/luma_search.php": {
+      "new_sha256": "230f25e3c8fd948251a43897683a7b27d1525127164994246d0c24494faea83d"
+    }
+  }
+}

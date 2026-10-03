@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 import copy,hashlib,importlib.util,json,unittest
+from html.parser import HTMLParser
 from pathlib import Path
 from unittest.mock import patch
+import runtime_history as runtime
 from runtime_history import historical_bytes,before42_bytes,maintenance_baseline_bytes,provider_maintenance_manifest,assert_reviewed_google_current,assert_reviewed_current
 R=Path(__file__).resolve().parents[1]
 MAINTENANCE_SCOPE={'api/v1/web.php','api/v1/images.php','api/v1/videos.php','api/v1/news.php','api/v1/music.php','lib/search_guard.php','lib/search_health.php','scraper/brave.php','data/config.php','lib/frontend.php'}
@@ -17,6 +19,103 @@ MAINTENANCE_HASHES={
  'data/config.php':('b43a80837bc2bae0f5bdf8a846e265fcfa02b8f61acfc060daec70b5dabd7015', '45f2a63de263d4574c33c65f9837bcc8251ba09ef5216fdde71eb1698aaf28c9'),
  'lib/frontend.php':('1681f3a0d1b3803898274a4634fa683c5f586f539363247b90bcd9efd7fa3c2b', 'b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c')}
 class Release42(unittest.TestCase):
+ def test_luma_change_has_exact_reviewed_scope(self):
+  self.assertTrue(hasattr(runtime,'luma_maintenance_manifest'),'LUMA runtime-history layer is required')
+  d=runtime.luma_maintenance_manifest()
+  self.assertEqual(d['baseline_commit'],'1d45134d760defabe0de534383a16f81e0a6b938')
+  self.assertEqual(d['baseline_tree'],'93c505330fa485aed7617184ec171959b777f50b')
+  self.assertEqual(set(d['files']),{'template/search-actions.html','static/style.css','static/home-base.css','lib/page_renderer.php','lib/security_headers.php','docker/apache/fast-home.conf','data/home-css-manifest.json'})
+  self.assertEqual(set(d['added_files']),{'luma.php','lib/luma_search.php'})
+ def test_luma_fast_home_bytes_preserve_reviewed_history(self):
+  d=json.loads((R/'data/runtime-changes-luma-search.json').read_text())
+  name='docker/apache/fast-home.conf'
+  self.assertIn(name,set(d['files']),'LUMA must review anonymous-home response policy too')
+  self.assertEqual((d['files'][name]['old_sha256'],d['files'][name]['new_sha256']),('88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941','67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08'))
+  self.assertEqual(hashlib.sha256(runtime.luma_baseline_bytes(name)).hexdigest(),'88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941')
+ def test_luma_home_css_manifest_is_live_and_reversible(self):
+  d=json.loads((R/'data/runtime-changes-luma-search.json').read_text());name='data/home-css-manifest.json'
+  self.assertIn(name,set(d['files']),'LUMA must review the living CSS manifest too')
+  original=runtime.luma_baseline_bytes(name)
+  self.assertEqual(hashlib.sha256(original).hexdigest(),'ace58c0b4f0a884a14ea072ce9e50c91e77950088bd022005829f86e529d667f')
+  baseline=json.loads(original);current=json.loads((R/name).read_text());restored=copy.deepcopy(current)
+  for scope,css in (('inputs','static/style.css'),('outputs','static/home-base.css')):
+   self.assertEqual(current[scope][css],hashlib.sha256((R/css).read_bytes()).hexdigest(),'Living CSS evidence must match current source')
+   self.assertEqual(baseline[scope][css],hashlib.sha256(runtime.luma_baseline_bytes(css)).hexdigest(),'Historical CSS evidence must match reconstructed source')
+   restored[scope][css]=baseline[scope][css]
+  self.assertEqual(restored,baseline,'Only the two reviewed CSS fingerprints may change')
+ def test_luma_restores_exact_five_historical_toolbar_actions(self):
+  class Toolbar(HTMLParser):
+   def __init__(self):super().__init__();self.buttons=[];self.icons=[]
+   def handle_starttag(self,tag,attrs):
+    if tag=='button':self.buttons.append(dict(attrs))
+    elif tag=='svg':self.icons.append(dict(attrs))
+  parser=Toolbar();parser.feed(maintenance_baseline_bytes('template/search-actions.html').decode())
+  expected=[('Search',None,None,None),('Search Image','/images','destination','images'),('Search Pinterest','/images','destination','binternet'),('Search DeviantArt','/images','destination','skunkyart'),('Search YouTube','/videos','destination','invidious')]
+  self.assertEqual([tuple(b.get(k) for k in ('aria-label','formaction','name','value')) for b in parser.buttons],expected)
+  self.assertEqual(len(parser.icons),5)
+  for b in parser.buttons:self.assertEqual(b['type'],'submit');self.assertNotIn('disabled',b)
+  for icon in parser.icons:self.assertEqual((icon['aria-hidden'],icon['focusable']),('true','false'))
+ def test_luma_added_endpoints_have_no_historical_source(self):
+  for name in ('luma.php','lib/luma_search.php'):
+   for reader in (runtime.luma_baseline_bytes,maintenance_baseline_bytes,before42_bytes,historical_bytes):
+    with self.subTest(name=name,reader=reader.__name__),self.assertRaises(ValueError):reader(name)
+ def test_luma_scope_and_baseline_tampering_fail_closed(self):
+  real=Path.read_text;path=R/'data/runtime-changes-luma-search.json';manifest=json.loads(real(path))
+  variants=[]
+  for key in ('release','baseline_commit','baseline_tree'):
+   d=copy.deepcopy(manifest);d[key]='unreviewed';variants.append((key,d))
+  d=copy.deepcopy(manifest);d['unexpected']='unreviewed';variants.append(('unknown metadata',d))
+  for scope in ('files','added_files'):
+   d=copy.deepcopy(manifest);d[scope]['unexpected.php']={};variants.append(('unknown '+scope,d))
+   for name in manifest[scope]:
+    d=copy.deepcopy(manifest);del d[scope][name];variants.append(('missing '+name,d))
+  for label,d in variants:
+   with self.subTest(label=label),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.luma_maintenance_manifest()
+ def test_luma_malformed_metadata_fails_closed(self):
+  real=Path.read_text;path=R/'data/runtime-changes-luma-search.json';manifest=json.loads(real(path))
+  variants=[None,[],0,'unreviewed']
+  for scope in ('files','added_files'):
+   for bad in (None,[],0,'unreviewed'):
+    d=copy.deepcopy(manifest);d[scope]=bad;variants.append(d)
+  name='template/search-actions.html'
+  for bad in (None,[],0,'unreviewed'):
+   d=copy.deepcopy(manifest);d['files'][name]=bad;variants.append(d)
+  for bad in (None,{},[None],[{}],[{'before':1,'after':'reviewed'}],[{'before':'reviewed','after':[]}]) :
+   d=copy.deepcopy(manifest);d['files'][name]['edits']=bad;variants.append(d)
+  for index,d in enumerate(variants):
+   with self.subTest(index=index),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.luma_maintenance_manifest()
+ def test_luma_edit_tampering_cannot_claim_history(self):
+  real=Path.read_text;path=R/'data/runtime-changes-luma-search.json';manifest=json.loads(real(path))
+  for name in manifest['files']:
+   for bad in ('record','edit','missing_edits','empty','ambiguous','preimage','identical','old_hash','new_hash'):
+    changed=copy.deepcopy(manifest);row=changed['files'][name]
+    if bad=='record':row['unexpected']='unreviewed'
+    elif bad=='edit':row['edits'][0]['unexpected']='unreviewed'
+    elif bad=='missing_edits':row['edits']=[]
+    elif bad=='empty':row['edits'][0]['after']=''
+    elif bad=='ambiguous':row['edits'][0]['after']='\n'
+    elif bad=='preimage':row['edits'][0]['before']+='unreviewed'
+    elif bad=='identical':row['edits'][0]['before']=row['edits'][0]['after']
+    else:row[bad.replace('_hash','_sha256')]='0'*64
+    with self.subTest(name=name,bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(changed) if p==path else real(p,*a,**k)):
+     with self.assertRaises(ValueError):historical_bytes(name)
+ def test_luma_current_bytes_and_added_hashes_fail_closed(self):
+  manifest=runtime.luma_maintenance_manifest();real=Path.read_bytes
+  for name in set(manifest['files']) | set(manifest['added_files']):
+   with self.subTest(name=name),patch.object(Path,'read_bytes',lambda p:real(p)+b'unreviewed' if p==R/name else real(p)):
+    with self.assertRaises(ValueError):
+     if name in manifest['added_files']:runtime.luma_maintenance_manifest()
+     else:runtime.luma_baseline_bytes(name)
+  text=Path.read_text;path=R/'data/runtime-changes-luma-search.json'
+  for name in manifest['added_files']:
+   for bad in ('hash','record'):
+    d=copy.deepcopy(manifest)
+    if bad=='hash':d['added_files'][name]['new_sha256']='0'*64
+    else:d['added_files'][name]['unexpected']='unreviewed'
+    with self.subTest(name=name,bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else text(p,*a,**k)):
+     with self.assertRaises(ValueError):runtime.luma_maintenance_manifest()
  def test_provider_maintenance_has_exact_ten_reversible_files(self):
   d=provider_maintenance_manifest()
   self.assertEqual(set(d['files']),{'api/v1/web.php','api/v1/images.php','api/v1/videos.php','api/v1/news.php','api/v1/music.php','lib/search_guard.php','lib/search_health.php','scraper/brave.php','data/config.php','lib/frontend.php'})
@@ -26,7 +125,7 @@ class Release42(unittest.TestCase):
   self.assertEqual(d['scraper/cara.php']['old_sha256'],'922075bc5898f6bf2b17a21924abf1e7713053d53dc05b3cdf093c072248ccb6')
   self.assertEqual(d['scraper/cara.php']['new_sha256'],'90560e9a0b0e90ce452ededeaf91ccaecbe21d2ac14d3a90d762ec6ef6fbde11')
  def test_cara_privacy_cleanup_is_not_reconstructed(self):
-  for reader in (maintenance_baseline_bytes,before42_bytes,historical_bytes):
+  for reader in (runtime.luma_baseline_bytes,maintenance_baseline_bytes,before42_bytes,historical_bytes):
    with self.subTest(reader=reader.__name__),self.assertRaises(ValueError):reader('scraper/cara.php')
  def test_unknown_maintenance_record_metadata_fails_closed(self):
   real=Path.read_text;manifest=json.loads(real(R/'data/runtime-changes-provider-reliability.json'))
@@ -81,7 +180,7 @@ class Release42(unittest.TestCase):
    with self.subTest(name=name),patch.object(Path,'read_bytes',lambda p:real(p)+b'unreviewed' if p==R/name else real(p)):
     with self.assertRaises(ValueError):before42_bytes(name)
  def test_google_privacy_cleanup_is_not_reconstructed(self):
-  for reader in (before42_bytes,historical_bytes):
+  for reader in (runtime.luma_baseline_bytes,before42_bytes,historical_bytes):
    with self.subTest(reader=reader.__name__),self.assertRaises(ValueError):reader('scraper/google_cse.php')
  def test_unknown_maintenance_scope_fails_closed(self):
   real=Path.read_text

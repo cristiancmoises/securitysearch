@@ -14,6 +14,21 @@
 - Keep Google Web/Images acceptance and rate-limit failures mandatory. No upstream restriction bypass.
 - Add six audit suites; historical 124-command prefix preserved, current inventory 130.
 
+### LUMA shortcut maintenance — 2026-10-03
+
+- Add **Pesquise no LUMA** immediately left of Pinterest in the searchbar through `/luma`, using only
+  the URL-encoded query; empty input opens the external homepage. Do not forward filters,
+  continuation tokens, credentials or referrer information, or issue automatic requests,
+  background searches or retries from SecuritySearch.
+- Use independent generic navigation symbols throughout the searchbar instead of company
+  logos; destination names identify their services. Give LUMA an independent book icon.
+- Document educational open-source independence and no affiliation, sponsorship, endorsement
+  or operation by Meta or Instagram. Preserve public-source availability limits and exclude
+  private content, login circumvention and visitor platform cookies/access tokens.
+- Explain that educational purpose and disclaimers provide no legal immunity; copyright,
+  trademark, privacy and applicable terms still require attention and qualified legal review.
+  These changes do not establish new audit, live-provider or deployment acceptance.
+
 ### Provider reliability maintenance — 2026-10-03
 
 - Classify Google CSE upstream failures without reflecting provider error text. Preserve one-time
