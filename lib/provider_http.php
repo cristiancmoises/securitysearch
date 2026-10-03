@@ -28,13 +28,16 @@ final class provider_http {
         curl_setopt($handle, CURLOPT_TIMEOUT_MS, $timeout);
         curl_setopt($handle, CURLOPT_NOSIGNAL, true);
         curl_setopt($handle, CURLOPT_TCP_KEEPALIVE, 1);
-        // Share DNS and TLS session state only within this PHP request. Never
-        // share cookies, credentials, response bodies or visitors' query text.
+        // Share DNS, TLS sessions and connections only within this PHP request.
+        // The PHP cURL multi loop uses the same thread; never use this pool across
+        // threads or requests. Never share cookies, credentials, response bodies
+        // or visitors' query text.
         if (function_exists('curl_share_init')) {
             if (self::$share === null) {
                 self::$share = curl_share_init();
                 curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);
                 curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);
+                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);
             }
             curl_setopt($handle, CURLOPT_SHARE, self::$share);
         }

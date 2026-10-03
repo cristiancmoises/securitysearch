@@ -26,6 +26,12 @@ abstract class service_search {
             $response = (new proxy(false))->get($url, proxy::req_web, false, null, 4, 2097152, $budget);
             return $response['body'];
         } catch (Exception $error) {
+            // Keep the existing brief first-page cooldown for definite native
+            // connection failures; validation, payload and parser errors do not
+            // mark a service offline. Never retain its URL or response body.
+            if (in_array($error->getCode(),[5,6,7,28,35,52,55,56,60],true)) {
+                throw new provider_http_failure('The selected service connection failed. Retry later or choose another provider.',0,$error);
+            }
             throw new RuntimeException('The selected service is unavailable. Try its direct search link or retry later.',0,$error);
         }
     }

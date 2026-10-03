@@ -23,7 +23,8 @@ No query history, advertising, external analytics or provider-unavailability-as-
 | Appearance | **GoroDaimon**: white surfaces and black text throughout the homepage, settings and results, without a wallpaper or required scripts. |
 | Required acceptance | **130 native commands**, with all 124 v0.9.41 commands as an exact prefix, plus genuine Google **Web and Images**, RSS, Binternet and SkunkyArt live results. HTTP 200 with a provider error does not pass. |
 | Original versioned release workflow | One native audit → live gates → cutover → independent verification → old-build cleanup. No mandatory separate audit-only run or pre-build deletion. |
-| Performance | The v4 benchmark ranks **TTFB**, separately from total HTML time; v3 remains byte-identical. Bounded labels, observer-based scrolling and safe static-home delivery are retained. No universal speed win is claimed. |
+| Performance | Request-local connection reuse, bounded public DNS metadata reuse for LUMA, and brief transport-failure cooldowns. Search results remain uncached; external provider latency still varies. |
+| Tranco | Public rank metadata is refreshed before homepage generation and by the daily maintenance timer, without adding network work to visitor requests. |
 
 SkunkyArt uses `https://skunkyart.securityops.co`, not the earlier `securiyops.co` spelling,
 and owns its DeviantArt authentication. Provider availability and metadata are not guaranteed.
@@ -53,6 +54,26 @@ or searches before selection. Media links and pagination expire; restart the sea
 Failures remain visible on the internal result page and are not presented as empty success.
 Public accounts without a profile photo use a labeled generic local icon, not a fabricated
 photograph. Private accounts are not shown as accessible profiles.
+
+## Search responsiveness and Tranco metadata
+
+| Path | Behavior and limits |
+|---|---|
+| Provider transport | Sequential requests in one PHP request reuse DNS, TLS sessions and connections. Cookies, credentials, queries and response bodies are not shared. A new visitor request has a new connection pool. |
+| LUMA previews | The fixed LUMA host uses the existing public-IP DNS metadata cache for at most 15 seconds. Every cached answer is revalidated, private/mixed answers are rejected, and connections remain pinned. |
+| Unavailable services | Definite native connection failures use the existing eight-second first-page cooldown. Invalid input, payload/parser failures, empty results and continuation requests do not mark a service offline. |
+| Tranco footer | Startup refreshes the public domain rank as `apache` before building the plain/gzip homepage. The daily timer refreshes it again and rebuilds the snapshot. Failed refreshes preserve validated data or show unavailable; no rank is invented. |
+
+The native HTTP/1.1 loopback regression reduced three new connections to one for three
+sequential requests, while checking identical responses and cookie/header isolation.
+Its artificial connection delay tests reuse, not real provider speed. The existing v4
+benchmark reports TTFB separately from complete HTML delivery; v3 is unchanged.
+LUMA keeps posts and accounts in its default scope. Choose **Posts** or **Accounts**
+when that narrower scope matches your search; results are not silently discarded for speed.
+
+Container startup can opt out with `SECURITYSEARCH_RANK_REFRESH=0`, intended for offline
+testing or operator-managed refresh. Production uses the default refresh and the existing
+`securitysearch-tranco.timer`. Tranco measures domain popularity, not search quality.
 
 ## GoroDaimon white appearance
 

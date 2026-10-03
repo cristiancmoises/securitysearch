@@ -49,6 +49,13 @@ fi
 
 # Anonymous query-free GET/HEAD / can bypass PHP entirely.  This is not a search
 # cache: any cookie, query string or Authorization header remains on the dynamic path.
+# Populate the ephemeral public rank cache before capturing the homepage. Apache
+# owns the cache so the daily timer can atomically replace it in sticky /tmp.
+if [ "${SECURITYSEARCH_RANK_REFRESH:-1}" != "0" ]; then
+        if ! su -s /bin/sh apache -c 'php lib/tranco.php --refresh'; then
+                echo "Tranco refresh unavailable; retaining validated cached/unavailable metadata." >&2
+        fi
+fi
 rm -f ./home-anonymous.generated.fast ./home-anonymous.generated.fast.gz
 if [ "${SECURITYSEARCH_STATIC_HOME:-1}" != "0" ] && php ./lib/build_home_snapshot.php --build; then
         export SECURITYSEARCH_STATIC_HOME=1

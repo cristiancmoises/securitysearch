@@ -1,0 +1,52 @@
+{
+  "release": "0.9.42",
+  "baseline_commit": "0c214e0d883eaf462a8a4f0a4f8333897ae0d601",
+  "baseline_tree": "0896f2c872bfd1bcfe8148c5962ccb41803e48d1",
+  "files": {
+    "docker/docker-entrypoint.sh": {
+      "old_sha256": "7d881735057d2c83881e4c408cd03cdeca12aebbf742f8353ce7addd801a090f",
+      "new_sha256": "16587d897284372a059aaf653f9372c39b7a4d1e13f299ce0ccd5bd15ee47014",
+      "edits": [
+        {
+          "before": "\n# Anonymous query-free GET/HEAD / can bypass PHP entirely.  This is not a search\n# cache: any cookie, query string or Authorization header remains on the dynamic path.\nrm -f ./home-anonymous.generated.fast ./home-anonymous.generated.fast.gz\nif [ \"${SECURITYSEARCH_STATIC_HOME:-1}\" != \"0\" ] && php ./lib/build_home_snapshot.php --build; then\n        export SECURITYSEARCH_STATIC_HOME=1\n",
+          "after": "\n# Anonymous query-free GET/HEAD / can bypass PHP entirely.  This is not a search\n# cache: any cookie, query string or Authorization header remains on the dynamic path.\n# Populate the ephemeral public rank cache before capturing the homepage. Apache\n# owns the cache so the daily timer can atomically replace it in sticky /tmp.\nif [ \"${SECURITYSEARCH_RANK_REFRESH:-1}\" != \"0\" ]; then\n        if ! su -s /bin/sh apache -c 'php lib/tranco.php --refresh'; then\n                echo \"Tranco refresh unavailable; retaining validated cached/unavailable metadata.\" >&2\n        fi\nfi\nrm -f ./home-anonymous.generated.fast ./home-anonymous.generated.fast.gz\nif [ \"${SECURITYSEARCH_STATIC_HOME:-1}\" != \"0\" ] && php ./lib/build_home_snapshot.php --build; then\n        export SECURITYSEARCH_STATIC_HOME=1\n"
+        }
+      ]
+    },
+    "lib/provider_dns.php": {
+      "old_sha256": "e15f861e7090808ac374c943ef1b578a19118bb8e2c1d9a59f7d124aba933b9d",
+      "new_sha256": "5e51b43256d04f2eef85c4937c06d7f9c88bde859a0aad232fde664cb66386da",
+      "edits": [
+        {
+          "before": "<?php\n/** Public-IP-only DNS metadata cache. No paths, queries, cookies or results.\n * Shared entries are limited to nine fixed service/CDN names, for at most 15 s.\n * Other names are memoized only within one PHP request. Connections remain pinned.\n */\nfinal class provider_dns {\n",
+          "after": "<?php\nrequire_once __DIR__.'/luma_search.php';\n/** Public-IP-only DNS metadata cache. No paths, queries, cookies or results.\n * Shared entries are limited to fixed service/CDN names, for at most 15 s.\n * Other names are memoized only within one PHP request. Connections remain pinned.\n */\nfinal class provider_dns {\n"
+        },
+        {
+          "before": "        $resolver ??= [self::class, 'native'];\n        $read ??= static fn($key)=>function_exists('apcu_enabled') && apcu_enabled() ? apcu_fetch($key) : false;\n        $write ??= static function($key,$row,$ttl) {if (function_exists('apcu_enabled') && apcu_enabled()) apcu_store($key,$row,$ttl);};\n        $shared = in_array($host, self::SHARED, true);\n        $key = 'securitysearch-dns-v1-'.hash('sha256',$host);\n        $row = $shared ? $read($key) : false;\n        if (!is_array($row) || !is_int($row['until'] ?? null) || $row['until'] <= $now ||\n",
+          "after": "        $resolver ??= [self::class, 'native'];\n        $read ??= static fn($key)=>function_exists('apcu_enabled') && apcu_enabled() ? apcu_fetch($key) : false;\n        $write ??= static function($key,$row,$ttl) {if (function_exists('apcu_enabled') && apcu_enabled()) apcu_store($key,$row,$ttl);};\n        $shared = in_array($host, self::SHARED, true) || $host === parse_url(luma_search::ORIGIN, PHP_URL_HOST);\n        $key = 'securitysearch-dns-v1-'.hash('sha256',$host);\n        $row = $shared ? $read($key) : false;\n        if (!is_array($row) || !is_int($row['until'] ?? null) || $row['until'] <= $now ||\n"
+        }
+      ]
+    },
+    "lib/provider_http.php": {
+      "old_sha256": "9bfe6baf855db5b57ec097d4bc2c3c60d74ded0277984d0d0792281a35a9179f",
+      "new_sha256": "ab2e1f05886c13b195e15028cb6808287b72222a781b221d7724a124321bcf1c",
+      "edits": [
+        {
+          "before": "        curl_setopt($handle, CURLOPT_TIMEOUT_MS, $timeout);\n        curl_setopt($handle, CURLOPT_NOSIGNAL, true);\n        curl_setopt($handle, CURLOPT_TCP_KEEPALIVE, 1);\n        // Share DNS and TLS session state only within this PHP request. Never\n        // share cookies, credentials, response bodies or visitors' query text.\n        if (function_exists('curl_share_init')) {\n            if (self::$share === null) {\n                self::$share = curl_share_init();\n                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);\n                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);\n            }\n            curl_setopt($handle, CURLOPT_SHARE, self::$share);\n        }\n",
+          "after": "        curl_setopt($handle, CURLOPT_TIMEOUT_MS, $timeout);\n        curl_setopt($handle, CURLOPT_NOSIGNAL, true);\n        curl_setopt($handle, CURLOPT_TCP_KEEPALIVE, 1);\n        // Share DNS, TLS sessions and connections only within this PHP request.\n        // The PHP cURL multi loop uses the same thread; never use this pool across\n        // threads or requests. Never share cookies, credentials, response bodies\n        // or visitors' query text.\n        if (function_exists('curl_share_init')) {\n            if (self::$share === null) {\n                self::$share = curl_share_init();\n                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_DNS);\n                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_SSL_SESSION);\n                curl_share_setopt(self::$share, CURLSHOPT_SHARE, CURL_LOCK_DATA_CONNECT);\n            }\n            curl_setopt($handle, CURLOPT_SHARE, self::$share);\n        }\n"
+        }
+      ]
+    },
+    "lib/service_search.php": {
+      "old_sha256": "efaa1f4071c6cea706bfbb0d36e11ca18c74d3c70d9edef1c19348dfda1a7023",
+      "new_sha256": "e2f59a6dde4c1a316745e9fc7057951c8fd334c5e6f09416aafad535ef3ff1db",
+      "edits": [
+        {
+          "before": "            $response = (new proxy(false))->get($url, proxy::req_web, false, null, 4, 2097152, $budget);\n            return $response['body'];\n        } catch (Exception $error) {\n            throw new RuntimeException('The selected service is unavailable. Try its direct search link or retry later.',0,$error);\n        }\n    }\n",
+          "after": "            $response = (new proxy(false))->get($url, proxy::req_web, false, null, 4, 2097152, $budget);\n            return $response['body'];\n        } catch (Exception $error) {\n            // Keep the existing brief first-page cooldown for definite native\n            // connection failures; validation, payload and parser errors do not\n            // mark a service offline. Never retain its URL or response body.\n            if (in_array($error->getCode(),[5,6,7,28,35,52,55,56,60],true)) {\n                throw new provider_http_failure('The selected service connection failed. Retry later or choose another provider.',0,$error);\n            }\n            throw new RuntimeException('The selected service is unavailable. Try its direct search link or retry later.',0,$error);\n        }\n    }\n"
+        }
+      ]
+    }
+  },
+  "added_files": {}
+}

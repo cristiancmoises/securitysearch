@@ -40,29 +40,89 @@ INLINE_LUMA_ADDED_HASHES={
     'static/themes/GoroDaimon.css':'39117f58ef086792483b282edc112cd2262adedb15c87a113d73f2e11f87e150',
     'static/profile-placeholder.svg':'b048232b69541bdca3e898edac9284949c2ec39d67cb117d8eb012866de23469',
 }
+SEARCH_PERFORMANCE_HASHES={
+    'docker/docker-entrypoint.sh':('7d881735057d2c83881e4c408cd03cdeca12aebbf742f8353ce7addd801a090f', '16587d897284372a059aaf653f9372c39b7a4d1e13f299ce0ccd5bd15ee47014', '15a57e29739ff67c084f778f2a67a3b29835397c183aa04e211232cf384f9141'),
+    'lib/provider_dns.php':('e15f861e7090808ac374c943ef1b578a19118bb8e2c1d9a59f7d124aba933b9d', '5e51b43256d04f2eef85c4937c06d7f9c88bde859a0aad232fde664cb66386da', 'ce5b1f236d7cd29436834f73ffab0d759707988e74dbee4f06a9c3f42ac05467'),
+    'lib/provider_http.php':('9bfe6baf855db5b57ec097d4bc2c3c60d74ded0277984d0d0792281a35a9179f', 'ab2e1f05886c13b195e15028cb6808287b72222a781b221d7724a124321bcf1c', 'c2c86f9fa53504abd13b033a8cd54e8a355050e80b4231f562b784e15ef99973'),
+    'lib/service_search.php':('efaa1f4071c6cea706bfbb0d36e11ca18c74d3c70d9edef1c19348dfda1a7023', 'e2f59a6dde4c1a316745e9fc7057951c8fd334c5e6f09416aafad535ef3ff1db', 'c67a93992cd2a517c6c7c90a5a24eb8a47c74429d5413af0a4fc72a403bc44b2'),
+}
 
-def _inline_luma_path(name):
+def _runtime_source_path(name):
     """Use only regular source files reached without traversal or symlinks."""
     if not isinstance(name,str) or not name or '\\' in name:
-        raise ValueError('Unexpected inline LUMA source path')
+        raise ValueError('Unexpected runtime source path')
     relative=Path(name)
     if relative.is_absolute() or relative.as_posix()!=name or not relative.parts or \
        any(part in ('.','..') for part in relative.parts):
-        raise ValueError('Unexpected inline LUMA source path')
+        raise ValueError('Unexpected runtime source path')
     path=R/relative
     if any(R.joinpath(*relative.parts[:end]).is_symlink() for end in range(1,len(relative.parts)+1)) or \
        not path.is_file():
-        raise ValueError('Unexpected inline LUMA source file: '+name)
+        raise ValueError('Unexpected runtime source file: '+name)
     return path
 
-def inline_luma_maintenance_manifest():
-    """Pin the inline search/theme delta to its exact reviewed source boundary."""
+def _read_runtime_manifest(name):
     def unique_object(pairs):
         value=dict(pairs)
         if len(value)!=len(pairs):
-            raise ValueError('Duplicate inline LUMA maintenance metadata')
+            raise ValueError('Duplicate runtime maintenance metadata')
         return value
-    manifest=json.loads(_inline_luma_path('data/runtime-changes-inline-luma.json').read_text(),object_pairs_hook=unique_object)
+    return json.loads(_runtime_source_path(name).read_text(),object_pairs_hook=unique_object)
+
+def _reverse_runtime_record(name,raw,record):
+    if hashlib.sha256(raw).hexdigest()!=record['new_sha256']:
+        raise ValueError('Unexpected reviewed runtime bytes: '+name)
+    for edit in reversed(record['edits']):
+        before,after=edit['before'].encode(),edit['after'].encode()
+        if raw.count(after)!=1:
+            raise ValueError('Ambiguous runtime edit: '+name)
+        raw=raw.replace(after,before,1)
+        if raw.count(before)!=1:
+            raise ValueError('Ambiguous runtime preimage: '+name)
+    if hashlib.sha256(raw).hexdigest()!=record['old_sha256']:
+        raise ValueError('Runtime predecessor mismatch: '+name)
+    return raw
+
+def search_performance_maintenance_manifest():
+    """Pin the four transport/startup changes, including reviewed edit order."""
+    manifest=_read_runtime_manifest('data/runtime-changes-search-performance.json')
+    if not isinstance(manifest,dict) or \
+       set(manifest)!={'release','baseline_commit','baseline_tree','files','added_files'} or \
+       manifest['release']!='0.9.42' or \
+       manifest['baseline_commit']!='0c214e0d883eaf462a8a4f0a4f8333897ae0d601' or \
+       manifest['baseline_tree']!='0896f2c872bfd1bcfe8148c5962ccb41803e48d1' or \
+       manifest['added_files']!={} or \
+       not isinstance(manifest['files'],dict) or set(manifest['files'])!=set(SEARCH_PERFORMANCE_HASHES):
+        raise ValueError('Unexpected search performance scope or baseline')
+    for name,record in manifest['files'].items():
+        if not isinstance(record,dict) or set(record)!={'old_sha256','new_sha256','edits'} or \
+           (record['old_sha256'],record['new_sha256'])!=SEARCH_PERFORMANCE_HASHES[name][:2] or \
+           not isinstance(record['edits'],list) or not record['edits']:
+            raise ValueError('Unexpected search performance record: '+name)
+        for edit in record['edits']:
+            if not isinstance(edit,dict) or set(edit)!={'before','after'} or \
+               not all(isinstance(edit[key],str) and edit[key] for key in ('before','after')) or \
+               edit['before']==edit['after']:
+                raise ValueError('Unexpected search performance edit metadata: '+name)
+        edits=json.dumps(record['edits'],sort_keys=True,separators=(',',':')).encode()
+        if hashlib.sha256(edits).hexdigest()!=SEARCH_PERFORMANCE_HASHES[name][2]:
+            raise ValueError('Unexpected reviewed search performance edits or order: '+name)
+        if hashlib.sha256(_runtime_source_path(name).read_bytes()).hexdigest()!=record['new_sha256']:
+            raise ValueError('Unexpected reviewed search performance bytes: '+name)
+    return manifest
+
+def search_performance_baseline_bytes(name):
+    """Recover exact 0c bytes before entering the frozen earlier layers."""
+    path=_runtime_source_path(name)
+    manifest=search_performance_maintenance_manifest()
+    if name in CURRENT_ONLY_HASHES:
+        raise ValueError('Privacy cleanup is current-only; historical source unavailable')
+    raw=path.read_bytes()
+    return _reverse_runtime_record(name,raw,manifest['files'][name]) if name in manifest['files'] else raw
+
+def inline_luma_maintenance_manifest():
+    """Pin the inline search/theme delta to its exact reviewed source boundary."""
+    manifest=_read_runtime_manifest('data/runtime-changes-inline-luma.json')
     if not isinstance(manifest,dict) or \
        set(manifest)!={'release','baseline_commit','baseline_tree','files','added_files'} or \
        manifest['release']!='0.9.42' or \
@@ -74,7 +134,7 @@ def inline_luma_maintenance_manifest():
     if manifest['added_files']!=expected_added:
         raise ValueError('Unexpected reviewed inline LUMA added fingerprints')
     for name,digest in INLINE_LUMA_ADDED_HASHES.items():
-        if hashlib.sha256(_inline_luma_path(name).read_bytes()).hexdigest()!=digest:
+        if hashlib.sha256(_runtime_source_path(name).read_bytes()).hexdigest()!=digest:
             raise ValueError('Unexpected reviewed inline LUMA added bytes: '+name)
     for name,record in manifest['files'].items():
         if not isinstance(record,dict) or set(record)!={'old_sha256','new_sha256','edits'} or \
@@ -90,27 +150,14 @@ def inline_luma_maintenance_manifest():
 
 def inline_luma_baseline_bytes(name):
     """Recover reviewed 055 bytes before inline LUMA and the white theme."""
-    path=_inline_luma_path(name)
+    raw=search_performance_baseline_bytes(name)
     manifest=inline_luma_maintenance_manifest()
     if name in CURRENT_ONLY_HASHES:
         raise ValueError('Privacy cleanup is current-only; historical source unavailable')
     if name in manifest['added_files']:
         raise ValueError('Inline LUMA file was added; historical source unavailable')
-    raw=path.read_bytes()
     if name not in manifest['files']:return raw
-    record=manifest['files'][name]
-    if hashlib.sha256(raw).hexdigest()!=record['new_sha256']:
-        raise ValueError('Unexpected reviewed inline LUMA maintenance bytes: '+name)
-    for edit in reversed(record['edits']):
-        before,after=edit['before'].encode(),edit['after'].encode()
-        if raw.count(after)!=1:
-            raise ValueError('Ambiguous inline LUMA maintenance edit: '+name)
-        raw=raw.replace(after,before,1)
-        if raw.count(before)!=1:
-            raise ValueError('Ambiguous inline LUMA maintenance preimage: '+name)
-    if hashlib.sha256(raw).hexdigest()!=record['old_sha256']:
-        raise ValueError('Reviewed 055 runtime mismatch: '+name)
-    return raw
+    return _reverse_runtime_record(name,raw,manifest['files'][name])
 
 def luma_maintenance_manifest():
     """Check the reviewed LUMA delta without changing earlier release evidence."""

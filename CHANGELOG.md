@@ -14,6 +14,22 @@
 - Keep Google Web/Images acceptance and rate-limit failures mandatory. No upstream restriction bypass.
 - Add six audit suites; historical 124-command prefix preserved, current inventory 130.
 
+### Tranco initialization and search transport — 2026-10-03
+
+- Refresh public Tranco metadata as `apache` before capturing the anonymous homepage,
+  retaining the daily timer, bounded transport and honest failure/unranked states.
+  This avoids missing metadata after container replacement and preserves cache ownership.
+- Reuse native connections alongside DNS/TLS state inside a single PHP request. Keep
+  cookies, credentials, queries and response bodies out of shared state.
+- Add the fixed LUMA host to the existing validated public DNS metadata policy, with
+  the same short TTL, poisoned/mixed-answer rejection and pinned destinations.
+- Preserve definite service transport failures for the existing eight-second first-page
+  cooldown; do not cache input/parser failures, empty results or continuation health.
+- Include LUMA and service-transport checks in the existing native service suite, plus
+  executable startup/cache-ownership and HTTP connection/isolation regressions.
+- Keep all 130 mandatory audit commands and frozen previous release evidence. Loopback
+  connection-reuse measurements are fixtures, not universal live-provider speed claims.
+
 ### GoroDaimon and internal LUMA results — 2026-10-03
 
 - Add the GoroDaimon white/black palette to the homepage and settings catalogs, including

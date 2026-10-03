@@ -1,6 +1,7 @@
 <?php
+require_once __DIR__.'/luma_search.php';
 /** Public-IP-only DNS metadata cache. No paths, queries, cookies or results.
- * Shared entries are limited to nine fixed service/CDN names, for at most 15 s.
+ * Shared entries are limited to fixed service/CDN names, for at most 15 s.
  * Other names are memoized only within one PHP request. Connections remain pinned.
  */
 final class provider_dns {
@@ -53,7 +54,7 @@ final class provider_dns {
         $resolver ??= [self::class, 'native'];
         $read ??= static fn($key)=>function_exists('apcu_enabled') && apcu_enabled() ? apcu_fetch($key) : false;
         $write ??= static function($key,$row,$ttl) {if (function_exists('apcu_enabled') && apcu_enabled()) apcu_store($key,$row,$ttl);};
-        $shared = in_array($host, self::SHARED, true);
+        $shared = in_array($host, self::SHARED, true) || $host === parse_url(luma_search::ORIGIN, PHP_URL_HOST);
         $key = 'securitysearch-dns-v1-'.hash('sha256',$host);
         $row = $shared ? $read($key) : false;
         if (!is_array($row) || !is_int($row['until'] ?? null) || $row['until'] <= $now ||

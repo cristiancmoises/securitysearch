@@ -19,6 +19,87 @@ MAINTENANCE_HASHES={
  'data/config.php':('b43a80837bc2bae0f5bdf8a846e265fcfa02b8f61acfc060daec70b5dabd7015', '45f2a63de263d4574c33c65f9837bcc8251ba09ef5216fdde71eb1698aaf28c9'),
  'lib/frontend.php':('1681f3a0d1b3803898274a4634fa683c5f586f539363247b90bcd9efd7fa3c2b', 'b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c')}
 class Release42(unittest.TestCase):
+ def test_search_performance_restores_the_reviewed_0c_runtime(self):
+  self.assertTrue(hasattr(runtime,'search_performance_baseline_bytes'),'Search performance history layer is required')
+  d=runtime.search_performance_maintenance_manifest()
+  self.assertEqual((d['release'],d['baseline_commit'],d['baseline_tree']),('0.9.42','0c214e0d883eaf462a8a4f0a4f8333897ae0d601','0896f2c872bfd1bcfe8148c5962ccb41803e48d1'))
+  self.assertEqual(set(d['files']),{'docker/docker-entrypoint.sh','lib/provider_dns.php','lib/provider_http.php','lib/service_search.php'})
+  self.assertEqual(d['added_files'],{})
+  expected={'docker/docker-entrypoint.sh':'7d881735057d2c83881e4c408cd03cdeca12aebbf742f8353ce7addd801a090f',
+   'lib/provider_dns.php':'e15f861e7090808ac374c943ef1b578a19118bb8e2c1d9a59f7d124aba933b9d',
+   'lib/provider_http.php':'9bfe6baf855db5b57ec097d4bc2c3c60d74ded0277984d0d0792281a35a9179f',
+   'lib/service_search.php':'efaa1f4071c6cea706bfbb0d36e11ca18c74d3c70d9edef1c19348dfda1a7023'}
+  for name,digest in expected.items():
+   for reader in (runtime.search_performance_baseline_bytes,runtime.inline_luma_baseline_bytes,runtime.luma_baseline_bytes,maintenance_baseline_bytes,before42_bytes,historical_bytes):
+    with self.subTest(name=name,reader=reader.__name__):self.assertEqual(hashlib.sha256(reader(name)).hexdigest(),digest)
+ def test_search_performance_scope_types_and_added_files_fail_closed(self):
+  real=Path.read_text;path=R/'data/runtime-changes-search-performance.json';manifest=json.loads(real(path))
+  variants=[None,[],0,'unreviewed']
+  for key in ('release','baseline_commit','baseline_tree'):
+   d=copy.deepcopy(manifest);d[key]='unreviewed';variants.append(d)
+  d=copy.deepcopy(manifest);d['unexpected']='unreviewed';variants.append(d)
+  for scope in ('files','added_files'):
+   for bad in (None,[],0,'unreviewed'):
+    d=copy.deepcopy(manifest);d[scope]=bad;variants.append(d)
+   d=copy.deepcopy(manifest);d[scope]['../unreviewed.php']={'new_sha256':'0'*64};variants.append(d)
+  for name in manifest['files']:
+   d=copy.deepcopy(manifest);del d['files'][name];variants.append(d)
+   for bad in (None,[],0,'unreviewed'):
+    d=copy.deepcopy(manifest);d['files'][name]=bad;variants.append(d)
+  for index,d in enumerate(variants):
+   with self.subTest(index=index),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.search_performance_maintenance_manifest()
+ def test_search_performance_edit_metadata_and_order_are_pinned(self):
+  real=Path.read_text;path=R/'data/runtime-changes-search-performance.json';manifest=json.loads(real(path))
+  for name in manifest['files']:
+   for bad in ('record','edit','missing_edits','empty','ambiguous','preimage','identical','duplicate','old_hash','new_hash','order'):
+    d=copy.deepcopy(manifest);row=d['files'][name]
+    if bad=='record':row['unexpected']='unreviewed'
+    elif bad=='edit':row['edits'][0]['unexpected']='unreviewed'
+    elif bad=='missing_edits':row['edits']=[]
+    elif bad=='empty':row['edits'][0]['after']=''
+    elif bad=='ambiguous':row['edits'][0]['after']='\n'
+    elif bad=='preimage':row['edits'][0]['before']+='unreviewed'
+    elif bad=='identical':row['edits'][0]['before']=row['edits'][0]['after']
+    elif bad=='duplicate':row['edits']*=2
+    elif bad=='order':
+     if len(row['edits'])<2:continue
+     row['edits'].reverse()
+    else:row[bad.replace('_hash','_sha256')]='0'*64
+    with self.subTest(name=name,bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+     with self.assertRaises(ValueError):historical_bytes(name)
+  for bad in (None,{},[None],[{}],[{'before':1,'after':'reviewed'}],[{'before':'reviewed','after':[]}],[{'before':'','after':'reviewed'}]):
+   d=copy.deepcopy(manifest);d['files']['lib/provider_http.php']['edits']=bad
+   with self.subTest(bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.search_performance_maintenance_manifest()
+ def test_search_performance_duplicate_json_keys_are_rejected(self):
+  real=Path.read_text;path=R/'data/runtime-changes-search-performance.json';text=real(path)
+  for key in ('release','old_sha256'):
+   d=json.loads(text);value=d[key] if key=='release' else next(iter(d['files'].values()))[key]
+   changed=text.replace('"'+key+'": "'+value+'"','"'+key+'": "unreviewed", "'+key+'": "'+value+'"',1)
+   with self.subTest(key=key),patch.object(Path,'read_text',lambda p,*a,**k:changed if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.search_performance_maintenance_manifest()
+ def test_search_performance_current_bytes_and_symlinks_fail_closed(self):
+  d=runtime.search_performance_maintenance_manifest();real=Path.read_bytes;symlink=Path.is_symlink;regular=Path.is_file
+  for name in d['files']:
+   with self.subTest(name=name),patch.object(Path,'read_bytes',lambda p:real(p)+b'unreviewed' if p==R/name else real(p)):
+    with self.assertRaises(ValueError):historical_bytes('web.php')
+   for method,original,value in (('is_symlink',symlink,True),('is_file',regular,False)):
+    with self.subTest(name=name,method=method),patch.object(Path,method,lambda p:value if p==R/name else original(p)):
+     with self.assertRaises(ValueError):runtime.search_performance_baseline_bytes(name)
+  for name in ('data/runtime-changes-search-performance.json','data','lib','docker'):
+   with self.subTest(symlink=name),patch.object(Path,'is_symlink',lambda p:True if p==R/name else symlink(p)):
+    with self.assertRaises(ValueError):runtime.search_performance_baseline_bytes('lib/provider_http.php')
+ def test_search_performance_refuses_paths_outside_source(self):
+  for name in ('../outside.php','/tmp/outside.php','lib/../../outside.php','./lib/provider_http.php','lib//provider_http.php','',None,[],{},'lib\\provider_http.php'):
+   with self.subTest(name=name),self.assertRaises(ValueError):runtime.search_performance_baseline_bytes(name)
+ def test_search_performance_preserves_current_nonowned_bytes_and_prior_additions(self):
+  name='web.php';real=Path.read_bytes
+  with patch.object(Path,'read_bytes',lambda p:b'current source bytes' if p==R/name else real(p)):
+   self.assertEqual(runtime.search_performance_baseline_bytes(name),b'current source bytes')
+  self.assertEqual(hashlib.sha256(runtime.search_performance_baseline_bytes('scraper/luma.php')).hexdigest(),'b5211b0222b236c3724c3eb52992423891a6af50fbfd5ab90aacb401f003419a')
+  for name in ('scraper/google_cse.php','scraper/cara.php'):
+   with self.subTest(name=name),self.assertRaises(ValueError):runtime.search_performance_baseline_bytes(name)
  def test_inline_luma_change_has_exact_reviewed_scope(self):
   self.assertTrue(hasattr(runtime,'inline_luma_maintenance_manifest'),'Inline LUMA runtime-history layer is required')
   d=runtime.inline_luma_maintenance_manifest()

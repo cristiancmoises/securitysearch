@@ -1,5 +1,6 @@
 <?php
 require __DIR__.'/../lib/provider_dns.php';
+require_once __DIR__.'/../lib/luma_search.php';
 $n=0;function check($ok,$label){global $n;if(!$ok)throw new RuntimeException($label);$n++;}
 $now=1000;$store=[];$calls=0;$writes=0;
 $clock=static function()use(&$now){return $now;};
@@ -22,4 +23,18 @@ $store[$key]=['ips'=>['1.1.1.1'],'until'=>$now+1000];$before=$calls;$lookup('ima
 $writesBefore=$writes;provider_dns::lookup('redlib.privacyredirect.com',fn()=>['ips'=>['1.1.1.1'],'ttl'=>0],fn()=>false,$write,$clock);check($writes===$writesBefore,'TTL zero not persisted');
 provider_dns::lookup('redlib.privacyredirect.com',fn()=>['ips'=>[],'ttl'=>15],fn()=>false,$write,$clock);check($writes===$writesBefore,'failures not shared');
 check($lookup('IMAGES.SECURITYOPS.CO.')[0]==='1.1.1.1','canonical host key');
+$lumaHost=parse_url(luma_search::ORIGIN,PHP_URL_HOST);
+check(is_string($lumaHost),'LUMA has one fixed DNS hostname');
+$before=[$calls,$writes];
+for($i=0;$i<30;$i++)check(count($lookup($lumaHost))===2,'LUMA public answer');
+check($calls===$before[0]+1 && $writes===$before[1]+1,'LUMA fixed-host metadata resolves once across repeated requests');
+$lumaKey='securitysearch-dns-v1-'.hash('sha256',$lumaHost);
+check($store[$lumaKey]['until']===$now+15,'LUMA DNS metadata keeps the existing fifteen-second TTL');
+check(array_keys($store[$lumaKey])===['ips','until'],'LUMA shared metadata contains only IPs and expiry');
+$now+=15;$before=$calls;$lookup($lumaHost);check($calls===$before+1,'LUMA DNS expiry resolves afresh');
+$store[$lumaKey]=['ips'=>['127.0.0.1'],'until'=>$now+15];
+$before=$calls;check($lookup($lumaHost)[0]==='1.1.1.1' && $calls===$before+1,'LUMA poisoned DNS metadata is revalidated');
+unset($store[$lumaKey]);$before=$writes;
+check(provider_dns::lookup($lumaHost,fn()=>['ips'=>['1.1.1.1','127.0.0.1'],'ttl'=>15],$read,$write,$clock)===[],'LUMA mixed public/private answer fails closed');
+check($writes===$before,'LUMA rejected answers are not shared');
 echo "PASS: $n DNS metadata assertions; 30 fixed-host reads used one resolver callback (fixture, not live latency).\n";

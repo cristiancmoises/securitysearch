@@ -53,4 +53,11 @@ foreach (['http://100.64.0.1/','http://198.18.0.1/','http://224.0.0.1/','http://
 }
 verify($resolve->invoke(new proxy(false),'https://8.8.8.8/')!==false,'Public IPv4 remains usable');
 foreach (['home.html','images.html','search.html'] as $template) { verify(str_contains($f->load($template),'In Code We Trust.'),'Centered trust footer'); }
+foreach ([
+ [PHP_BINARY,'tests/luma-regression.php'],
+ [PHP_BINARY,'-d','disable_functions=curl_setopt,curl_exec,curl_errno,curl_error,curl_getinfo','tests/service-transport-regression.php']
+] as $command) {
+ $process=proc_open($command,[0=>['file','/dev/null','r'],1=>STDOUT,2=>STDERR],$pipes);
+ verify(is_resource($process) && proc_close($process)===0,'Focused internal service regression failed');
+}
 echo "PASS: service parsers, escaping, filters, hostile URLs, pagination, provider selection, input bounds, SSRF ranges and footer.\n";

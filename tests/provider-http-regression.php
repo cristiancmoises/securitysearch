@@ -25,15 +25,15 @@ if (!function_exists('curl_share_setopt')) {
     function curl_share_setopt($h, $key, $value) { global $shares; $shares[] = $value; return true; }
 }
 require 'data/config.php'; require 'lib/provider_http.php';
-foreach (['CURLOPT_CONNECTTIMEOUT_MS','CURLOPT_TIMEOUT_MS','CURLOPT_NOSIGNAL','CURLOPT_TCP_KEEPALIVE','CURLOPT_SHARE','CURLSHOPT_SHARE','CURL_LOCK_DATA_DNS','CURL_LOCK_DATA_SSL_SESSION'] as $i=>$key) { if (!defined($key)) define($key,20000+$i); }
+foreach (['CURLOPT_CONNECTTIMEOUT_MS','CURLOPT_TIMEOUT_MS','CURLOPT_NOSIGNAL','CURLOPT_TCP_KEEPALIVE','CURLOPT_SHARE','CURLSHOPT_SHARE','CURL_LOCK_DATA_DNS','CURL_LOCK_DATA_SSL_SESSION','CURL_LOCK_DATA_CONNECT'] as $i=>$key) { if (!defined($key)) define($key,20000+$i); }
 $ops=[];$shares=[];$calls=0;
 function check($v,$label){if(!$v)throw new RuntimeException($label);}
 $h=(object)[];
 check(provider_http::exec($h)==='unchanged response','Return contract preserved');
 check($ops[CURLOPT_CONNECTTIMEOUT_MS]===3000 && $ops[CURLOPT_TIMEOUT_MS]<=12000,'Configured connect/hop caps');
-check($shares===[CURL_LOCK_DATA_DNS,CURL_LOCK_DATA_SSL_SESSION],'Only DNS and TLS sessions shared');
+check($shares===[CURL_LOCK_DATA_DNS,CURL_LOCK_DATA_SSL_SESSION,CURL_LOCK_DATA_CONNECT],'Only DNS, TLS sessions and request-local connections shared');
 $first=$ops[CURLOPT_SHARE];provider_http::exec($h);
-check($first===$ops[CURLOPT_SHARE] && count($shares)===2,'Share reused within request');
+check($first===$ops[CURLOPT_SHARE] && count($shares)===3,'Share reused within request');
 $prop=(new ReflectionClass('provider_http'))->getProperty('until');
 $prop->setValue(null,hrtime(true)+450000000);provider_http::exec($h);
 check($ops[CURLOPT_TIMEOUT_MS]<=450 && $ops[CURLOPT_CONNECTTIMEOUT_MS]<=450,'Remaining request budget shrinks both caps');

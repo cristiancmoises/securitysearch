@@ -15,7 +15,8 @@ sem JavaScript; rolagem infinita e animações são opcionais. Sem histórico de
 | Aparência | **GoroDaimon**: fundo branco e letras pretas na homepage, configurações e resultados, sem wallpaper ou scripts obrigatórios. |
 | Aceite obrigatório | **130 comandos nativos**, preservando os 124 de v0.9.41 como prefixo exato, mais resultados reais de Google **Web e Images**, RSS, Binternet e SkunkyArt. HTTP 200 com erro do provedor não aprova. |
 | Fluxo do release versionado original | Uma auditoria nativa → gates ao vivo → promoção → verificação independente → limpeza de versões antigas. Sem auditoria isolada obrigatória ou remoção antes da compilação. |
-| Desempenho | O benchmark v4 classifica **TTFB**, separado do tempo total do HTML; v3 permanece byte a byte intacto. Rótulos limitados, rolagem com observadores e entrega segura da homepage estática são mantidos. Sem promessa de ganho universal. |
+| Desempenho | Reutilização de conexões dentro de cada requisição PHP, metadados DNS públicos limitados para o LUMA e pausa breve após falhas de conexão. Resultados não são armazenados; a latência externa continua variável. |
+| Tranco | Metadados públicos de posição são atualizados antes de gerar a homepage e pelo timer diário, sem consultas externas nas requisições dos visitantes. |
 
 O SkunkyArt usa `https://skunkyart.securityops.co`, não a grafia `securiyops.co`, e mantém sua
 própria autenticação do DeviantArt. Disponibilidade e rótulos do provedor não são garantidos.
@@ -40,6 +41,26 @@ da seleção. Links de mídia e paginação expiram; reinicie a busca quando nec
 Falhas aparecem na página interna de resultados, sem serem apresentadas como sucesso vazio.
 Contas públicas sem foto usam um ícone genérico local identificado como foto indisponível,
 não uma fotografia inventada. Contas privadas não aparecem como perfis acessíveis.
+
+## Agilidade das buscas e metadados Tranco
+
+| Caminho | Comportamento e limites |
+|---|---|
+| Transporte dos provedores | Chamadas sequenciais na mesma requisição PHP reutilizam DNS, sessões TLS e conexões. Cookies, credenciais, consultas e respostas não são compartilhados. Cada nova requisição de visitante recebe seu próprio pool. |
+| Previews do LUMA | O host fixo usa o cache existente de metadados DNS públicos por até 15 segundos. Endereços são revalidados; respostas privadas ou mistas são rejeitadas e a conexão mantém o destino fixado. |
+| Serviços indisponíveis | Falhas nativas de conexão usam a pausa existente de oito segundos na primeira página. Entrada inválida, falhas de conteúdo/parser, resultados vazios e paginação não marcam o serviço como offline. |
+| Rodapé Tranco | A inicialização consulta a posição pública do domínio como `apache`, antes de gerar a homepage normal/gzip. O timer diário atualiza o dado e recria a página. Falhas preservam dados validados ou mostram indisponibilidade; nenhuma posição é inventada. |
+
+O teste nativo HTTP/1.1 em loopback reduziu três conexões novas a uma em três chamadas
+sequenciais, conferindo respostas idênticas e isolamento de cookies e cabeçalhos.
+O atraso artificial do teste verifica a reutilização, não a velocidade real dos provedores.
+O benchmark v4 separa TTFB da entrega completa do HTML; v3 permanece intacto.
+O escopo padrão do LUMA mantém posts e contas. Escolha **Posts** ou **Accounts** quando
+esse recorte atender à consulta; resultados não são descartados silenciosamente para acelerar.
+
+Use `SECURITYSEARCH_RANK_REFRESH=0` somente para testes offline ou atualização administrada
+separadamente. Em produção, a inicialização usa a atualização padrão e o timer existente
+`securitysearch-tranco.timer`. Tranco mede popularidade de domínios, não qualidade de busca.
 
 ## Aparência branca GoroDaimon
 
