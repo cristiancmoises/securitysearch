@@ -18,23 +18,23 @@ foreach (['home.html','header.html'] as $template) {
  }
 
  verify(array_map(fn($n)=>trim($n->textContent),iterator_to_array($buttons))===['Search','Search Image','Pesquise no LUMA','Search Pinterest','Search DeviantArt','Search YouTube'],'Requested button order');
- foreach ([1=>['/images','images'],2=>['/luma','luma'],3=>['/images','binternet'],4=>['/images','skunkyart'],5=>['/videos','invidious']] as $index=>$route) {
+ foreach ([1=>['/images','images'],2=>['/images','luma'],3=>['/images','binternet'],4=>['/images','skunkyart'],5=>['/videos','invidious']] as $index=>$route) {
   verify($buttons[$index]->getAttribute('formaction')===$route[0] && $buttons[$index]->getAttribute('name')==='destination' && $buttons[$index]->getAttribute('value')===$route[1],'Native action routing');
  }
  verify(!str_contains($html,'search-destinations'),'Below-bar duplicate actions removed');
 }
 require_once 'lib/luma_search.php';
-foreach ([''=> '/', '  '=> '/', '0'=> '/?q=0', 'GNU Guix & privacy'=> '/?q=GNU%20Guix%20%26%20privacy', '@public_profile'=> '/?q=%40public_profile', '#educação'=> '/?q=%23educa%C3%A7%C3%A3o', '<script>"'=> '/?q=%3Cscript%3E%22'] as $query=>$path) {
- verify(luma_search::destination(['s'=>(string)$query,'npt'=>'private','scraper'=>'brave','destination'=>'https://evil.invalid'])===luma_search::ORIGIN.$path,'LUMA forwards only a correctly encoded explicit query');
+foreach ([''=> '', '  '=> '', '0'=> '0', 'GNU Guix & privacy'=> 'GNU%20Guix%20%26%20privacy', '@public_profile'=> '%40public_profile', '#educação'=> '%23educa%C3%A7%C3%A3o', '<script>"'=> '%3Cscript%3E%22'] as $query=>$encoded) {
+ verify(luma_search::destination(['s'=>(string)$query,'npt'=>'private','scraper'=>'brave','destination'=>'https://evil.invalid'])==='/images?s='.$encoded.'&scraper=luma','Legacy LUMA route retains only the query for internal search');
 }
-verify(luma_search::destination([])===luma_search::ORIGIN.'/','Missing query opens LUMA homepage');
-verify(str_ends_with(luma_search::destination(['s'=>str_repeat('é',160)]),'?q='.str_repeat('%C3%A9',160)),'LUMA character limit counts UTF-8 characters');
+verify(luma_search::destination([])==='/images?s=&scraper=luma','Missing query opens the internal LUMA search form');
+verify(str_contains(luma_search::destination(['s'=>str_repeat('é',100)]),'s='.str_repeat('%C3%A9',100).'&'),'LUMA character limit counts UTF-8 characters');
 foreach ([[],str_repeat('a',161),str_repeat('é',161),"query\r\nheader", "query\0", "\u{0085}", "\u{009f}", "\xff", 12] as $query) {
  $rejected=false;
  try { luma_search::destination(['s'=>$query]); } catch (InvalidArgumentException $error) { $rejected=true; }
  verify($rejected,'LUMA rejects malformed, oversized or non-string queries');
 }
-foreach (['binternet'=>['images','binternet'],'skunkyart'=>['images','skunkyart'],'invidious'=>['videos','invidious'],'images'=>['images','google']] as $destination=>[$page,$expected]) {
+foreach (['luma'=>['images','luma'],'binternet'=>['images','binternet'],'skunkyart'=>['images','skunkyart'],'invidious'=>['videos','invidious'],'images'=>['images','google']] as $destination=>[$page,$expected]) {
  $_GET=['s'=>'GNU Guix','scraper'=>'brave','destination'=>$destination,'npt'=>'untrusted','view'=>'filmstrip','quality'=>'high'];$_COOKIE=[];
  [$provider,$filters]=$f->getscraperfilters($page);$get=$f->parsegetfilters($_GET,$filters);
  verify(get_class($provider)===$expected && $get['npt']===false,'Action overrides scraper select and removes old continuation');
@@ -56,4 +56,5 @@ verify(!str_contains($html,'<svg') && !str_contains($html,'javascript:') && !str
 verify(str_contains($html,'View animation') && str_contains($html,'Original') && str_contains($html,'Preview'),'Native media alternatives');
 verify(str_contains($html,'data-motion=') && str_contains($html,'s=animated') && str_contains($html,'s=poster'),'Animated candidates retain a true poster and a scoped motion source');
 $policy=file_get_contents('lib/security_headers.php');foreach (['script','connect','worker'] as $kind) { verify(str_contains($policy,$kind."-src 'none'"),'CSP disables '.$kind); }
+require 'tests/luma-regression.php';
 echo "PASS: native forms, scoped image enhancement, provider recovery, bounded cards and malicious result escaping.\n";

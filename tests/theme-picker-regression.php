@@ -5,6 +5,13 @@ $f=new frontend();$_COOKIE=[];$html=$f->load('home.html');
 check(config::DEFAULT_THEME==='Black' && str_contains($html,'data-home-style="black"') && !str_contains($html,'/static/themes/Black.css'),'Default pure-black theme');
 check(str_contains($html,'Choose appearance') && str_contains($html,'method="post" action="/"'),'Native form is present');
 check(!str_contains($html,'<script') && !str_contains($html,'{%theme_picker%}'),'No script or leftover placeholder');
+check(securitysearch_theme_choice('GoroDaimon')==='GoroDaimon','White theme is selectable');
+$_COOKIE=['theme'=>'GoroDaimon'];$white=$f->load('home.html');
+check(str_contains($white,'value="GoroDaimon" checked'),'White preference is retained');
+check(strpos($white,'/static/themes/GoroDaimon.css')>strpos($white,'data-home-skin'),'White palette follows all shared home controls');
+check(str_contains($white,'/static/themes/GoroDaimon.css?v'.config::VERSION.'-gorodaimon1'),'White contrast stylesheet has a fresh immutable cache key');
+check(!str_contains($white,'<script'),'White theme needs no script');
+$_COOKIE=[];
 foreach (securitysearch_theme_catalog() as $name=>$preview) {
  check(securitysearch_theme_choice($name)===$name,'Available theme is selectable');
  $_COOKIE=['theme'=>$name];$selected=$f->load('home.html');

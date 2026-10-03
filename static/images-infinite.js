@@ -45,6 +45,16 @@
         if (!item || !Number.isInteger(item.width) || !Number.isInteger(item.height) ||
             item.width < 1 || item.height < 1 || item.width > 100000 || item.height > 100000 ||
             !Array.isArray(item.links) || item.links.length < 1 || item.links.length > 3) throw new Error('Invalid image');
+        const icon = '/static/profile-placeholder.svg';
+        if (provider === 'luma' && item.original === icon) {
+            const link = item.links[0], source = url(item.source, '/images');
+            if (item.preview !== icon || item.motion !== null || item.links.length !== 1 ||
+                !link || link.label !== 'Profile icon' || link.href !== icon ||
+                source.searchParams.get('scraper') !== 'luma') throw new Error('Invalid profile icon');
+            return {original: origin + icon, preview: origin + icon, source: source.href,
+                title: label(item.title), host: label(item.host), width: item.width, height: item.height,
+                motion: null, links: [{label: 'Profile icon', href: origin + icon}]};
+        }
         return { original: proxy(item.original), preview: proxy(item.preview), source: url(item.source).href,
             title: label(item.title), host: label(item.host), width: item.width, height: item.height,
             motion: item.motion == null ? null : proxy(item.motion),

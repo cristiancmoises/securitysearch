@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="236" height="180" viewBox="0 0 236 180" role="img" aria-labelledby="title">
+  <title id="title">Profile photo unavailable</title>
+  <rect width="236" height="180" fill="white"/>
+  <g fill="none" stroke="black" stroke-width="3" stroke-linecap="round">
+    <circle cx="118" cy="66" r="24"/>
+    <path d="M70 140v-10a48 38 0 0 1 96 0v10"/>
+  </g>
+</svg>

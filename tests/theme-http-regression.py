@@ -25,6 +25,11 @@ def main():
   response=client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode({'appearance':'1','theme':'Art'}).encode()))
   assert '/static/themes/Art.css?v42' in response.read().decode()
   assert any(c.name=='theme' and c.value=='Art' and c.has_nonstandard_attr('HttpOnly') and c.get_nonstandard_attr('SameSite')=='Lax' for c in jar)
+  response=client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode({'appearance':'1','theme':'GoroDaimon'}).encode()))
+  white=response.read().decode()
+  assert '/static/themes/GoroDaimon.css?v42-gorodaimon1' in white and 'value="GoroDaimon" checked' in white
+  assert white.index('/static/themes/GoroDaimon.css')>white.index('data-home-skin') and '<script' not in white
+  assert any(c.name=='theme' and c.value=='GoroDaimon' and c.has_nonstandard_attr('HttpOnly') for c in jar)
   for form,headers,expected in [({'appearance':'1','theme':'../../etc/passwd'},{},400),({'appearance':'1','theme':'Black'},{'Sec-Fetch-Site':'cross-site'},403),({'appearance':'1','theme[]':'Art'},{},400)]:
    try:client.open(urllib.request.Request(base+'/',data=urllib.parse.urlencode(form).encode(),headers=headers));raise AssertionError('Invalid appearance accepted')
    except urllib.error.HTTPError as e:assert e.code==expected

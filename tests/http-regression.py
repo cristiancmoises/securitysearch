@@ -84,7 +84,7 @@ def require_homepage_toolbar(html):
     expected = [
         ('Search', None, None, None),
         ('Search Image', '/images', 'destination', 'images'),
-        ('Pesquise no LUMA', '/luma', 'destination', 'luma'),
+        ('Pesquise no LUMA', '/images', 'destination', 'luma'),
         ('Search Pinterest', '/images', 'destination', 'binternet'),
         ('Search DeviantArt', '/images', 'destination', 'skunkyart'),
         ('Search YouTube', '/videos', 'destination', 'invidious'),
@@ -145,6 +145,17 @@ class brave {
 class sc {
  public function getfilters($page){return [];}
  public function music($get){throw new RuntimeException('Offline music fixture unavailable');}
+}
+''')
+        source=(ROOT/'scraper/luma.php').read_text().replace('class luma extends','class luma_adapter extends')
+        (root/'scraper/luma.php').write_text(source+'''
+class luma extends luma_adapter {
+ protected function fetch_path(string $path,array $params):string {
+  if (($params['q'] ?? '')==='fixture failure') throw new RuntimeException('LUMA service unavailable');
+  return json_encode(['source_kind'=>'live_instagram','live_instagram_verified'=>true,'profiles'=>[],
+   'items'=>[['shortcode'=>'public01','username'=>'public_user','caption'=>'LUMA fixture <script>',
+    'media'=>[['image'=>'/media/'.str_repeat('A',24),'video'=>null,'width'=>640,'height'=>480]]]],'next_cursor'=>null]);
+ }
 }
 ''')
         source=(ROOT/'scraper/reddit.php').read_text().replace('class reddit extends','class reddit_adapter extends')
@@ -240,11 +251,10 @@ http_response_code(404);return true;
                 assert 'formnovalidate' in toolbar.buttons[2]['attrs'], 'Empty LUMA navigation must remain available'
                 form_policy=next(p.strip() for p in headers['Content-Security-Policy'].split(';') if p.strip().startswith('form-action '))
                 allowed=form_policy.split()[1:]
-                assert len(allowed)==2 and allowed[0]=="'self'" and allowed[1].startswith('https://')
-                origin=allowed[1]
-                for query, wanted in [('', '/'), ('?s=++', '/'), ('?s=0','/?q=0'), ('?s=GNU+Guix+%26+privacy&npt=private&scraper=brave&destination=https%3A%2F%2Fevil.invalid','/?q=GNU%20Guix%20%26%20privacy'), ('?s=%23educa%C3%A7%C3%A3o','/?q=%23educa%C3%A7%C3%A3o'), ('?s=%3Cscript%3E%22','/?q=%3Cscript%3E%22')]:
+                assert allowed==["'self'"], 'Search forms must stay on this instance'
+                for query, wanted in [('', ''), ('?s=++', ''), ('?s=0','0'), ('?s=GNU+Guix+%26+privacy&npt=private&scraper=brave&destination=https%3A%2F%2Fevil.invalid','GNU%20Guix%20%26%20privacy'), ('?s=%23educa%C3%A7%C3%A3o','%23educa%C3%A7%C3%A3o'), ('?s=%3Cscript%3E%22','%3Cscript%3E%22')]:
                     code,redir,body=luma_request(query)
-                    assert code==303 and redir['Location']==origin+wanted and body==''
+                    assert code==303 and redir['Location']=='/images?s='+wanted+'&scraper=luma' and body==''
                     assert redir['Cache-Control']=='private, no-store' and redir['Referrer-Policy']=='no-referrer'
                     assert 'Set-Cookie' not in redir and 'X-Powered-By' not in redir
                 for query in ['?s%5B%5D=bad', '?s='+('a'*161), '?s='+('%C3%A9'*161), '?s=x%0D%0AInjected', '?s=%C2%85', '?s=%C2%9F', '?s=%FF', '?s=x%00']:
@@ -254,12 +264,20 @@ http_response_code(404);return true;
                     assert '<script' not in body and 'Injected' not in body
                 code,redir,body=luma_request(method='POST')
                 assert code==405 and redir['Allow']=='GET' and 'Location' not in redir
+                code,headers,html=request('/images?s=landscape&destination=luma&scraper=google&npt=untrusted')
+                require_status(code,200,'images')
+                assert 'data-provider="luma"' in html and 'LUMA fixture &lt;script&gt;' in html
+                assert '/images?s=%40public_user&amp;scraper=luma' in html and 'Location' not in headers
+                assert 'LUMA: public posts' in html and 'Open Binternet' not in html
+                code,headers,html=request('/images?s=fixture%20failure&scraper=luma')
+                require_status(code,503,'images')
+                assert 'Location' not in headers and 'LUMA: public posts' in html
                 code,headers,html=request('/settings')
                 assert code==200 and 'Load more images while scrolling' in html and 'name="image_infinite"' in html
                 assert "script-src 'none'" in headers['Content-Security-Policy']
                 for view in ['grid','compact','gallery','feed','list','filmstrip']:
                     headers,html,url=search(view=view)
-                    assert 'images-view-'+view in html and '/static/images-infinite.js?v42' in html
+                    assert 'images-view-'+view in html and '/static/images-infinite.js?v42-inline-luma1' in html
                     assert "script-src 'self'" in headers['Content-Security-Policy'] and "connect-src 'self'" in headers['Content-Security-Policy']
                     params=urllib.parse.parse_qs(urllib.parse.urlsplit(url).query)
                     assert params['view']==[view] and params['quality']==['high'] and params['format']==['gif'] and params['newer']==['2025-01-01']

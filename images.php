@@ -49,7 +49,7 @@ $enhance=$rendered>0 && $next_url!==null && ($_COOKIE['image_infinite'] ?? 'yes'
 echo $frontend->load('images.html',[
     'timetaken'=>$started,'images'=>$cards,'nextpage'=>$next,
     'image_script'=>($rendered>0 && ($_COOKIE['image_motion'] ?? 'yes')!=='no' ? '<script defer src="/static/images-motion.js?v'.config::VERSION.'"></script>' : '').
-        ($enhance ? '<script defer src="/static/images-infinite.js?v'.config::VERSION.'"></script>' : ''),
+        ($enhance ? '<script defer src="/static/images-infinite.js?v'.config::VERSION.'-inline-luma1"></script>' : ''),
     'image_view_help'=>'<p class="image-view-note">'.$escape($help).'</p>',
     'image_classes'=>' data-provider="'.$escape($get['scraper']).'" class="images-view-'.$view.' images-quality-'.$quality.'"'
 ]);

@@ -1,5 +1,4 @@
 <?php
-require_once __DIR__ . '/luma_search.php';
 /*
  * lib/security_headers.php
  *
@@ -75,7 +74,7 @@ header(
     "media-src 'self'; " .
     "font-src 'self' data:; " .
     ($image_enhancement ? "connect-src 'self'; " : "connect-src 'none'; ") .
-    "form-action 'self' " . luma_search::ORIGIN . "; " .
+    "form-action 'self'; " .
     "frame-ancestors 'none'; " .
     "base-uri 'self'; " .
     "manifest-src 'self'; " .

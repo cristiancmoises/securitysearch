@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 const code = fs.readFileSync('static/images-infinite.js', 'utf8');
+assert.match(fs.readFileSync('images.php', 'utf8'), /images-infinite\.js\?v'\.config::VERSION\.'-inline-luma1/, 'Changed pagination script needs a fresh immutable asset URL');
 class Node {
     constructor(tag = '') { this.tagName = tag; this.children = []; this.attrs = {}; this.listeners = {}; this.textContent = ''; this.hidden = false; }
     setAttribute(key, value) { this.attrs[key] = String(value); }
@@ -28,7 +29,7 @@ class Node {
 }
 const flush = async () => { for (let i = 0; i < 8; i++) await new Promise(resolve => setImmediate(resolve)); };
 function fixture(options = {}) {
-    const grid = new Node('div'); grid.setAttribute('data-provider', 'google'); grid.className = options.filmstrip ? 'images-view-filmstrip' : 'images-view-grid';
+    const grid = new Node('div'); grid.setAttribute('data-provider', options.provider || 'google'); grid.className = options.filmstrip ? 'images-view-filmstrip' : 'images-view-grid';
     for (let i = 0; i < (options.count || 24); i++) grid.append(new Node('article'));
     const next = new Node('a'); next.href = options.href || '/images?s=GNU+Guix&scraper=google&view=grid&quality=high&format=gif&npt=page2';
     const doc = {hidden: false, getElementById: () => grid, querySelector: () => next,
@@ -83,6 +84,31 @@ function page(number = 3, items = [item()]) { return {version: 1, provider: 'goo
     f.window.dispatch('scroll'); f.reply({...page(), next: null}); await flush();
     assert(f.next.hidden); assert.match(f.next.status.textContent, /end/); assert.equal(f.observers[0].target, null);
     console.log('PASS: append, lazy images, literal text, single flight, real continuation beyond 10 pages and final-page stop.');
+
+    const placeholder = {original: '/static/profile-placeholder.svg', preview: '/static/profile-placeholder.svg',
+        title: 'Public account — Profile photo unavailable', source: '/images?s=%40public_user&scraper=luma',
+        host: 'Source', width: 236, height: 180, motion: null,
+        links: [{label: 'Profile icon', href: '/static/profile-placeholder.svg'}]};
+    const lumaOptions = {provider: 'luma', href: '/images?s=public&scraper=luma&npt=page2'};
+    const lumaPage = {version: 1, provider: 'luma', items: [item(), placeholder],
+        next: '/images?s=public&scraper=luma&npt=page3', omitted: 0};
+    f = fixture(lumaOptions); f.start(); f.reply(lumaPage); await flush();
+    assert.equal(f.grid.children.length, 26, 'Mixed posts and photo-free public accounts append together');
+    assert.equal(f.grid.lastElementChild.children[0].children[0].children[0].src, 'https://securityops.co/static/profile-placeholder.svg');
+    assert.equal(f.grid.lastElementChild.children[0].children[0].children[0].getAttribute('data-motion'), null);
+    assert(f.next.href.includes('npt=page3'), 'A photo-free account does not consume and discard the next page');
+    for (const change of [{preview: '/static/profile-placeholder.svg?url=http://127.0.0.1'},
+        {original: '/static/profile-placeholder.svg#x'}, {preview: 'https://evil.example/static/profile-placeholder.svg'},
+        {preview: '/static/other.svg'}, {motion: '/proxy?i=x'},
+        {links: [{label: 'Original', href: '/static/profile-placeholder.svg'}]},
+        {links: [{label: 'Profile icon', href: '/static/profile-placeholder.svg?x=1'}]},
+        {links: [...placeholder.links, ...placeholder.links]}]) {
+        f = fixture(lumaOptions); f.start(); f.reply({...lumaPage, items: [{...placeholder, ...change}]}); await flush();
+        assert.equal(f.grid.children.length, 24); assert.equal(f.next.textContent, 'Restart search');
+    }
+    f = fixture(); f.start(); f.reply(page(3, [placeholder])); await flush();
+    assert.equal(f.grid.children.length, 24, 'The owned LUMA icon does not widen other provider contracts');
+    console.log('PASS: photo-free public account append, exact owned icon/action, null motion and all other provider media guards.');
 
     for (const options of [{saveData: true}, {unsupported: true}]) {
         f = fixture(options); assert.equal(f.observers.length, 0); assert(f.next.href.includes('npt=page2'));

@@ -17,6 +17,6 @@ try {
     echo $error->getMessage();
     exit;
 }
-// Forward only the query, never filters, continuation tokens or credentials.
+// Preserve old bookmarks without sending visitors or extra fields to another origin.
 header('Location: ' . $destination, true, 303);
 exit;

@@ -21,6 +21,96 @@ LUMA_HASHES={
     'docker/apache/fast-home.conf':('88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941','67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08'),
     'data/home-css-manifest.json':('ace58c0b4f0a884a14ea072ce9e50c91e77950088bd022005829f86e529d667f','fdf29a224e5d525d57e954b8563c9d591be845c39b5e81ba118c8a53e7b3d1af')}
 LUMA_ADDED_HASHES={'luma.php':'4233fc2125a79fc02e69188834d4e444eafbdd84a9c107769bec019d2ce7d376','lib/luma_search.php':'230f25e3c8fd948251a43897683a7b27d1525127164994246d0c24494faea83d'}
+INLINE_LUMA_HASHES={
+    'docker/apache/fast-home.conf':('67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08', '88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941'),
+    'images.php':('b642f1138f0100294bc1e10807966b62e0da06d726aae915a928981b0c0d5791', '5a397d0d1c877ad7c58feabdc1c8368c35cfce3b7902103557c8b4ee3cd2ba1d'),
+    'lib/build_view_resources.php':('20ba6984889ee7464c0603ab2aaf30f2625ed32f2b4ed5525d3fe5900aea1772', '018a442305a43151b94939002844b4ab703aee8bf9799eb9e8a58c3abbdc81cd'),
+    'lib/frontend.php':('b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c', 'acf6a0de836750f9f17532d54d3387e8247b895eae4e57ef29b9ce8208982bd0'),
+    'lib/image_results.php':('89c20b29051046fa3c5ed0dc63c5cbae92cd59fad96add65c9edac4c7d8d57f1', '01b13d1d5cf4a4e5379a730ec7144cfc1f758c87ae34ee31d87724d88d1eb423'),
+    'lib/luma_search.php':('230f25e3c8fd948251a43897683a7b27d1525127164994246d0c24494faea83d', '0256e48a04cdb0e5fd2a7e1c61e2e8de4309e639f82700472602e5f2f71cb84b'),
+    'lib/page_renderer.php':('2de59755060b8a0037e1b5451c5d7db3fa4a1245732912cc0a2dff680b020d1b', 'df5dba53f049dcdf12b5db3751f7591cda2f50efe1922918efa62605127b56f6'),
+    'lib/security_headers.php':('74cc28e05a786b9293f19481bc759f4cd4dc1ed7c7faef2e35c20702aec2d624', '4eae74ed37e6c741d9b831b59547224a282f2288cc8268e9fd86c1173f3d8869'),
+    'lib/theme_picker.php':('3440b780c25812effec9ffff568edc8150ada76ac38e3974b1f115d32d189be9', 'b5d015a83bd0f750b94c54f3d9a78015397284f221c3aed2bd80931728ad4fe2'),
+    'luma.php':('4233fc2125a79fc02e69188834d4e444eafbdd84a9c107769bec019d2ce7d376', '2d6ac8dfffb6d7d8fae2aee6544474c79f0797d42f6cc8413c9e8c851f3e026f'),
+    'static/images-infinite.js':('9fe55bdaeb203c8e295711a6f3c557bd87c3172cfb273e33c50564c6a81496d1', '1c7ac6cab128a5f21c7b8ce5cf8a9c2a80393b28e8a704111ee18524334f1a8d'),
+    'template/search-actions.html':('cbbd1c8fe244e4b9e8c6138c558bf53f8549ff4a658e992cc8d0df3361a9ffe5', 'bcdf170c4c96915c17f7ab6956aae2a8ca3554aa6e56451edbdcf454e456658b'),
+}
+INLINE_LUMA_ADDED_HASHES={
+    'scraper/luma.php':'b5211b0222b236c3724c3eb52992423891a6af50fbfd5ab90aacb401f003419a',
+    'static/themes/GoroDaimon.css':'39117f58ef086792483b282edc112cd2262adedb15c87a113d73f2e11f87e150',
+    'static/profile-placeholder.svg':'b048232b69541bdca3e898edac9284949c2ec39d67cb117d8eb012866de23469',
+}
+
+def _inline_luma_path(name):
+    """Use only regular source files reached without traversal or symlinks."""
+    if not isinstance(name,str) or not name or '\\' in name:
+        raise ValueError('Unexpected inline LUMA source path')
+    relative=Path(name)
+    if relative.is_absolute() or relative.as_posix()!=name or not relative.parts or \
+       any(part in ('.','..') for part in relative.parts):
+        raise ValueError('Unexpected inline LUMA source path')
+    path=R/relative
+    if any(R.joinpath(*relative.parts[:end]).is_symlink() for end in range(1,len(relative.parts)+1)) or \
+       not path.is_file():
+        raise ValueError('Unexpected inline LUMA source file: '+name)
+    return path
+
+def inline_luma_maintenance_manifest():
+    """Pin the inline search/theme delta to its exact reviewed source boundary."""
+    def unique_object(pairs):
+        value=dict(pairs)
+        if len(value)!=len(pairs):
+            raise ValueError('Duplicate inline LUMA maintenance metadata')
+        return value
+    manifest=json.loads(_inline_luma_path('data/runtime-changes-inline-luma.json').read_text(),object_pairs_hook=unique_object)
+    if not isinstance(manifest,dict) or \
+       set(manifest)!={'release','baseline_commit','baseline_tree','files','added_files'} or \
+       manifest['release']!='0.9.42' or \
+       manifest['baseline_commit']!='055731829a4c1c0ddca94ef500c3f1a4faaebec3' or \
+       manifest['baseline_tree']!='df601cc0c8bf9a9f534dda6b38f879d164248775' or \
+       not isinstance(manifest['files'],dict) or set(manifest['files'])!=set(INLINE_LUMA_HASHES):
+        raise ValueError('Unexpected inline LUMA maintenance scope or baseline')
+    expected_added={name:{'new_sha256':digest} for name,digest in INLINE_LUMA_ADDED_HASHES.items()}
+    if manifest['added_files']!=expected_added:
+        raise ValueError('Unexpected reviewed inline LUMA added fingerprints')
+    for name,digest in INLINE_LUMA_ADDED_HASHES.items():
+        if hashlib.sha256(_inline_luma_path(name).read_bytes()).hexdigest()!=digest:
+            raise ValueError('Unexpected reviewed inline LUMA added bytes: '+name)
+    for name,record in manifest['files'].items():
+        if not isinstance(record,dict) or set(record)!={'old_sha256','new_sha256','edits'} or \
+           (record['old_sha256'],record['new_sha256'])!=INLINE_LUMA_HASHES[name] or \
+           not isinstance(record['edits'],list) or not record['edits']:
+            raise ValueError('Unexpected reviewed inline LUMA maintenance record: '+name)
+        for edit in record['edits']:
+            if not isinstance(edit,dict) or set(edit)!={'before','after'} or \
+               not all(isinstance(edit[key],str) and edit[key] for key in ('before','after')) or \
+               edit['before']==edit['after']:
+                raise ValueError('Unexpected inline LUMA maintenance edit metadata: '+name)
+    return manifest
+
+def inline_luma_baseline_bytes(name):
+    """Recover reviewed 055 bytes before inline LUMA and the white theme."""
+    path=_inline_luma_path(name)
+    manifest=inline_luma_maintenance_manifest()
+    if name in CURRENT_ONLY_HASHES:
+        raise ValueError('Privacy cleanup is current-only; historical source unavailable')
+    if name in manifest['added_files']:
+        raise ValueError('Inline LUMA file was added; historical source unavailable')
+    raw=path.read_bytes()
+    if name not in manifest['files']:return raw
+    record=manifest['files'][name]
+    if hashlib.sha256(raw).hexdigest()!=record['new_sha256']:
+        raise ValueError('Unexpected reviewed inline LUMA maintenance bytes: '+name)
+    for edit in reversed(record['edits']):
+        before,after=edit['before'].encode(),edit['after'].encode()
+        if raw.count(after)!=1:
+            raise ValueError('Ambiguous inline LUMA maintenance edit: '+name)
+        raw=raw.replace(after,before,1)
+        if raw.count(before)!=1:
+            raise ValueError('Ambiguous inline LUMA maintenance preimage: '+name)
+    if hashlib.sha256(raw).hexdigest()!=record['old_sha256']:
+        raise ValueError('Reviewed 055 runtime mismatch: '+name)
+    return raw
 
 def luma_maintenance_manifest():
     """Check the reviewed LUMA delta without changing earlier release evidence."""
@@ -37,7 +127,7 @@ def luma_maintenance_manifest():
         raise ValueError('Unexpected reviewed LUMA endpoint fingerprints')
     for name,digest in LUMA_ADDED_HASHES.items():
         path=R/name
-        if path.is_symlink() or not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest()!=digest:
+        if path.is_symlink() or not path.is_file() or hashlib.sha256(inline_luma_baseline_bytes(name)).hexdigest()!=digest:
             raise ValueError('Unexpected reviewed LUMA endpoint bytes: '+name)
     for name,record in manifest['files'].items():
         if not isinstance(record,dict) or set(record)!={'old_sha256','new_sha256','edits'} or \
@@ -58,7 +148,7 @@ def luma_baseline_bytes(name):
         raise ValueError('Privacy cleanup is current-only; historical source unavailable')
     if name in manifest['added_files']:
         raise ValueError('LUMA endpoint was added; historical source unavailable')
-    raw=(R/name).read_bytes()
+    raw=inline_luma_baseline_bytes(name)
     if name not in manifest['files']:return raw
     record=manifest['files'][name]
     if hashlib.sha256(raw).hexdigest()!=record['new_sha256']:

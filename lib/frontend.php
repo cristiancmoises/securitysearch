@@ -15,7 +15,7 @@ class frontend extends page_renderer{
 			'<small>Selecting Invidious sends this search to our instance. Playback depends on YouTube availability.</small></aside>';
 	}
 	
-	public function image_suggestion(array $get): string {
+    public function image_suggestion(array $get): string {
         $query = is_string($get['s'] ?? null) ? $get['s'] : '';
         if (($get['scraper'] ?? '')==='skunkyart') {
             $direct='https://skunkyart.securityops.co/search?media=image&q='.rawurlencode($query);
@@ -31,6 +31,9 @@ class frontend extends page_renderer{
 
 
 	public function loadheader(array $get, array $filters, string $page, string $notice=""){
+        if ($page==='images' && ($get['scraper'] ?? '')==='luma') {
+            $notice='LUMA: public posts, @handles and #tags appear here. Private accounts are not accessible. Source availability and media expiry are controlled by LUMA.';
+        }
 		// Search pages contain a visitor's query and selected preferences.
 		if(!headers_sent()){ header('Cache-Control: private, no-store'); }
 		$page_styles = [
@@ -910,7 +913,7 @@ class frontend extends page_renderer{
         // Native submit buttons use a separate name from the Scraper select.
         // Destination changes always begin a new search with compatible filters.
         $destination = $_GET['destination'] ?? null;
-        if (($page === 'images' && in_array($destination, ['images','binternet','skunkyart'], true)) || ($page === 'videos' && $destination === 'invidious')) {
+        if (($page === 'images' && in_array($destination, ['images','luma','binternet','skunkyart'], true)) || ($page === 'videos' && $destination === 'invidious')) {
             unset($_GET['npt']);
             $_GET = array_intersect_key($_GET, array_flip(['s','view','quality','nsfw','format']));
             if ($destination === 'images') {
@@ -1009,6 +1012,7 @@ class frontend extends page_renderer{
 						"qwant" => "Qwant",
 						"baidu" => "Baidu",
 						"solofield" => "Solofield",
+						"luma" => "LUMA",
 						"binternet" => "Pinterest via Binternet",
 						"skunkyart" => "DeviantArt via SkunkyArt",
 						"pinterest" => "Pinterest (direct)",

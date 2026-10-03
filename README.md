@@ -19,7 +19,8 @@ No query history, advertising, external analytics or provider-unavailability-as-
 |---|---|
 | Version | Release **0.9.42**, static assets **42**. |
 | Images | **DeviantArt via SkunkyArt**: native shortcut, original artwork links, signed previews, orientation/AI-label/Safe Search filters and bounded pagination. |
-| LUMA | **Pesquise no LUMA**: an explicit searchbar shortcut through `/luma`, carrying only the entered query to the external service. |
+| LUMA | **Pesquise no LUMA**: public posts, accounts, `@handles` and `#tags` displayed inside SecuritySearch, with same-origin image previews and pagination. |
+| Appearance | **GoroDaimon**: white surfaces and black text throughout the homepage, settings and results, without a wallpaper or required scripts. |
 | Required acceptance | **130 native commands**, with all 124 v0.9.41 commands as an exact prefix, plus genuine Google **Web and Images**, RSS, Binternet and SkunkyArt live results. HTTP 200 with a provider error does not pass. |
 | Original versioned release workflow | One native audit → live gates → cutover → independent verification → old-build cleanup. No mandatory separate audit-only run or pre-build deletion. |
 | Performance | The v4 benchmark ranks **TTFB**, separately from total HTML time; v3 remains byte-identical. Bounded labels, observer-based scrolling and safe static-home delivery are retained. No universal speed win is claimed. |
@@ -34,17 +35,34 @@ source, private backups, source history and NPM are not cleanup targets.
 The historical v0.9.40 audit expanded to 119. Earlier results, including 124/0, do not approve a new
 candidate: it requires its own complete **130/0** evidence and live acceptance.
 
-## LUMA shortcut and independent identity
+## LUMA results and independent identity
 
-Choose **Pesquise no LUMA**, immediately left of Pinterest in the searchbar, to open the
-external LUMA service through the local `/luma` shortcut. The current query is URL-encoded;
-an empty query opens its homepage.
-Only the query is carried into the destination URL. SecuritySearch filters, continuation
-tokens (`npt`), credentials and referrer information are not forwarded. The shortcut works
-without JavaScript and uses the current text in the searchbar.
-SecuritySearch makes no automatic LUMA requests, background searches or retries.
-After navigation, LUMA receives the query and the visitor's connection; its own privacy
-practices and the limits of its sources apply.
+Choose **Pesquise no LUMA**, immediately left of Pinterest in the searchbar, to search
+inside SecuritySearch at `/images?s=your-query&scraper=luma`. Ordinary queries search public
+posts and accounts; use `@handle` for a public profile or `#tag` for a topic. Queries accept
+up to 100 Unicode characters. The filters offer posts/accounts and a public profile's reels.
+Empty input opens the internal search form. Old `/luma` bookmarks redirect only to this
+internal page, never to another service.
+
+Results use SecuritySearch's image views and same-origin media proxy, not an iframe or
+external navigation. LUMA receives the query, its supported filters and its own opaque
+pagination cursor from the server; visitor cookies, credentials, referrers and SecuritySearch
+continuation tokens are not forwarded. Search works without JavaScript. Optional image
+scrolling may request the next page after the first results; there are no automatic retries
+or searches before selection. Media links and pagination expire; restart the search if needed.
+Failures remain visible on the internal result page and are not presented as empty success.
+Public accounts without a profile photo use a labeled generic local icon, not a fabricated
+photograph. Private accounts are not shown as accessible profiles.
+
+## GoroDaimon white appearance
+
+Select **GoroDaimon** under **Choose appearance** on the homepage or in **Settings**, then
+save. Backgrounds stay white and text, borders and focus outlines stay black across the
+homepage, menus, controls and search results. The header logo is shown in black for contrast;
+result images retain their original colors. The stored logo artwork is unchanged.
+The preference is saved in this browser; the theme loads no wallpaper or additional script.
+
+## Independent visual identity
 
 The searchbar uses generic navigation symbols, including LUMA's independent book
 symbol, instead of company logos. Destination names identify where a shortcut leads.
@@ -53,7 +71,7 @@ affiliated with, sponsored by, endorsed by or operated by Meta or Instagram.
 LUMA may access publicly available upstream content. Source availability, restrictions and
 terms determine what can be retrieved; a reachable homepage does not guarantee results.
 Private content, login circumvention and authentication bypass are unsupported, and the
-shortcut does not request or forward visitors' platform cookies or access tokens.
+integration does not request or forward visitors' platform cookies or access tokens.
 
 Educational purpose and a disclaimer do not provide legal immunity or permission to use
 third-party content or marks. Copyright, trademark, privacy and applicable terms remain

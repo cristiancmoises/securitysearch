@@ -8,7 +8,7 @@ function securitysearch_theme_catalog(): array {
     $compiled=view_resources::catalog();
     if($compiled!==null) return $catalog=array_replace($compiled,operator_themes::catalog());
     $out=[];
-    $names=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',
+    $names=['Black','GoroDaimon','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',
         'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];
     foreach ($names as $name) {
         if (!is_file(dirname(__DIR__).'/static/themes/'.$name.'.css')) continue;
@@ -44,7 +44,7 @@ function securitysearch_theme_picker(string $selected): string {
     $entry=$selected==='Custom' ? '' : '<form method="post" action="/" class="local-picture-entry">'.
         '<input type="hidden" name="appearance" value="1"><input type="hidden" name="theme" value="Custom">'.
         '<button type="submit">Use a picture from this device</button><small>Browser only · optional JavaScript · no upload</small></form>';
-    $html=$entry.'<details class="appearance-picker" id="appearance"'.($selected==='Custom' ? ' open' : '').'><summary>Choose appearance <span>Black or your image themes</span></summary>' . ($selected==='Custom' ? securitysearch_background_controls() : '') .
+    $html=$entry.'<details class="appearance-picker" id="appearance"'.($selected==='Custom' ? ' open' : '').'><summary>Choose appearance <span>Black, white or your image themes</span></summary>' . ($selected==='Custom' ? securitysearch_background_controls() : '') .
         '<form method="post" action="/" class="appearance-form"><input type="hidden" name="appearance" value="1">' .
         '<fieldset><legend>Background theme</legend><div class="appearance-grid">';
     foreach (securitysearch_theme_catalog() as $name=>$preview) {
@@ -54,13 +54,13 @@ function securitysearch_theme_picker(string $selected): string {
         if ($preview!==null) {
             $html.='<img src="'.$escape($preview).'?v'.config::VERSION.'" width="240" height="135" alt="" loading="lazy" decoding="async">';
         } else {
-            $swatch=in_array($name,['Black','Tron'],true) ? strtolower($name) : 'plain';
-            $html.='<span class="appearance-swatch appearance-'.$swatch.'" aria-hidden="true"></span>';
+            $swatch=in_array($name,['Black','GoroDaimon','Tron'],true) ? strtolower($name) : 'plain';
+            $html.='<span class="appearance-swatch appearance-'.$swatch.'"'.($name==='GoroDaimon' ? ' style="background:#fff;border-bottom:1px solid #000"' : '').' aria-hidden="true"></span>';
         }
         $html.='<span class="appearance-label">'.$escape($label).'</span></label>';
     }
     return $html.'</div></fieldset><div class="appearance-actions"><button type="submit">Save appearance</button><a href="/settings">All settings</a></div>' .
-        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form>'.($selected==='Custom' ? '' : '<p class="local-picture-hint">Use the button above to open the local picture chooser. Nothing is uploaded.</p>').'</details>';
+        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Black and GoroDaimon load no wallpaper.</p></form>'.($selected==='Custom' ? '' : '<p class="local-picture-hint">Use the button above to open the local picture chooser. Nothing is uploaded.</p>').'</details>';
 }
 
 /** File input is deliberately outside every form and has no name attribute. */
@@ -81,5 +81,6 @@ function securitysearch_background_controls(): string {
 function securitysearch_selected_theme(): string {
     $value=$_COOKIE['theme'] ?? (defined('config::DEFAULT_THEME') ? config::DEFAULT_THEME : 'Black');
     if ($value==='gentoo') $value='Gentoo';
+    if ($value==='gorodaimon') $value='GoroDaimon';
     return securitysearch_theme_choice($value) ?? 'Black';
 }

@@ -3,7 +3,7 @@
 import hashlib,json,os,shutil,subprocess,tempfile,unittest,socket,time,urllib.request
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-THEMES=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie']
+THEMES=['Black','GoroDaimon','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie']
 class Views(unittest.TestCase):
  def setUp(self):
   self.temp=tempfile.TemporaryDirectory();self.root=Path(self.temp.name)/'app';self.root.mkdir()
@@ -31,6 +31,12 @@ class Views(unittest.TestCase):
  def test_homepage_no_longer_loads_search_renderer(self):
   self.build();p=self.php('ob_start();include "index.php";ob_end_clean();echo json_encode([class_exists("frontend",false),get_included_files(),view_resources::mode()]);')
   present,paths,mode=json.loads(p.stdout);self.assertFalse(present);self.assertEqual(mode,'compiled');self.assertFalse(any('/scraper/' in x for x in paths))
+ def test_white_theme_is_available_in_compiled_home_and_settings(self):
+  self.build()
+  for bundled in (False,True):
+   self.assertIn('value="GoroDaimon" checked',self.page('GoroDaimon',bundled))
+   code='require "data/config.php";require "lib/theme_picker.php";echo json_encode(securitysearch_theme_catalog());'
+   self.assertIn('GoroDaimon',json.loads(self.php(code,bundled).stdout))
  def test_shared_frontend_load_interface_remains_identical(self):
   self.build()
   code='require "data/config.php";require "lib/frontend.php";$v=["title"=>"Literal {%server_name%}","search"=>"Alice", "left"=>"Bob"];echo json_encode([(new frontend())->load("header.html",$v),(new page_renderer())->load("header.html",$v)]);'

@@ -14,7 +14,22 @@
 - Keep Google Web/Images acceptance and rate-limit failures mandatory. No upstream restriction bypass.
 - Add six audit suites; historical 124-command prefix preserved, current inventory 130.
 
-### LUMA shortcut maintenance — 2026-10-03
+### GoroDaimon and internal LUMA results — 2026-10-03
+
+- Add the GoroDaimon white/black palette to the homepage and settings catalogs, including
+  compiled resources, native controls, focus outlines, result surfaces and a contrasting header
+  logo. No wallpaper required; original logo artwork and result-image colors are preserved.
+- Replace external LUMA navigation with internal image results, public accounts, `@handles`
+  and `#tags`. Reuse bounded transport, opaque pagination and same-origin media relaying.
+- Retain the book icon immediately left of Pinterest. Old `/luma` bookmarks now redirect
+  only to the internal LUMA search; restrict form destinations to this instance again.
+- Validate UTF-8 query limits, live-source provenance, response bounds and opaque media paths.
+  Do not forward visitor credentials or access private accounts. Provider failures remain failures.
+- Preserve public accounts with missing photos using a clearly labeled generic local icon.
+- Extend native input, renderer, HTTP and resource-bundle regressions; preserve previous release
+  evidence through a separately fingerprinted maintenance layer.
+
+### Initial LUMA shortcut — 2026-10-03 (superseded above)
 
 - Add **Pesquise no LUMA** immediately left of Pinterest in the searchbar through `/luma`, using only
   the URL-encoded query; empty input opens the external homepage. Do not forward filters,

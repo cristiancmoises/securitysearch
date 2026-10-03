@@ -19,6 +19,102 @@ MAINTENANCE_HASHES={
  'data/config.php':('b43a80837bc2bae0f5bdf8a846e265fcfa02b8f61acfc060daec70b5dabd7015', '45f2a63de263d4574c33c65f9837bcc8251ba09ef5216fdde71eb1698aaf28c9'),
  'lib/frontend.php':('1681f3a0d1b3803898274a4634fa683c5f586f539363247b90bcd9efd7fa3c2b', 'b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c')}
 class Release42(unittest.TestCase):
+ def test_inline_luma_change_has_exact_reviewed_scope(self):
+  self.assertTrue(hasattr(runtime,'inline_luma_maintenance_manifest'),'Inline LUMA runtime-history layer is required')
+  d=runtime.inline_luma_maintenance_manifest()
+  self.assertEqual((d['release'],d['baseline_commit'],d['baseline_tree']),('0.9.42','055731829a4c1c0ddca94ef500c3f1a4faaebec3','df601cc0c8bf9a9f534dda6b38f879d164248775'))
+  self.assertEqual(set(d['files']),{'docker/apache/fast-home.conf','images.php','lib/build_view_resources.php','lib/frontend.php','lib/image_results.php','lib/luma_search.php','lib/page_renderer.php','lib/security_headers.php','lib/theme_picker.php','luma.php','static/images-infinite.js','template/search-actions.html'})
+  self.assertEqual(set(d['added_files']),{'scraper/luma.php','static/themes/GoroDaimon.css','static/profile-placeholder.svg'})
+ def test_inline_luma_reconstructs_the_reviewed_055_runtime(self):
+  self.assertTrue(hasattr(runtime,'inline_luma_baseline_bytes'),'Inline LUMA runtime-history layer is required')
+  expected={'docker/apache/fast-home.conf':'67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08',
+   'images.php':'b642f1138f0100294bc1e10807966b62e0da06d726aae915a928981b0c0d5791',
+   'lib/build_view_resources.php':'20ba6984889ee7464c0603ab2aaf30f2625ed32f2b4ed5525d3fe5900aea1772',
+   'lib/frontend.php':'b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c',
+   'lib/image_results.php':'89c20b29051046fa3c5ed0dc63c5cbae92cd59fad96add65c9edac4c7d8d57f1',
+   'lib/luma_search.php':'230f25e3c8fd948251a43897683a7b27d1525127164994246d0c24494faea83d',
+   'lib/page_renderer.php':'2de59755060b8a0037e1b5451c5d7db3fa4a1245732912cc0a2dff680b020d1b',
+   'lib/security_headers.php':'74cc28e05a786b9293f19481bc759f4cd4dc1ed7c7faef2e35c20702aec2d624',
+   'lib/theme_picker.php':'3440b780c25812effec9ffff568edc8150ada76ac38e3974b1f115d32d189be9',
+   'luma.php':'4233fc2125a79fc02e69188834d4e444eafbdd84a9c107769bec019d2ce7d376',
+   'static/images-infinite.js':'9fe55bdaeb203c8e295711a6f3c557bd87c3172cfb273e33c50564c6a81496d1',
+   'template/search-actions.html':'cbbd1c8fe244e4b9e8c6138c558bf53f8549ff4a658e992cc8d0df3361a9ffe5'}
+  for name,digest in expected.items():
+   with self.subTest(name=name):self.assertEqual(hashlib.sha256(runtime.inline_luma_baseline_bytes(name)).hexdigest(),digest)
+ def test_inline_luma_added_files_have_no_predecessor(self):
+  self.assertIn('static/profile-placeholder.svg',json.loads((R/'data/runtime-changes-inline-luma.json').read_text())['added_files'])
+  for name in ('scraper/luma.php','static/themes/GoroDaimon.css','static/profile-placeholder.svg'):
+   for reader in (runtime.inline_luma_baseline_bytes,runtime.luma_baseline_bytes,maintenance_baseline_bytes,before42_bytes,historical_bytes):
+    with self.subTest(name=name,reader=reader.__name__),self.assertRaises(ValueError):reader(name)
+ def test_inline_luma_scope_baseline_and_types_fail_closed(self):
+  real=Path.read_text;path=R/'data/runtime-changes-inline-luma.json';manifest=json.loads(real(path))
+  variants=[None,[],0,'unreviewed']
+  for key in ('release','baseline_commit','baseline_tree'):
+   d=copy.deepcopy(manifest);d[key]='unreviewed';variants.append(d)
+  d=copy.deepcopy(manifest);d['unexpected']='unreviewed';variants.append(d)
+  for scope in ('files','added_files'):
+   for bad in (None,[],0,'unreviewed'):
+    d=copy.deepcopy(manifest);d[scope]=bad;variants.append(d)
+   d=copy.deepcopy(manifest);d[scope]['../unexpected.php']={};variants.append(d)
+   for name in manifest[scope]:
+    d=copy.deepcopy(manifest);del d[scope][name];variants.append(d)
+    for bad in (None,[],0,'unreviewed'):
+     d=copy.deepcopy(manifest);d[scope][name]=bad;variants.append(d)
+  for index,d in enumerate(variants):
+   with self.subTest(index=index),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.inline_luma_maintenance_manifest()
+ def test_inline_luma_duplicate_metadata_is_rejected(self):
+  real=Path.read_text;path=R/'data/runtime-changes-inline-luma.json'
+  changed=real(path).replace('"release": "0.9.42"','"release": "unreviewed", "release": "0.9.42"',1)
+  with patch.object(Path,'read_text',lambda p,*a,**k:changed if p==path else real(p,*a,**k)):
+   with self.assertRaises(ValueError):runtime.inline_luma_maintenance_manifest()
+ def test_inline_luma_edits_and_pinned_hashes_fail_closed(self):
+  real=Path.read_text;path=R/'data/runtime-changes-inline-luma.json';manifest=json.loads(real(path))
+  for name in manifest['files']:
+   for bad in ('record','edit','missing_edits','empty','ambiguous','preimage','identical','duplicate','old_hash','new_hash'):
+    d=copy.deepcopy(manifest);row=d['files'][name]
+    if bad=='record':row['unexpected']='unreviewed'
+    elif bad=='edit':row['edits'][0]['unexpected']='unreviewed'
+    elif bad=='missing_edits':row['edits']=[]
+    elif bad=='empty':row['edits'][0]['after']=''
+    elif bad=='ambiguous':row['edits'][0]['after']='\n'
+    elif bad=='preimage':row['edits'][0]['before']+='unreviewed'
+    elif bad=='identical':row['edits'][0]['before']=row['edits'][0]['after']
+    elif bad=='duplicate':row['edits']*=2
+    else:row[bad.replace('_hash','_sha256')]='0'*64
+    with self.subTest(name=name,bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+     with self.assertRaises(ValueError):historical_bytes(name)
+  for bad in (None,{},[None],[{}],[{'before':1,'after':'reviewed'}],[{'before':'reviewed','after':[]}],[{'before':'','after':'reviewed'}]):
+   d=copy.deepcopy(manifest);d['files']['lib/frontend.php']['edits']=bad
+   with self.subTest(bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+    with self.assertRaises(ValueError):runtime.inline_luma_maintenance_manifest()
+  for name in manifest['added_files']:
+   for bad in ('hash','record'):
+    d=copy.deepcopy(manifest)
+    if bad=='hash':d['added_files'][name]['new_sha256']='0'*64
+    else:d['added_files'][name]['unexpected']='unreviewed'
+    with self.subTest(name=name,bad=bad),patch.object(Path,'read_text',lambda p,*a,**k:json.dumps(d) if p==path else real(p,*a,**k)):
+     with self.assertRaises(ValueError):runtime.inline_luma_maintenance_manifest()
+ def test_inline_luma_current_bytes_and_symlinks_fail_closed(self):
+  d=runtime.inline_luma_maintenance_manifest();real=Path.read_bytes;symlink=Path.is_symlink;regular=Path.is_file
+  for name in set(d['files']) | set(d['added_files']):
+   with self.subTest(name=name),patch.object(Path,'read_bytes',lambda p:real(p)+b'unreviewed' if p==R/name else real(p)):
+    with self.assertRaises(ValueError):runtime.inline_luma_baseline_bytes(name)
+   for kind in ('symlink','missing'):
+    method='is_symlink' if kind=='symlink' else 'is_file';original=symlink if kind=='symlink' else regular
+    with self.subTest(name=name,kind=kind),patch.object(Path,method,lambda p:kind=='symlink' if p==R/name else original(p)):
+     with self.assertRaises(ValueError):runtime.inline_luma_baseline_bytes(name)
+  for name in ('data/runtime-changes-inline-luma.json','scraper','lib'):
+   with self.subTest(symlink=name),patch.object(Path,'is_symlink',lambda p:True if p==R/name else symlink(p)):
+    with self.assertRaises(ValueError):runtime.inline_luma_baseline_bytes('lib/frontend.php')
+ def test_inline_luma_reader_refuses_paths_outside_source(self):
+  for name in ('../outside.php','/tmp/outside.php','lib/../../outside.php','./lib/frontend.php','lib//frontend.php','',None,[],{},'lib\\frontend.php'):
+   with self.subTest(name=name),self.assertRaises(ValueError):runtime.inline_luma_baseline_bytes(name)
+ def test_inline_luma_nonowned_bytes_still_come_from_current_source(self):
+  name='web.php';real=Path.read_bytes
+  with patch.object(Path,'read_bytes',lambda p:b'current source bytes' if p==R/name else real(p)):
+   self.assertEqual(runtime.inline_luma_baseline_bytes(name),b'current source bytes')
+   self.assertEqual(runtime.luma_baseline_bytes(name),b'current source bytes')
  def test_luma_change_has_exact_reviewed_scope(self):
   self.assertTrue(hasattr(runtime,'luma_maintenance_manifest'),'LUMA runtime-history layer is required')
   d=runtime.luma_maintenance_manifest()
@@ -194,7 +290,7 @@ class Release42(unittest.TestCase):
   for name,row in d['files'].items():
    with self.subTest(name=name):
     old,new=MAINTENANCE_HASHES[name];self.assertEqual((row['old_sha256'],row['new_sha256']),(old,new))
-    current=(R/name).read_bytes();original=maintenance_baseline_bytes(name)
+    current=runtime.luma_baseline_bytes(name);original=maintenance_baseline_bytes(name)
     self.assertEqual(hashlib.sha256(current).hexdigest(),new);self.assertEqual(hashlib.sha256(original).hexdigest(),old)
     for edit in row['edits']:self.assertEqual(original.count(edit['before'].encode()),1);self.assertEqual(current.count(edit['after'].encode()),1)
   self.assertEqual(hashlib.sha256((R/'lib/brave_data.php').read_bytes()).hexdigest(),'2d7eaf6b17a1bf9ba53343fb786bb87ebda1c79951f8062d225c4c24edf7dc8f')

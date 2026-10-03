@@ -1,0 +1,182 @@
+{
+  "release": "0.9.42",
+  "baseline_commit": "055731829a4c1c0ddca94ef500c3f1a4faaebec3",
+  "baseline_tree": "df601cc0c8bf9a9f534dda6b38f879d164248775",
+  "files": {
+    "docker/apache/fast-home.conf": {
+      "old_sha256": "67cb03d4cb37c667c3ce3ae8af706e86607540092583883d11e574dab1f27e08",
+      "new_sha256": "88e604889acf92561ed673cfe1da83708b2595658851f9133e4d5e67ba550941",
+      "edits": [
+        {
+          "before": "    Header always set Cross-Origin-Resource-Policy \"same-origin\"\n    Header always set Cross-Origin-Embedder-Policy \"unsafe-none\"\n    Header always set X-Permitted-Cross-Domain-Policies \"none\"\n    Header always set Content-Security-Policy \"default-src 'none'; script-src 'none'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self' data:; connect-src 'none'; form-action 'self' https://instalibre.securityops.co; frame-ancestors 'none'; base-uri 'self'; manifest-src 'self'; object-src 'none'; worker-src 'none'; upgrade-insecure-requests\"\n</FilesMatch>\n\n# Pre-compressed representation generated from the exact same validated HTML.\n",
+          "after": "    Header always set Cross-Origin-Resource-Policy \"same-origin\"\n    Header always set Cross-Origin-Embedder-Policy \"unsafe-none\"\n    Header always set X-Permitted-Cross-Domain-Policies \"none\"\n    Header always set Content-Security-Policy \"default-src 'none'; script-src 'none'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self'; font-src 'self' data:; connect-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; manifest-src 'self'; object-src 'none'; worker-src 'none'; upgrade-insecure-requests\"\n</FilesMatch>\n\n# Pre-compressed representation generated from the exact same validated HTML.\n"
+        }
+      ]
+    },
+    "images.php": {
+      "old_sha256": "b642f1138f0100294bc1e10807966b62e0da06d726aae915a928981b0c0d5791",
+      "new_sha256": "5a397d0d1c877ad7c58feabdc1c8368c35cfce3b7902103557c8b4ee3cd2ba1d",
+      "edits": [
+        {
+          "before": "echo $frontend->load('images.html',[\n    'timetaken'=>$started,'images'=>$cards,'nextpage'=>$next,\n    'image_script'=>($rendered>0 && ($_COOKIE['image_motion'] ?? 'yes')!=='no' ? '<script defer src=\"/static/images-motion.js?v'.config::VERSION.'\"></script>' : '').\n        ($enhance ? '<script defer src=\"/static/images-infinite.js?v'.config::VERSION.'\"></script>' : ''),\n    'image_view_help'=>'<p class=\"image-view-note\">'.$escape($help).'</p>',\n    'image_classes'=>' data-provider=\"'.$escape($get['scraper']).'\" class=\"images-view-'.$view.' images-quality-'.$quality.'\"'\n]);\n",
+          "after": "echo $frontend->load('images.html',[\n    'timetaken'=>$started,'images'=>$cards,'nextpage'=>$next,\n    'image_script'=>($rendered>0 && ($_COOKIE['image_motion'] ?? 'yes')!=='no' ? '<script defer src=\"/static/images-motion.js?v'.config::VERSION.'\"></script>' : '').\n        ($enhance ? '<script defer src=\"/static/images-infinite.js?v'.config::VERSION.'-inline-luma1\"></script>' : ''),\n    'image_view_help'=>'<p class=\"image-view-note\">'.$escape($help).'</p>',\n    'image_classes'=>' data-provider=\"'.$escape($get['scraper']).'\" class=\"images-view-'.$view.' images-quality-'.$quality.'\"'\n]);\n"
+        }
+      ]
+    },
+    "lib/build_view_resources.php": {
+      "old_sha256": "20ba6984889ee7464c0603ab2aaf30f2625ed32f2b4ed5525d3fe5900aea1772",
+      "new_sha256": "018a442305a43151b94939002844b4ab703aee8bf9799eb9e8a58c3abbdc81cd",
+      "edits": [
+        {
+          "before": "            throw new RuntimeException('Unsafe bundled stylesheet.');\n        $styles[$name] = $css;\n    }\n    foreach (['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte',\n              'Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'] as $name) {\n        if (!is_file($root.'/static/themes/'.$name.'.css')) continue;\n        $read('static/themes/'.$name.'.css', 65536);\n",
+          "after": "            throw new RuntimeException('Unsafe bundled stylesheet.');\n        $styles[$name] = $css;\n    }\n    foreach (['Black','GoroDaimon','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte',\n              'Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'] as $name) {\n        if (!is_file($root.'/static/themes/'.$name.'.css')) continue;\n        $read('static/themes/'.$name.'.css', 65536);\n"
+        }
+      ]
+    },
+    "lib/frontend.php": {
+      "old_sha256": "b48f013691de8e1a375ffb00cbcdcc91ee0885112e2d1127a8aef16d9317ed5c",
+      "new_sha256": "acf6a0de836750f9f17532d54d3387e8247b895eae4e57ef29b9ce8208982bd0",
+      "edits": [
+        {
+          "before": "\t\t\t'<small>Selecting Invidious sends this search to our instance. Playback depends on YouTube availability.</small></aside>';\n\t}\n\t\n\tpublic function image_suggestion(array $get): string {\n        $query = is_string($get['s'] ?? null) ? $get['s'] : '';\n        if (($get['scraper'] ?? '')==='skunkyart') {\n            $direct='https://skunkyart.securityops.co/search?media=image&q='.rawurlencode($query);\n",
+          "after": "\t\t\t'<small>Selecting Invidious sends this search to our instance. Playback depends on YouTube availability.</small></aside>';\n\t}\n\t\n    public function image_suggestion(array $get): string {\n        $query = is_string($get['s'] ?? null) ? $get['s'] : '';\n        if (($get['scraper'] ?? '')==='skunkyart') {\n            $direct='https://skunkyart.securityops.co/search?media=image&q='.rawurlencode($query);\n"
+        },
+        {
+          "before": "\n\n\tpublic function loadheader(array $get, array $filters, string $page, string $notice=\"\"){\n\t\t// Search pages contain a visitor's query and selected preferences.\n\t\tif(!headers_sent()){ header('Cache-Control: private, no-store'); }\n\t\t$page_styles = [\n",
+          "after": "\n\n\tpublic function loadheader(array $get, array $filters, string $page, string $notice=\"\"){\n        if ($page==='images' && ($get['scraper'] ?? '')==='luma') {\n            $notice='LUMA: public posts, @handles and #tags appear here. Private accounts are not accessible. Source availability and media expiry are controlled by LUMA.';\n        }\n\t\t// Search pages contain a visitor's query and selected preferences.\n\t\tif(!headers_sent()){ header('Cache-Control: private, no-store'); }\n\t\t$page_styles = [\n"
+        },
+        {
+          "before": "        // Native submit buttons use a separate name from the Scraper select.\n        // Destination changes always begin a new search with compatible filters.\n        $destination = $_GET['destination'] ?? null;\n        if (($page === 'images' && in_array($destination, ['images','binternet','skunkyart'], true)) || ($page === 'videos' && $destination === 'invidious')) {\n            unset($_GET['npt']);\n            $_GET = array_intersect_key($_GET, array_flip(['s','view','quality','nsfw','format']));\n            if ($destination === 'images') {\n",
+          "after": "        // Native submit buttons use a separate name from the Scraper select.\n        // Destination changes always begin a new search with compatible filters.\n        $destination = $_GET['destination'] ?? null;\n        if (($page === 'images' && in_array($destination, ['images','luma','binternet','skunkyart'], true)) || ($page === 'videos' && $destination === 'invidious')) {\n            unset($_GET['npt']);\n            $_GET = array_intersect_key($_GET, array_flip(['s','view','quality','nsfw','format']));\n            if ($destination === 'images') {\n"
+        },
+        {
+          "before": "\t\t\t\t\t\t\"qwant\" => \"Qwant\",\n\t\t\t\t\t\t\"baidu\" => \"Baidu\",\n\t\t\t\t\t\t\"solofield\" => \"Solofield\",\n\t\t\t\t\t\t\"binternet\" => \"Pinterest via Binternet\",\n\t\t\t\t\t\t\"skunkyart\" => \"DeviantArt via SkunkyArt\",\n\t\t\t\t\t\t\"pinterest\" => \"Pinterest (direct)\",\n",
+          "after": "\t\t\t\t\t\t\"qwant\" => \"Qwant\",\n\t\t\t\t\t\t\"baidu\" => \"Baidu\",\n\t\t\t\t\t\t\"solofield\" => \"Solofield\",\n\t\t\t\t\t\t\"luma\" => \"LUMA\",\n\t\t\t\t\t\t\"binternet\" => \"Pinterest via Binternet\",\n\t\t\t\t\t\t\"skunkyart\" => \"DeviantArt via SkunkyArt\",\n\t\t\t\t\t\t\"pinterest\" => \"Pinterest (direct)\",\n"
+        }
+      ]
+    },
+    "lib/image_results.php": {
+      "old_sha256": "89c20b29051046fa3c5ed0dc63c5cbae92cd59fad96add65c9edac4c7d8d57f1",
+      "new_sha256": "01b13d1d5cf4a4e5379a730ec7144cfc1f758c87ae34ee31d87724d88d1eb423",
+      "edits": [
+        {
+          "before": "    public const PAGE_SIZE = 24;\n    public const MAX_SOURCES = 32;\n    public const LABEL_BYTES = 1024;\n\n    /** Inspect only the displayed prefix; never scan an unbounded provider title.\n     * UTF-8 is cut on a character boundary. Malformed prefixes use a fixed label.\n",
+          "after": "    public const PAGE_SIZE = 24;\n    public const MAX_SOURCES = 32;\n    public const LABEL_BYTES = 1024;\n    private const PROFILE_PLACEHOLDER = '/static/profile-placeholder.svg';\n\n    /** Inspect only the displayed prefix; never scan an unbounded provider title.\n     * UTF-8 is cut on a character boundary. Malformed prefixes use a fixed label.\n"
+        },
+        {
+          "before": "        return ['image'=>array_slice($images,0,self::PAGE_SIZE), 'npt'=>is_string($results['npt'] ?? null) ? $results['npt'] : null, 'omitted'=>$omitted];\n    }\n\n    public static function items(frontend $frontend,array $get,array $results): array {\n        $quality=in_array($get['quality'] ?? null,['high','original'],true) ? $get['quality'] : 'preview';\n        $items=[];\n",
+          "after": "        return ['image'=>array_slice($images,0,self::PAGE_SIZE), 'npt'=>is_string($results['npt'] ?? null) ? $results['npt'] : null, 'omitted'=>$omitted];\n    }\n\n    /** Navigation may stay on this instance; remote media remains HTTP(S)-only. */\n    private static function navigation($url): bool {\n        return self::remote($url) || (is_string($url) && strlen($url)<=8192 &&\n            preg_match('~\\A/(?!/)[^\\\\\\\\\\x00-\\x20\\x7f]+\\z~D',$url)===1);\n    }\n\n    public static function items(frontend $frontend,array $get,array $results): array {\n        $quality=in_array($get['quality'] ?? null,['high','original'],true) ? $get['quality'] : 'preview';\n        $items=[];\n"
+        },
+        {
+          "before": "            $sources=[];$seen=[];\n            foreach (array_slice($image['source'],0,self::MAX_SOURCES) as $source) {\n                $url=is_array($source) ? ($source['url'] ?? null) : null;\n                if (!self::remote($url) || isset($seen[$url])) { continue; }\n                $seen[$url]=true;\n                $width=filter_var($source['width'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);\n                $height=filter_var($source['height'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);\n",
+          "after": "            $sources=[];$seen=[];\n            foreach (array_slice($image['source'],0,self::MAX_SOURCES) as $source) {\n                $url=is_array($source) ? ($source['url'] ?? null) : null;\n                if ((!self::remote($url) && $url!==self::PROFILE_PLACEHOLDER) || isset($seen[$url])) { continue; }\n                $seen[$url]=true;\n                $width=filter_var($source['width'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);\n                $height=filter_var($source['height'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);\n"
+        },
+        {
+          "before": "            $original=$sources[0];$thumb=self::thumbnail($sources);\n            $display=$quality==='preview' ? $thumb : $original;\n            $title=self::label($image['title'] ?? null, 'Image result');\n            $result=self::remote($image['url'] ?? null) ? $image['url'] : $original['url'];\n            $host=self::label(parse_url($result,PHP_URL_HOST), 'Source', 253);\n            $src=$frontend->htmlimage($display['url'],$quality==='preview' ? 'thumb' : $quality);\n            $motion=self::remote($image['motion_url'] ?? null) ? $image['motion_url'] : $original['url'];\n            $format=$frontend->animatedimageformat($motion);\n",
+          "after": "            $original=$sources[0];$thumb=self::thumbnail($sources);\n            $display=$quality==='preview' ? $thumb : $original;\n            $title=self::label($image['title'] ?? null, 'Image result');\n            $result=self::navigation($image['url'] ?? null) ? $image['url'] : $original['url'];\n            $host=self::label(parse_url($result,PHP_URL_HOST), 'Source', 253);\n            // This single owned icon is not a provider photograph or a fetch target.\n            if ($original['url']===self::PROFILE_PLACEHOLDER) {\n                $items[]=['original'=>self::PROFILE_PLACEHOLDER,'preview'=>self::PROFILE_PLACEHOLDER,\n                    'title'=>$title,'source'=>$result,'host'=>$host,'width'=>236,'height'=>180,\n                    'links'=>[['label'=>'Profile icon','href'=>self::PROFILE_PLACEHOLDER]],'motion'=>null];\n                continue;\n            }\n            $src=$frontend->htmlimage($display['url'],$quality==='preview' ? 'thumb' : $quality);\n            $motion=self::remote($image['motion_url'] ?? null) ? $image['motion_url'] : $original['url'];\n            $format=$frontend->animatedimageformat($motion);\n"
+        }
+      ]
+    },
+    "lib/luma_search.php": {
+      "old_sha256": "230f25e3c8fd948251a43897683a7b27d1525127164994246d0c24494faea83d",
+      "new_sha256": "0256e48a04cdb0e5fd2a7e1c61e2e8de4309e639f82700472602e5f2f71cb84b",
+      "edits": [
+        {
+          "before": "<?php\n\n/** Explicit browser navigation to the operator-owned educational service. */\nfinal class luma_search {\n    public const ORIGIN = 'https://instalibre.securityops.co';\n\n    public static function destination(array $get): string {\n        $query = $get['s'] ?? '';\n        if (!is_string($query) || strlen($query) > 640 ||\n            preg_match('//u', $query) !== 1 ||\n            preg_match('/\\p{Cc}/u', $query) ||\n            mb_strlen($query, 'UTF-8') > 160) {\n            throw new InvalidArgumentException('LUMA accepts a search of up to 160 valid characters without control characters.');\n        }\n        $query = trim($query);\n        return self::ORIGIN . '/' . ($query === '' ? '' : '?q=' . rawurlencode($query));\n    }\n}\n",
+          "after": "<?php\n\n/** Fixed origin and bounded input shared by the legacy route and LUMA adapter. */\nfinal class luma_search {\n    public const ORIGIN = 'https://instalibre.securityops.co';\n\n    public static function query($query): string {\n        if (!is_string($query) || strlen($query) > 640 ||\n            preg_match('//u', $query) !== 1 ||\n            preg_match('/\\p{Cc}/u', $query) ||\n            mb_strlen($query, 'UTF-8') > 100) {\n            throw new InvalidArgumentException('LUMA accepts a search of up to 100 valid characters without control characters.');\n        }\n        $query = trim($query);\n        return $query;\n    }\n\n    public static function destination(array $get): string {\n        return '/images?s='.rawurlencode(self::query($get['s'] ?? '')).'&scraper=luma';\n    }\n}\n"
+        }
+      ]
+    },
+    "lib/page_renderer.php": {
+      "old_sha256": "2de59755060b8a0037e1b5451c5d7db3fa4a1245732912cc0a2dff680b020d1b",
+      "new_sha256": "df5dba53f049dcdf12b5db3751f7591cda2f50efe1922918efa62605127b56f6",
+      "edits": [
+        {
+          "before": "        if ($theme === 'SecOps' && !operator_themes::available('SecOps')) $replacements[\"style\"] .= '<link rel=\"stylesheet\" href=\"/static/themes/SecOps-motion.css?v' . config::VERSION . '\">';\n        if (operator_themes::available($theme)) $replacements[\"style\"] .= '<link rel=\"stylesheet\" href=\"/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '\">';\n        if ($theme === 'Custom') $replacements[\"style\"] .= '<script defer src=\"/static/local-background.js?v' . config::VERSION . '\"></script>';\n        }\n\n\t\tif(isset($_COOKIE[\"scraper_ac\"]) && is_string($_COOKIE[\"scraper_ac\"]) && strlen($_COOKIE[\"scraper_ac\"])<=64){\n",
+          "after": "        if ($theme === 'SecOps' && !operator_themes::available('SecOps')) $replacements[\"style\"] .= '<link rel=\"stylesheet\" href=\"/static/themes/SecOps-motion.css?v' . config::VERSION . '\">';\n        if (operator_themes::available($theme)) $replacements[\"style\"] .= '<link rel=\"stylesheet\" href=\"/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '\">';\n        if ($theme === 'Custom') $replacements[\"style\"] .= '<script defer src=\"/static/local-background.js?v' . config::VERSION . '\"></script>';\n        // The white palette must follow shared controls and the inline home skin.\n        if ($theme === 'GoroDaimon') $replacements['style']=str_replace('<link rel=\"stylesheet\" href=\"/static/themes/GoroDaimon.css?v'.config::VERSION.'\">','',$replacements['style']);\n        }\n\n\t\tif(isset($_COOKIE[\"scraper_ac\"]) && is_string($_COOKIE[\"scraper_ac\"]) && strlen($_COOKIE[\"scraper_ac\"])<=64){\n"
+        },
+        {
+          "before": "            $map['{%'.$key.'%}']=(string)$value;\n        }\n        $html=strtr($html,$map);\n\n\t\treturn trim($html);\n\t}\n",
+          "after": "            $map['{%'.$key.'%}']=(string)$value;\n        }\n        $html=strtr($html,$map);\n        if (($theme ?? null)==='GoroDaimon') $html=str_replace('</head>','<link rel=\"stylesheet\" href=\"/static/themes/GoroDaimon.css?v'.config::VERSION.'-gorodaimon1\"></head>',$html);\n\n\t\treturn trim($html);\n\t}\n"
+        }
+      ]
+    },
+    "lib/security_headers.php": {
+      "old_sha256": "74cc28e05a786b9293f19481bc759f4cd4dc1ed7c7faef2e35c20702aec2d624",
+      "new_sha256": "4eae74ed37e6c741d9b831b59547224a282f2288cc8268e9fd86c1173f3d8869",
+      "edits": [
+        {
+          "before": "<?php\nrequire_once __DIR__ . '/luma_search.php';\n/*\n * lib/security_headers.php\n *\n",
+          "after": "<?php\n/*\n * lib/security_headers.php\n *\n"
+        },
+        {
+          "before": "    \"media-src 'self'; \" .\n    \"font-src 'self' data:; \" .\n    ($image_enhancement ? \"connect-src 'self'; \" : \"connect-src 'none'; \") .\n    \"form-action 'self' \" . luma_search::ORIGIN . \"; \" .\n    \"frame-ancestors 'none'; \" .\n    \"base-uri 'self'; \" .\n    \"manifest-src 'self'; \" .\n",
+          "after": "    \"media-src 'self'; \" .\n    \"font-src 'self' data:; \" .\n    ($image_enhancement ? \"connect-src 'self'; \" : \"connect-src 'none'; \") .\n    \"form-action 'self'; \" .\n    \"frame-ancestors 'none'; \" .\n    \"base-uri 'self'; \" .\n    \"manifest-src 'self'; \" .\n"
+        }
+      ]
+    },
+    "lib/theme_picker.php": {
+      "old_sha256": "3440b780c25812effec9ffff568edc8150ada76ac38e3974b1f115d32d189be9",
+      "new_sha256": "b5d015a83bd0f750b94c54f3d9a78015397284f221c3aed2bd80931728ad4fe2",
+      "edits": [
+        {
+          "before": "    $compiled=view_resources::catalog();\n    if($compiled!==null) return $catalog=array_replace($compiled,operator_themes::catalog());\n    $out=[];\n    $names=['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',\n        'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];\n    foreach ($names as $name) {\n        if (!is_file(dirname(__DIR__).'/static/themes/'.$name.'.css')) continue;\n",
+          "after": "    $compiled=view_resources::catalog();\n    if($compiled!==null) return $catalog=array_replace($compiled,operator_themes::catalog());\n    $out=[];\n    $names=['Black','GoroDaimon','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3',\n        'Arte','Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'];\n    foreach ($names as $name) {\n        if (!is_file(dirname(__DIR__).'/static/themes/'.$name.'.css')) continue;\n"
+        },
+        {
+          "before": "    $entry=$selected==='Custom' ? '' : '<form method=\"post\" action=\"/\" class=\"local-picture-entry\">'.\n        '<input type=\"hidden\" name=\"appearance\" value=\"1\"><input type=\"hidden\" name=\"theme\" value=\"Custom\">'.\n        '<button type=\"submit\">Use a picture from this device</button><small>Browser only · optional JavaScript · no upload</small></form>';\n    $html=$entry.'<details class=\"appearance-picker\" id=\"appearance\"'.($selected==='Custom' ? ' open' : '').'><summary>Choose appearance <span>Black or your image themes</span></summary>' . ($selected==='Custom' ? securitysearch_background_controls() : '') .\n        '<form method=\"post\" action=\"/\" class=\"appearance-form\"><input type=\"hidden\" name=\"appearance\" value=\"1\">' .\n        '<fieldset><legend>Background theme</legend><div class=\"appearance-grid\">';\n    foreach (securitysearch_theme_catalog() as $name=>$preview) {\n",
+          "after": "    $entry=$selected==='Custom' ? '' : '<form method=\"post\" action=\"/\" class=\"local-picture-entry\">'.\n        '<input type=\"hidden\" name=\"appearance\" value=\"1\"><input type=\"hidden\" name=\"theme\" value=\"Custom\">'.\n        '<button type=\"submit\">Use a picture from this device</button><small>Browser only · optional JavaScript · no upload</small></form>';\n    $html=$entry.'<details class=\"appearance-picker\" id=\"appearance\"'.($selected==='Custom' ? ' open' : '').'><summary>Choose appearance <span>Black, white or your image themes</span></summary>' . ($selected==='Custom' ? securitysearch_background_controls() : '') .\n        '<form method=\"post\" action=\"/\" class=\"appearance-form\"><input type=\"hidden\" name=\"appearance\" value=\"1\">' .\n        '<fieldset><legend>Background theme</legend><div class=\"appearance-grid\">';\n    foreach (securitysearch_theme_catalog() as $name=>$preview) {\n"
+        },
+        {
+          "before": "        if ($preview!==null) {\n            $html.='<img src=\"'.$escape($preview).'?v'.config::VERSION.'\" width=\"240\" height=\"135\" alt=\"\" loading=\"lazy\" decoding=\"async\">';\n        } else {\n            $swatch=in_array($name,['Black','Tron'],true) ? strtolower($name) : 'plain';\n            $html.='<span class=\"appearance-swatch appearance-'.$swatch.'\" aria-hidden=\"true\"></span>';\n        }\n        $html.='<span class=\"appearance-label\">'.$escape($label).'</span></label>';\n    }\n    return $html.'</div></fieldset><div class=\"appearance-actions\"><button type=\"submit\">Save appearance</button><a href=\"/settings\">All settings</a></div>' .\n        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Pure black loads no wallpaper.</p></form>'.($selected==='Custom' ? '' : '<p class=\"local-picture-hint\">Use the button above to open the local picture chooser. Nothing is uploaded.</p>').'</details>';\n}\n\n/** File input is deliberately outside every form and has no name attribute. */\n",
+          "after": "        if ($preview!==null) {\n            $html.='<img src=\"'.$escape($preview).'?v'.config::VERSION.'\" width=\"240\" height=\"135\" alt=\"\" loading=\"lazy\" decoding=\"async\">';\n        } else {\n            $swatch=in_array($name,['Black','GoroDaimon','Tron'],true) ? strtolower($name) : 'plain';\n            $html.='<span class=\"appearance-swatch appearance-'.$swatch.'\"'.($name==='GoroDaimon' ? ' style=\"background:#fff;border-bottom:1px solid #000\"' : '').' aria-hidden=\"true\"></span>';\n        }\n        $html.='<span class=\"appearance-label\">'.$escape($label).'</span></label>';\n    }\n    return $html.'</div></fieldset><div class=\"appearance-actions\"><button type=\"submit\">Save appearance</button><a href=\"/settings\">All settings</a></div>' .\n        '<p>Saved in this browser. Previews use small, local still images; full wallpapers load only after you select their theme. Black and GoroDaimon load no wallpaper.</p></form>'.($selected==='Custom' ? '' : '<p class=\"local-picture-hint\">Use the button above to open the local picture chooser. Nothing is uploaded.</p>').'</details>';\n}\n\n/** File input is deliberately outside every form and has no name attribute. */\n"
+        },
+        {
+          "before": "function securitysearch_selected_theme(): string {\n    $value=$_COOKIE['theme'] ?? (defined('config::DEFAULT_THEME') ? config::DEFAULT_THEME : 'Black');\n    if ($value==='gentoo') $value='Gentoo';\n    return securitysearch_theme_choice($value) ?? 'Black';\n}\n",
+          "after": "function securitysearch_selected_theme(): string {\n    $value=$_COOKIE['theme'] ?? (defined('config::DEFAULT_THEME') ? config::DEFAULT_THEME : 'Black');\n    if ($value==='gentoo') $value='Gentoo';\n    if ($value==='gorodaimon') $value='GoroDaimon';\n    return securitysearch_theme_choice($value) ?? 'Black';\n}\n"
+        }
+      ]
+    },
+    "luma.php": {
+      "old_sha256": "4233fc2125a79fc02e69188834d4e444eafbdd84a9c107769bec019d2ce7d376",
+      "new_sha256": "2d6ac8dfffb6d7d8fae2aee6544474c79f0797d42f6cc8413c9e8c851f3e026f",
+      "edits": [
+        {
+          "before": "    echo $error->getMessage();\n    exit;\n}\n// Forward only the query, never filters, continuation tokens or credentials.\nheader('Location: ' . $destination, true, 303);\nexit;\n",
+          "after": "    echo $error->getMessage();\n    exit;\n}\n// Preserve old bookmarks without sending visitors or extra fields to another origin.\nheader('Location: ' . $destination, true, 303);\nexit;\n"
+        }
+      ]
+    },
+    "static/images-infinite.js": {
+      "old_sha256": "9fe55bdaeb203c8e295711a6f3c557bd87c3172cfb273e33c50564c6a81496d1",
+      "new_sha256": "1c7ac6cab128a5f21c7b8ce5cf8a9c2a80393b28e8a704111ee18524334f1a8d",
+      "edits": [
+        {
+          "before": "        if (!item || !Number.isInteger(item.width) || !Number.isInteger(item.height) ||\n            item.width < 1 || item.height < 1 || item.width > 100000 || item.height > 100000 ||\n            !Array.isArray(item.links) || item.links.length < 1 || item.links.length > 3) throw new Error('Invalid image');\n        return { original: proxy(item.original), preview: proxy(item.preview), source: url(item.source).href,\n            title: label(item.title), host: label(item.host), width: item.width, height: item.height,\n            motion: item.motion == null ? null : proxy(item.motion),\n",
+          "after": "        if (!item || !Number.isInteger(item.width) || !Number.isInteger(item.height) ||\n            item.width < 1 || item.height < 1 || item.width > 100000 || item.height > 100000 ||\n            !Array.isArray(item.links) || item.links.length < 1 || item.links.length > 3) throw new Error('Invalid image');\n        const icon = '/static/profile-placeholder.svg';\n        if (provider === 'luma' && item.original === icon) {\n            const link = item.links[0], source = url(item.source, '/images');\n            if (item.preview !== icon || item.motion !== null || item.links.length !== 1 ||\n                !link || link.label !== 'Profile icon' || link.href !== icon ||\n                source.searchParams.get('scraper') !== 'luma') throw new Error('Invalid profile icon');\n            return {original: origin + icon, preview: origin + icon, source: source.href,\n                title: label(item.title), host: label(item.host), width: item.width, height: item.height,\n                motion: null, links: [{label: 'Profile icon', href: origin + icon}]};\n        }\n        return { original: proxy(item.original), preview: proxy(item.preview), source: url(item.source).href,\n            title: label(item.title), host: label(item.host), width: item.width, height: item.height,\n            motion: item.motion == null ? null : proxy(item.motion),\n"
+        }
+      ]
+    },
+    "template/search-actions.html": {
+      "old_sha256": "cbbd1c8fe244e4b9e8c6138c558bf53f8549ff4a658e992cc8d0df3361a9ffe5",
+      "new_sha256": "bcdf170c4c96915c17f7ab6956aae2a8ca3554aa6e56451edbdcf454e456658b",
+      "edits": [
+        {
+          "before": "        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m3 17 5-5 4 4 4-5 5 6\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Image</span>\n    </button>\n    <button type=\"submit\" formaction=\"/luma\" formnovalidate name=\"destination\" value=\"luma\" aria-label=\"Pesquise no LUMA\" title=\"LUMA — projeto educacional independente; abre um serviço externo\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 6c-2.5-2-6-2-9-1v14c3-1 6.5-1 9 1 2.5-2 6-2 9-1V5c-3-1-6.5-1-9 1Zm0 0v14M6 9h3M6 12h3M15 9h3M15 12h3\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Pesquise no LUMA</span>\n    </button>\n",
+          "after": "        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"3\"/><circle cx=\"8.5\" cy=\"8.5\" r=\"1.5\"/><path d=\"m3 17 5-5 4 4 4-5 5 6\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Search Image</span>\n    </button>\n    <button type=\"submit\" formaction=\"/images\" formnovalidate name=\"destination\" value=\"luma\" aria-label=\"Pesquise no LUMA\" title=\"LUMA — projeto educacional independente; resultados neste buscador\">\n        <svg class=\"search-action-icon\" width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\" focusable=\"false\"><path d=\"M12 6c-2.5-2-6-2-9-1v14c3-1 6.5-1 9 1 2.5-2 6-2 9-1V5c-3-1-6.5-1-9 1Zm0 0v14M6 9h3M6 12h3M15 9h3M15 12h3\"/></svg>\n        <span class=\"search-action-label\" aria-hidden=\"true\">Pesquise no LUMA</span>\n    </button>\n"
+        }
+      ]
+    }
+  },
+  "added_files": {
+    "scraper/luma.php": {
+      "new_sha256": "b5211b0222b236c3724c3eb52992423891a6af50fbfd5ab90aacb401f003419a"
+    },
+    "static/themes/GoroDaimon.css": {
+      "new_sha256": "39117f58ef086792483b282edc112cd2262adedb15c87a113d73f2e11f87e150"
+    },
+    "static/profile-placeholder.svg": {
+      "new_sha256": "b048232b69541bdca3e898edac9284949c2ec39d67cb117d8eb012866de23469"
+    }
+  }
+}

@@ -29,7 +29,7 @@ function build_view_resources(): string {
             throw new RuntimeException('Unsafe bundled stylesheet.');
         $styles[$name] = $css;
     }
-    foreach (['Black','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte',
+    foreach (['Black','GoroDaimon','Tron','SecOps','Custom','Ajattix','Art','Art1','Art2','Art3','Arte',
               'Cat','Cat2','Gentoo','Kawaii','Lain','SecurityOps','Stop','Valerie'] as $name) {
         if (!is_file($root.'/static/themes/'.$name.'.css')) continue;
         $read('static/themes/'.$name.'.css', 65536);

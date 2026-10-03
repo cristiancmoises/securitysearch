@@ -66,6 +66,8 @@ class page_renderer {
         if ($theme === 'SecOps' && !operator_themes::available('SecOps')) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/SecOps-motion.css?v' . config::VERSION . '">';
         if (operator_themes::available($theme)) $replacements["style"] .= '<link rel="stylesheet" href="/static/themes/' . rawurlencode($theme) . '-operator.css?v' . config::VERSION . '">';
         if ($theme === 'Custom') $replacements["style"] .= '<script defer src="/static/local-background.js?v' . config::VERSION . '"></script>';
+        // The white palette must follow shared controls and the inline home skin.
+        if ($theme === 'GoroDaimon') $replacements['style']=str_replace('<link rel="stylesheet" href="/static/themes/GoroDaimon.css?v'.config::VERSION.'">','',$replacements['style']);
         }
 
 		if(isset($_COOKIE["scraper_ac"]) && is_string($_COOKIE["scraper_ac"]) && strlen($_COOKIE["scraper_ac"])<=64){
@@ -92,6 +94,7 @@ class page_renderer {
             $map['{%'.$key.'%}']=(string)$value;
         }
         $html=strtr($html,$map);
+        if (($theme ?? null)==='GoroDaimon') $html=str_replace('</head>','<link rel="stylesheet" href="/static/themes/GoroDaimon.css?v'.config::VERSION.'-gorodaimon1"></head>',$html);
 
 		return trim($html);
 	}

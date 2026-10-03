@@ -4,6 +4,7 @@ final class image_results {
     public const PAGE_SIZE = 24;
     public const MAX_SOURCES = 32;
     public const LABEL_BYTES = 1024;
+    private const PROFILE_PLACEHOLDER = '/static/profile-placeholder.svg';
 
     /** Inspect only the displayed prefix; never scan an unbounded provider title.
      * UTF-8 is cut on a character boundary. Malformed prefixes use a fixed label.
@@ -34,6 +35,12 @@ final class image_results {
         return ['image'=>array_slice($images,0,self::PAGE_SIZE), 'npt'=>is_string($results['npt'] ?? null) ? $results['npt'] : null, 'omitted'=>$omitted];
     }
 
+    /** Navigation may stay on this instance; remote media remains HTTP(S)-only. */
+    private static function navigation($url): bool {
+        return self::remote($url) || (is_string($url) && strlen($url)<=8192 &&
+            preg_match('~\A/(?!/)[^\\\\\x00-\x20\x7f]+\z~D',$url)===1);
+    }
+
     public static function items(frontend $frontend,array $get,array $results): array {
         $quality=in_array($get['quality'] ?? null,['high','original'],true) ? $get['quality'] : 'preview';
         $items=[];
@@ -42,7 +49,7 @@ final class image_results {
             $sources=[];$seen=[];
             foreach (array_slice($image['source'],0,self::MAX_SOURCES) as $source) {
                 $url=is_array($source) ? ($source['url'] ?? null) : null;
-                if (!self::remote($url) || isset($seen[$url])) { continue; }
+                if ((!self::remote($url) && $url!==self::PROFILE_PLACEHOLDER) || isset($seen[$url])) { continue; }
                 $seen[$url]=true;
                 $width=filter_var($source['width'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);
                 $height=filter_var($source['height'] ?? null,FILTER_VALIDATE_INT,['options'=>['min_range'=>1,'max_range'=>100000]]);
@@ -52,8 +59,15 @@ final class image_results {
             $original=$sources[0];$thumb=self::thumbnail($sources);
             $display=$quality==='preview' ? $thumb : $original;
             $title=self::label($image['title'] ?? null, 'Image result');
-            $result=self::remote($image['url'] ?? null) ? $image['url'] : $original['url'];
+            $result=self::navigation($image['url'] ?? null) ? $image['url'] : $original['url'];
             $host=self::label(parse_url($result,PHP_URL_HOST), 'Source', 253);
+            // This single owned icon is not a provider photograph or a fetch target.
+            if ($original['url']===self::PROFILE_PLACEHOLDER) {
+                $items[]=['original'=>self::PROFILE_PLACEHOLDER,'preview'=>self::PROFILE_PLACEHOLDER,
+                    'title'=>$title,'source'=>$result,'host'=>$host,'width'=>236,'height'=>180,
+                    'links'=>[['label'=>'Profile icon','href'=>self::PROFILE_PLACEHOLDER]],'motion'=>null];
+                continue;
+            }
             $src=$frontend->htmlimage($display['url'],$quality==='preview' ? 'thumb' : $quality);
             $motion=self::remote($image['motion_url'] ?? null) ? $image['motion_url'] : $original['url'];
             $format=$frontend->animatedimageformat($motion);
